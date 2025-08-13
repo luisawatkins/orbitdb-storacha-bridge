@@ -36,4 +36,351 @@ async function createHeliaOrbitDB(suffix = '') {
     transports: [tcp()],
     connectionEncryption: [noise()],
     streamMuxers: [yamux()],
-    services: {\n      identify: identify(),\n      pubsub: gossipsub({ allowPublishToZeroTopicPeers: true })\n    }\n  })\n  \n  const uniqueId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`\n  const blockstore = new LevelBlockstore(`./improved-manifest-test-${uniqueId}${suffix}`)\n  const datastore = new LevelDatastore(`./improved-manifest-test-${uniqueId}${suffix}-data`)\n  \n  await blockstore.open()\n  await datastore.open()\n  \n  const helia = await createHelia({ libp2p, blockstore, datastore })\n  const orbitdb = await createOrbitDB({ ipfs: helia })\n  \n  return { helia, orbitdb, libp2p, blockstore, datastore }\n}\n\n/**\n * Download a block from Storacha using its CID mapping\n */\nasync function downloadBlockFromStoracha(orbitdbCID, cidMappings) {\n  const gateways = [\n    'https://w3s.link/ipfs',\n    'https://gateway.web3.storage/ipfs',\n    'https://ipfs.io/ipfs'\n  ]\n  \n  // Use stored Storacha CID mapping if available\n  let targetCID = cidMappings[orbitdbCID]\n  if (!targetCID) {\n    try {\n      const parsed = CID.parse(orbitdbCID)\n      targetCID = parsed.toV1().toString()\n    } catch (error) {\n      console.warn(`   ⚠️ Could not convert CID ${orbitdbCID}: ${error.message}`)\n      return null\n    }\n  }\n  \n  for (const gateway of gateways) {\n    try {\n      console.log(`   🌐 Downloading ${orbitdbCID}...`)\n      \n      const response = await fetch(`${gateway}/${targetCID}`, {\n        timeout: 15000\n      })\n      \n      if (response.ok) {\n        const bytes = new Uint8Array(await response.arrayBuffer())\n        console.log(`   ✅ Downloaded ${bytes.length} bytes`)\n        return bytes\n      }\n    } catch (error) {\n      console.log(`   ⚠️ Failed from ${gateway}: ${error.message}`)\n    }\n  }\n  \n  console.log(`   ❌ Could not download block ${orbitdbCID}`)\n  return null\n}\n\n/**\n * Discover log entry blocks by opening the database and inspecting its log\n */\nasync function discoverLogEntries(database, cidMappings) {\n  console.log('🔍 Discovering log entry blocks from database...')\n  \n  const discoveredBlocks = new Map()\n  \n  try {\n    // Get all log entries\n    const entries = await database.log.values()\n    console.log(`   📋 Found ${entries.length} log entries in database`)\n    \n    for (const entry of entries) {\n      console.log(`   🔍 Processing entry: ${entry.hash}`)\n      \n      // Download the entry block\n      const bytes = await downloadBlockFromStoracha(entry.hash, cidMappings)\n      if (bytes) {\n        const cid = CID.parse(entry.hash)\n        discoveredBlocks.set(entry.hash, { cid, bytes })\n        console.log(`   ✅ Added entry block: ${entry.hash}`)\n        \n        // Also get the identity block if referenced\n        if (entry.identity && !discoveredBlocks.has(entry.identity)) {\n          console.log(`   🔍 Processing identity: ${entry.identity}`)\n          const identityBytes = await downloadBlockFromStoracha(entry.identity, cidMappings)\n          if (identityBytes) {\n            const identityCid = CID.parse(entry.identity)\n            discoveredBlocks.set(entry.identity, { cid: identityCid, bytes: identityBytes })\n            console.log(`   ✅ Added identity block: ${entry.identity}`)\n          }\n        }\n      }\n    }\n    \n  } catch (error) {\n    console.warn(`   ⚠️ Error discovering log entries: ${error.message}`)\n  }\n  \n  console.log(`   📊 Discovered ${discoveredBlocks.size} log-related blocks`)\n  return discoveredBlocks\n}\n\n/**\n * Test the improved manifest-driven approach\n */\nasync function testImprovedManifestDrivenApproach() {\n  console.log('🧪 Testing Improved Manifest-Driven Block Discovery')\n  console.log('=' .repeat(60))\n  \n  let sourceNode = null\n  let targetNode = null\n  \n  try {\n    // 1. Create source OrbitDB and populate with data\n    console.log('\\n📝 Step 1: Creating source database...')\n    sourceNode = await createHeliaOrbitDB('-source')\n    \n    const sourceDB = await sourceNode.orbitdb.open('improved-manifest-test', { \n      type: 'documents',\n      create: true \n    })\n    \n    console.log(`   Database created: ${sourceDB.address}`)\n    \n    // Add test data\n    const testDocs = [\n      { _id: 'doc1', title: 'Improved Discovery Test 1', content: 'Testing log discovery' },\n      { _id: 'doc2', title: 'Improved Discovery Test 2', content: 'Finding all log entries' },\n      { _id: 'doc3', title: 'Improved Discovery Test 3', content: 'Complete block reconstruction' }\n    ]\n    \n    for (const doc of testDocs) {\n      await sourceDB.put(doc)\n      console.log(`   ✓ Added document: ${doc._id}`)\n    }\n    \n    console.log(`   📊 Source database has ${(await sourceDB.all()).length} documents`)\n    \n    // 2. Backup to Storacha \n    console.log('\\n📤 Step 2: Backing up to Storacha...')\n    const backupResult = await backupDatabase(sourceNode.orbitdb, sourceDB.address)\n    \n    if (!backupResult.success) {\n      throw new Error(`Backup failed: ${backupResult.error}`)\n    }\n    \n    console.log(`   ✅ Backup successful!`)\n    console.log(`   📍 Manifest CID: ${backupResult.manifestCID}`)\n    console.log(`   📊 Blocks uploaded: ${backupResult.blocksUploaded}`)\n    \n    // 3. Close source\n    console.log('\\n🔒 Step 3: Closing source database...')\n    await sourceDB.close()\n    await sourceNode.orbitdb.stop()\n    await sourceNode.helia.stop()\n    await sourceNode.blockstore.close()\n    await sourceNode.datastore.close()\n    sourceNode = null\n    \n    await new Promise(resolve => setTimeout(resolve, 2000))\n    \n    // 4. Create fresh target node\n    console.log('\\n🎯 Step 4: Creating fresh target node...')\n    targetNode = await createHeliaOrbitDB('-target')\n    console.log(`   ✓ Target node ready`)\n    \n    // 5. Download manifest and access controller blocks\n    console.log('\\n🔍 Step 5: Downloading core structural blocks...')\n    const coreBlocks = new Map()\n    \n    // Download manifest\n    const manifestBytes = await downloadBlockFromStoracha(\n      backupResult.manifestCID, \n      backupResult.cidMappings\n    )\n    if (!manifestBytes) {\n      throw new Error('Could not download manifest block')\n    }\n    \n    const manifestCid = CID.parse(backupResult.manifestCID)\n    coreBlocks.set(backupResult.manifestCID, { cid: manifestCid, bytes: manifestBytes })\n    \n    // Decode manifest to get access controller CID\n    const manifestBlock = await Block.decode({\n      cid: manifestCid,\n      bytes: manifestBytes,\n      codec: dagCbor,\n      hasher: sha256\n    })\n    \n    const accessControllerCID = manifestBlock.value.accessController.replace('/ipfs/', '')\n    console.log(`   🔍 Found access controller: ${accessControllerCID}`)\n    \n    const accessBytes = await downloadBlockFromStoracha(\n      accessControllerCID,\n      backupResult.cidMappings\n    )\n    if (!accessBytes) {\n      throw new Error('Could not download access controller block')\n    }\n    \n    const accessCid = CID.parse(accessControllerCID)\n    coreBlocks.set(accessControllerCID, { cid: accessCid, bytes: accessBytes })\n    \n    console.log(`   📊 Downloaded ${coreBlocks.size} core blocks`)\n    \n    // 6. Store core blocks and partially open database\n    console.log('\\n📥 Step 6: Storing core blocks and opening database...')\n    for (const [cidStr, { cid, bytes }] of coreBlocks) {\n      await targetNode.helia.blockstore.put(cid, bytes)\n      console.log(`   ✅ Stored: ${cidStr}`)\n    }\n    \n    // Open database (this should work with manifest + access controller)\n    const partialDB = await targetNode.orbitdb.open(backupResult.databaseAddress)\n    console.log(`   ✅ Partially opened database: ${partialDB.address}`)\n    \n    // 7. Discover and download log entry blocks\n    console.log('\\n🔍 Step 7: Discovering log entry blocks...')\n    const logBlocks = await discoverLogEntries(partialDB, backupResult.cidMappings)\n    \n    if (logBlocks.size === 0) {\n      throw new Error('No log entry blocks were discovered')\n    }\n    \n    // 8. Store all log blocks\n    console.log('\\n📥 Step 8: Storing log entry blocks...')\n    for (const [cidStr, { cid, bytes }] of logBlocks) {\n      await targetNode.helia.blockstore.put(cid, bytes)\n      console.log(`   ✅ Stored log block: ${cidStr}`)\n    }\n    \n    console.log(`   📊 Stored ${logBlocks.size} log blocks`)\n    \n    // 9. Close and reopen database to load all entries\n    console.log('\\n🔄 Step 9: Reopening database with all blocks...')\n    await partialDB.close()\n    \n    const fullyRestoredDB = await targetNode.orbitdb.open(backupResult.databaseAddress)\n    \n    // Wait for entries to load\n    await new Promise(resolve => setTimeout(resolve, 2000))\n    \n    const allEntries = await fullyRestoredDB.all()\n    \n    console.log(`   ✅ Fully restored database with ${allEntries.length} entries`)\n    \n    // 10. Verify data\n    console.log('\\n✅ Step 10: Verifying restored data...')\n    console.log(`   📊 Expected entries: ${testDocs.length}`)\n    console.log(`   📊 Restored entries: ${allEntries.length}`)\n    \n    for (const entry of allEntries) {\n      console.log(`   ✓ ${entry._id}: \"${entry.title}\"`)\n    }\n    \n    // 11. Results\n    const totalBlocks = coreBlocks.size + logBlocks.size\n    const success = allEntries.length === testDocs.length && \n                   fullyRestoredDB.address === backupResult.databaseAddress\n    \n    console.log('\\n' + '='.repeat(60))\n    console.log('🎉 IMPROVED MANIFEST-DRIVEN RESULTS')\n    console.log('='.repeat(60))\n    console.log(`✅ Core blocks downloaded: ${coreBlocks.size}`)\n    console.log(`✅ Log blocks discovered: ${logBlocks.size}`)\n    console.log(`✅ Total blocks restored: ${totalBlocks}`)\n    console.log(`✅ Database restoration: ${allEntries.length > 0 ? 'SUCCESS' : 'FAILED'}`)\n    console.log(`✅ Address preservation: ${fullyRestoredDB.address === backupResult.databaseAddress ? 'SUCCESS' : 'FAILED'}`)\n    console.log(`✅ Data integrity: ${allEntries.length === testDocs.length ? 'SUCCESS' : 'PARTIAL'}`)\n    \n    if (success) {\n      console.log('\\n🚀 CONCLUSION: Improved manifest-driven approach WORKS!')\n      console.log('   ✓ Only manifest CID needed to start restoration')\n      console.log('   ✓ All blocks discovered automatically via database structure')\n      console.log('   ✓ Perfect hash preservation and data integrity')\n      console.log('   ✓ No need to store complex CID mappings!')\n    } else {\n      console.log('\\n⚡ CONCLUSION: Needs further refinement')\n      console.log('   ⚠️ Some blocks or entries may still be missing')\n    }\n    \n    return {\n      success,\n      coreBlocks: coreBlocks.size,\n      logBlocks: logBlocks.size,\n      totalBlocks,\n      entriesRestored: allEntries.length,\n      expectedEntries: testDocs.length,\n      addressPreserved: fullyRestoredDB.address === backupResult.databaseAddress\n    }\n    \n  } catch (error) {\n    console.error('\\n❌ Test failed:', error.message)\n    console.error('Stack:', error.stack)\n    return {\n      success: false,\n      error: error.message\n    }\n  } finally {\n    // Cleanup\n    console.log('\\n🧹 Cleaning up...')\n    \n    if (sourceNode) {\n      try {\n        await sourceNode.orbitdb.stop()\n        await sourceNode.helia.stop() \n        await sourceNode.blockstore.close()\n        await sourceNode.datastore.close()\n      } catch (error) {\n        console.warn('Source cleanup warning:', error.message)\n      }\n    }\n    \n    if (targetNode) {\n      try {\n        await targetNode.orbitdb.stop()\n        await targetNode.helia.stop()\n        await targetNode.blockstore.close() \n        await targetNode.datastore.close()\n      } catch (error) {\n        console.warn('Target cleanup warning:', error.message)\n      }\n    }\n    \n    console.log('   ✓ Cleanup completed')\n  }\n}\n\n// Run the test\nif (import.meta.url === `file://${process.argv[1]}`) {\n  testImprovedManifestDrivenApproach()\n    .then(result => {\n      console.log('\\n📋 Final Result:', result)\n      process.exit(result.success ? 0 : 1)\n    })\n    .catch(error => {\n      console.error('\\n💥 Test execution failed:', error)\n      process.exit(1)\n    })\n}\n\nexport { testImprovedManifestDrivenApproach }
+    services: {
+      identify: identify(),
+      pubsub: gossipsub({ allowPublishToZeroTopicPeers: true })
+    }
+  })
+  
+  const uniqueId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  const blockstore = new LevelBlockstore(`./improved-manifest-test-${uniqueId}${suffix}`)
+  const datastore = new LevelDatastore(`./improved-manifest-test-${uniqueId}${suffix}-data`)
+  
+  await blockstore.open()
+  await datastore.open()
+  
+  const helia = await createHelia({ libp2p, blockstore, datastore })
+  const orbitdb = await createOrbitDB({ ipfs: helia })
+  
+  return { helia, orbitdb, libp2p, blockstore, datastore }
+}
+
+/**
+ * Download a block from Storacha using its CID mapping
+ */
+async function downloadBlockFromStoracha(orbitdbCID, cidMappings) {
+  const gateways = [
+    'https://w3s.link/ipfs',
+    'https://gateway.web3.storage/ipfs',
+    'https://ipfs.io/ipfs'
+  ]
+  
+  // Use stored Storacha CID mapping if available
+  let targetCID = cidMappings[orbitdbCID]
+  if (!targetCID) {
+    try {
+      const parsed = CID.parse(orbitdbCID)
+      targetCID = parsed.toV1().toString()
+    } catch (error) {
+      console.warn(`   ⚠️ Could not convert CID ${orbitdbCID}: ${error.message}`)
+      return null
+    }
+  }
+  
+  for (const gateway of gateways) {
+    try {
+      console.log(`   🌐 Downloading ${orbitdbCID}...`)
+      
+      const response = await fetch(`${gateway}/${targetCID}`, {
+        timeout: 15000
+      })
+      
+      if (response.ok) {
+        const bytes = new Uint8Array(await response.arrayBuffer())
+        console.log(`   ✅ Downloaded ${bytes.length} bytes`)
+        return bytes
+      }
+    } catch (error) {
+      console.log(`   ⚠️ Failed from ${gateway}: ${error.message}`)
+    }
+  }
+  
+  console.log(`   ❌ Could not download block ${orbitdbCID}`)
+  return null
+}
+
+/**
+ * Discover log entry blocks by opening the database and inspecting its log
+ */
+async function discoverLogEntries(database, cidMappings) {
+  console.log('🔍 Discovering log entry blocks from database...')
+  
+  const discoveredBlocks = new Map()
+  
+  try {
+    // Get all log entries
+    const entries = await database.log.values()
+    console.log(`   📋 Found ${entries.length} log entries in database`)
+    
+    for (const entry of entries) {
+      console.log(`   🔍 Processing entry: ${entry.hash}`)
+      
+      // Download the entry block
+      const bytes = await downloadBlockFromStoracha(entry.hash, cidMappings)
+      if (bytes) {
+        const cid = CID.parse(entry.hash)
+        discoveredBlocks.set(entry.hash, { cid, bytes })
+        console.log(`   ✅ Added entry block: ${entry.hash}`)
+        
+        // Also get the identity block if referenced
+        if (entry.identity && !discoveredBlocks.has(entry.identity)) {
+          console.log(`   🔍 Processing identity: ${entry.identity}`)
+          const identityBytes = await downloadBlockFromStoracha(entry.identity, cidMappings)
+          if (identityBytes) {
+            const identityCid = CID.parse(entry.identity)
+            discoveredBlocks.set(entry.identity, { cid: identityCid, bytes: identityBytes })
+            console.log(`   ✅ Added identity block: ${entry.identity}`)
+          }
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.warn(`   ⚠️ Error discovering log entries: ${error.message}`)
+  }
+  
+  console.log(`   📊 Discovered ${discoveredBlocks.size} log-related blocks`)
+  return discoveredBlocks
+}
+
+/**
+ * Test the improved manifest-driven approach
+ */
+async function testImprovedManifestDrivenApproach() {
+  console.log('🧪 Testing Improved Manifest-Driven Block Discovery')
+  console.log('=' .repeat(60))
+  
+  let sourceNode = null
+  let targetNode = null
+  
+  try {
+    // 1. Create source OrbitDB and populate with data
+    console.log('\n📝 Step 1: Creating source database...')
+    sourceNode = await createHeliaOrbitDB('-source')
+    
+    const sourceDB = await sourceNode.orbitdb.open('improved-manifest-test', { 
+      type: 'documents',
+      create: true 
+    })
+    
+    console.log(`   Database created: ${sourceDB.address}`)
+    
+    // Add test data
+    const testDocs = [
+      { _id: 'doc1', title: 'Improved Discovery Test 1', content: 'Testing log discovery' },
+      { _id: 'doc2', title: 'Improved Discovery Test 2', content: 'Finding all log entries' },
+      { _id: 'doc3', title: 'Improved Discovery Test 3', content: 'Complete block reconstruction' }
+    ]
+    
+    for (const doc of testDocs) {
+      await sourceDB.put(doc)
+      console.log(`   ✓ Added document: ${doc._id}`)
+    }
+    
+    console.log(`   📊 Source database has ${(await sourceDB.all()).length} documents`)
+    
+    // 2. Backup to Storacha 
+    console.log('\n📤 Step 2: Backing up to Storacha...')
+    const backupResult = await backupDatabase(sourceNode.orbitdb, sourceDB.address)
+    
+    if (!backupResult.success) {
+      throw new Error(`Backup failed: ${backupResult.error}`)
+    }
+    
+    console.log(`   ✅ Backup successful!`)
+    console.log(`   📍 Manifest CID: ${backupResult.manifestCID}`)
+    console.log(`   📊 Blocks uploaded: ${backupResult.blocksUploaded}`)
+    
+    // 3. Close source
+    console.log('\n🔒 Step 3: Closing source database...')
+    await sourceDB.close()
+    await sourceNode.orbitdb.stop()
+    await sourceNode.helia.stop()
+    await sourceNode.blockstore.close()
+    await sourceNode.datastore.close()
+    sourceNode = null
+    
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // 4. Create fresh target node
+    console.log('\n🎯 Step 4: Creating fresh target node...')
+    targetNode = await createHeliaOrbitDB('-target')
+    console.log(`   ✓ Target node ready`)
+    
+    // 5. Download manifest and access controller blocks
+    console.log('\n🔍 Step 5: Downloading core structural blocks...')
+    const coreBlocks = new Map()
+    
+    // Download manifest
+    const manifestBytes = await downloadBlockFromStoracha(
+      backupResult.manifestCID, 
+      backupResult.cidMappings
+    )
+    if (!manifestBytes) {
+      throw new Error('Could not download manifest block')
+    }
+    
+    const manifestCid = CID.parse(backupResult.manifestCID)
+    coreBlocks.set(backupResult.manifestCID, { cid: manifestCid, bytes: manifestBytes })
+    
+    // Decode manifest to get access controller CID
+    const manifestBlock = await Block.decode({
+      cid: manifestCid,
+      bytes: manifestBytes,
+      codec: dagCbor,
+      hasher: sha256
+    })
+    
+    const accessControllerCID = manifestBlock.value.accessController.replace('/ipfs/', '')
+    console.log(`   🔍 Found access controller: ${accessControllerCID}`)
+    
+    const accessBytes = await downloadBlockFromStoracha(
+      accessControllerCID,
+      backupResult.cidMappings
+    )
+    if (!accessBytes) {
+      throw new Error('Could not download access controller block')
+    }
+    
+    const accessCid = CID.parse(accessControllerCID)
+    coreBlocks.set(accessControllerCID, { cid: accessCid, bytes: accessBytes })
+    
+    console.log(`   📊 Downloaded ${coreBlocks.size} core blocks`)
+    
+    // 6. Store core blocks and partially open database
+    console.log('\n📥 Step 6: Storing core blocks and opening database...')
+    for (const [cidStr, { cid, bytes }] of coreBlocks) {
+      await targetNode.helia.blockstore.put(cid, bytes)
+      console.log(`   ✅ Stored: ${cidStr}`)
+    }
+    
+    // Open database (this should work with manifest + access controller)
+    const partialDB = await targetNode.orbitdb.open(backupResult.databaseAddress)
+    console.log(`   ✅ Partially opened database: ${partialDB.address}`)
+    
+    // 7. Discover and download log entry blocks
+    console.log('\n🔍 Step 7: Discovering log entry blocks...')
+    const logBlocks = await discoverLogEntries(partialDB, backupResult.cidMappings)
+    
+    if (logBlocks.size === 0) {
+      throw new Error('No log entry blocks were discovered')
+    }
+    
+    // 8. Store all log blocks
+    console.log('\n📥 Step 8: Storing log entry blocks...')
+    for (const [cidStr, { cid, bytes }] of logBlocks) {
+      await targetNode.helia.blockstore.put(cid, bytes)
+      console.log(`   ✅ Stored log block: ${cidStr}`)
+    }
+    
+    console.log(`   📊 Stored ${logBlocks.size} log blocks`)
+    
+    // 9. Close and reopen database to load all entries
+    console.log('\n🔄 Step 9: Reopening database with all blocks...')
+    await partialDB.close()
+    
+    const fullyRestoredDB = await targetNode.orbitdb.open(backupResult.databaseAddress)
+    
+    // Wait for entries to load
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    const allEntries = await fullyRestoredDB.all()
+    
+    console.log(`   ✅ Fully restored database with ${allEntries.length} entries`)
+    
+    // 10. Verify data
+    console.log('\n✅ Step 10: Verifying restored data...')
+    console.log(`   📊 Expected entries: ${testDocs.length}`)
+    console.log(`   📊 Restored entries: ${allEntries.length}`)
+    
+    for (const entry of allEntries) {
+      console.log(`   ✓ ${entry._id}: "${entry.title}"`)
+    }
+    
+    // 11. Results
+    const totalBlocks = coreBlocks.size + logBlocks.size
+    const success = allEntries.length === testDocs.length && 
+                   fullyRestoredDB.address === backupResult.databaseAddress
+    
+    console.log('\n' + '='.repeat(60))
+    console.log('🎉 IMPROVED MANIFEST-DRIVEN RESULTS')
+    console.log('='.repeat(60))
+    console.log(`✅ Core blocks downloaded: ${coreBlocks.size}`)
+    console.log(`✅ Log blocks discovered: ${logBlocks.size}`)
+    console.log(`✅ Total blocks restored: ${totalBlocks}`)
+    console.log(`✅ Database restoration: ${allEntries.length > 0 ? 'SUCCESS' : 'FAILED'}`)
+    console.log(`✅ Address preservation: ${fullyRestoredDB.address === backupResult.databaseAddress ? 'SUCCESS' : 'FAILED'}`)
+    console.log(`✅ Data integrity: ${allEntries.length === testDocs.length ? 'SUCCESS' : 'PARTIAL'}`)
+    
+    if (success) {
+      console.log('\n🚀 CONCLUSION: Improved manifest-driven approach WORKS!')
+      console.log('   ✓ Only manifest CID needed to start restoration')
+      console.log('   ✓ All blocks discovered automatically via database structure')
+      console.log('   ✓ Perfect hash preservation and data integrity')
+      console.log('   ✓ No need to store complex CID mappings!')
+    } else {
+      console.log('\n⚡ CONCLUSION: Needs further refinement')
+      console.log('   ⚠️ Some blocks or entries may still be missing')
+    }
+    
+    return {
+      success,
+      coreBlocks: coreBlocks.size,
+      logBlocks: logBlocks.size,
+      totalBlocks,
+      entriesRestored: allEntries.length,
+      expectedEntries: testDocs.length,
+      addressPreserved: fullyRestoredDB.address === backupResult.databaseAddress
+    }
+    
+  } catch (error) {
+    console.error('\n❌ Test failed:', error.message)
+    console.error('Stack:', error.stack)
+    return {
+      success: false,
+      error: error.message
+    }
+  } finally {
+    // Cleanup
+    console.log('\n🧹 Cleaning up...')
+    
+    if (sourceNode) {
+      try {
+        await sourceNode.orbitdb.stop()
+        await sourceNode.helia.stop() 
+        await sourceNode.blockstore.close()
+        await sourceNode.datastore.close()
+      } catch (error) {
+        console.warn('Source cleanup warning:', error.message)
+      }
+    }
+    
+    if (targetNode) {
+      try {
+        await targetNode.orbitdb.stop()
+        await targetNode.helia.stop()
+        await targetNode.blockstore.close() 
+        await targetNode.datastore.close()
+      } catch (error) {
+        console.warn('Target cleanup warning:', error.message)
+      }
+    }
+    
+    console.log('   ✓ Cleanup completed')
+  }
+}
+
+// Run the test
+if (import.meta.url === `file://${process.argv[1]}`) {
+  testImprovedManifestDrivenApproach()
+    .then(result => {
+      console.log('\n📋 Final Result:', result)
+      process.exit(result.success ? 0 : 1)
+    })
+    .catch(error => {
+      console.error('\n💥 Test execution failed:', error)
+      process.exit(1)
+    })
+}
+
+export { testImprovedManifestDrivenApproach }

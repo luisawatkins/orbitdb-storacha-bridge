@@ -14,7 +14,6 @@ import {
   backupDatabase, 
   restoreDatabaseFromSpace, 
   listStorachaSpaceFiles,
-  analyzeBlocks,
   createHeliaOrbitDB,
   OrbitDBStorachaBridge 
 } from '../lib/orbitdb-storacha-bridge.js'

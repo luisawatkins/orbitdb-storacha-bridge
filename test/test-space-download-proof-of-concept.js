@@ -192,7 +192,7 @@ async function analyzeBlocks(blockstore, downloadedBlocks = null) {
         console.log(`   🔧 Raw block: ${cidString}`)
       }
     } catch (error) {
-      console.warn(`   ❌ Error analyzing block ${cid}: ${error.message}`)
+      console.warn(`   ❌ Error analyzing block ${cidString}: ${error.message}`)
     }
   }
   
