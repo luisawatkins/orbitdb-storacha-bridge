@@ -1,6 +1,16 @@
-# OrbitDB Storacha Bridge
+# OrbitDB Storacha Bridge (Evolved)
 
-> **Complete OrbitDB database replication via Storacha/Filecoin with 100% hash preservation and identity recovery**
+> **Complete OrbitDB database replication via Storacha/Filecoin with 100% hash preservation, intelligent space discovery, and mapping-independent restore**
+
+## 🚀 Evolutionary Breakthrough
+
+This library has **evolved** by merging the best approaches into a single production-ready solution:
+
+1. **✅ Professional API** - Clean interfaces and comprehensive error handling from the original library
+2. **✅ w3 CLI Integration** - Breakthrough subprocess approach that bypasses JavaScript SDK limitations  
+3. **✅ Advanced Block Analysis** - Intelligent classification with automatic log head detection
+4. **✅ Mapping-Independent Restore** - Complete database recovery without requiring stored CID mappings
+5. **✅ Production Architecture** - All features combined into a cohesive, reliable library
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-22+-green.svg)](https://nodejs.org/)
@@ -39,6 +49,24 @@ Unlike traditional approaches that create large CAR files, this solution uploads
 - Detailed logging and progress reporting
 - Clean resource management and cleanup
 - Suitable for automated backup systems
+
+### 🚀 **BREAKTHROUGH: w3 CLI Integration**
+- Bypasses JavaScript SDK limitations for reliable space listing
+- Uses subprocess approach to execute `w3 can upload ls` command
+- Enables complete space discovery without stored CID mappings
+- Provides fault-tolerant alternative to buggy library APIs
+
+### 🧠 **Advanced Block Analysis**
+- Smart classification of manifests, log entries, identities, access controllers
+- Automatic log head detection for complete database reconstruction
+- Intelligent log chain analysis for dependency resolution
+- Runtime block structure analysis without prior knowledge
+
+### 🔄 **Mapping-Independent Restore** 
+- Complete database recovery without requiring stored CID mappings
+- Downloads entire Storacha space and analyzes all blocks
+- Self-sufficient restore process that works with any backup
+- Breakthrough solution to the "lost mapping" problem
 
 ## 🏗️ How It Works
 
@@ -133,6 +161,9 @@ STORACHA_PROOF=your_storacha_proof_here
 import { 
   backupDatabase, 
   restoreDatabase, 
+  restoreDatabaseFromSpace,  // BREAKTHROUGH: Mapping-independent restore
+  listStorachaSpaceFiles,    // BREAKTHROUGH: w3 CLI integration
+  analyzeBlocks,             // BREAKTHROUGH: Advanced block analysis
   extractManifestCID 
 } from './lib/orbitdb-storacha-bridge.js'
 
@@ -141,10 +172,14 @@ const backupResult = await backupDatabase(orbitdb, databaseAddress)
 console.log(`Backup completed: ${backupResult.blocksUploaded} blocks uploaded`)
 console.log(`Manifest CID: ${backupResult.manifestCID}`)
 
-// Restore database on another node
+// Traditional restore (requires CID mappings)
 const restoreResult = await restoreDatabase(targetOrbitdb, backupResult.manifestCID)
 console.log(`Restore completed: ${restoreResult.entriesRecovered} entries restored`)
-console.log(`Address match: ${restoreResult.addressMatch}`)
+
+// BREAKTHROUGH: Mapping-independent restore (recommended)
+const smartRestore = await restoreDatabaseFromSpace(targetOrbitdb)
+console.log(`Smart restore: ${smartRestore.entriesRecovered} entries from ${smartRestore.spaceFilesFound} files`)
+console.log(`Advanced analysis: ${smartRestore.analysis.manifestBlocks.length} manifests found`)
 ```
 
 ### Command Line Interface
