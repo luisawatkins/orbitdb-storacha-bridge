@@ -49,6 +49,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install W3 CLI
+        run: npm install -g @web3-storage/w3cli
+
       - name: Create .env file for tests
         run: |
           echo "STORACHA_KEY=${{ secrets.STORACHA_KEY }}" >> .env
