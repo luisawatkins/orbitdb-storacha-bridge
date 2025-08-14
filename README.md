@@ -1,10 +1,6 @@
 # OrbitDB Storacha Bridge (Evolved)
 
-> **Complete OrbitDB database replication via Storacha/Filecoin with 100% hash preservation, intelligent space discovery, and mapping-independent restore**
-
-## 🚀 Evolutionary Breakthrough
-
-This library has **evolved** by merging the best approaches into a single production-ready solution:
+> **Complete OrbitDB database replication via Storacha/Filecoin with 100% hash preservation**
 
 1. **✅ Professional API** - Clean interfaces and comprehensive error handling from the original library
 2. **✅ w3 CLI Integration** - Breakthrough subprocess approach that bypasses JavaScript SDK limitations  
