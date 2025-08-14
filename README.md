@@ -14,7 +14,7 @@
 
 The **OrbitDB Storacha Bridge** is a production-ready solution that enables complete backup, replication, and restoration of OrbitDB databases using **Storacha** (Web3.Storage) and the **Filecoin** network. 
 
-Unlike traditional approaches that create large CAR files, this solution uploads individual blocks and uses advanced **CID format bridging** to ensure perfect compatibility between OrbitDB's specific CID format and standard IPFS CIDs used by Storacha.
+Unlike traditional approaches that create large CAR files, this solution uploads individual blocks and bridges the **CID format** to ensure compatibility between OrbitDB's specific CID format and standard IPFS CIDs used by Storacha.
 
 ## 🚀 Key Features
 
