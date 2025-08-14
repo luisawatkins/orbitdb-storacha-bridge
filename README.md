@@ -3,9 +3,8 @@
 > **Complete OrbitDB database replication via Storacha/Filecoin with 100% hash preservation**
 
 1. **✅ Professional API** - Clean interfaces and comprehensive error handling from the original library
-2. **✅ w3 CLI Integration** - Breakthrough subprocess approach that bypasses JavaScript SDK limitations  
+2. **✅ w3 CLI Integration** - (so far a workaround - planed to be replaced with Storache client libs working in the browser) 
 3. **✅ Advanced Block Analysis** - Intelligent classification with automatic log head detection
-4. **✅ Mapping-Independent Restore** - Complete database recovery without requiring stored CID mappings
 5. **✅ Production Architecture** - All features combined into a cohesive, reliable library
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
