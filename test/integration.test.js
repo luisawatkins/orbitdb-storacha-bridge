@@ -12,6 +12,7 @@
  * @requires ../lib/orbitdb-storacha-bridge.js - Main bridge library functions
  */
 
+/* global afterAll */
 import 'dotenv/config'
 import { 
   backupDatabase, 

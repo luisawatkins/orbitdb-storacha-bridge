@@ -68,7 +68,7 @@ async function createHeliaOrbitDB(suffix = '') {
 async function initializeStorachaClient() {
   const client = await Client.create({ store: new StoreMemory() })
   
-  const principal = Signer.parse(process.env.STORACHA_KEY)
+  const _principal = Signer.parse(process.env.STORACHA_KEY)
   const proof = await Proof.parse(process.env.STORACHA_PROOF)
   
   const space = await client.addSpace(proof)

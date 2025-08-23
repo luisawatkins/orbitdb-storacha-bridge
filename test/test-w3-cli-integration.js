@@ -352,7 +352,7 @@ async function analyzeBlocks(blockstore, downloadedBlocks = null) {
   
   // Determine heads
   console.log('🎯 Determining log heads:')
-  for (const [entryHash, entryContent] of analysis.logStructure) {
+  for (const [entryHash, _entryContent] of analysis.logStructure) {
     if (!analysis.logChain.has(entryHash)) {
       analysis.potentialHeads.push(entryHash)
       console.log(`   🎯 HEAD: ${entryHash}`)
