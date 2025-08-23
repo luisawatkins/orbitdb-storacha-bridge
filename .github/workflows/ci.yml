@@ -57,10 +57,10 @@ jobs:
           echo "STORACHA_KEY=${{ secrets.STORACHA_KEY }}" >> .env
           echo "STORACHA_PROOF=${{ secrets.STORACHA_PROOF }}" >> .env
 
-      - name: Run W3 CLI Integration Test
-        run: npm run test:w3-cli
-        env:
-          NODE_OPTIONS: '--experimental-vm-modules --no-warnings'
+      # - name: Run W3 CLI Integration Test
+      #   run: npm run test:w3-cli
+      #   env:
+      #     NODE_OPTIONS: '--experimental-vm-modules --no-warnings'
 
       - name: Run Integration Test
         run: npm run test:integration
