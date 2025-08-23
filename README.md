@@ -1,21 +1,13 @@
 # OrbitDB Storacha Bridge
 
-> **Complete OrbitDB database backup and restoration via Storacha/Filecoin with 100% hash preservation**
+> **OrbitDB database backup and restoration via Storacha/Filecoin**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-22+-green.svg)](https://nodejs.org/)
 
 ## What This Does
 
-Backup and restore **complete OrbitDB databases** to **Storacha/Filecoin** with perfect data integrity. Unlike CAR file approaches, this library uploads individual blocks and handles CID format conversion automatically.
-
-## ✨ Key Features
-
-- **🔒 100% Hash Preservation** - Perfect data integrity across backup/restore cycles
-- **🆔 Complete Identity Recovery** - Database addresses and permissions fully preserved  
-- **🚀 SDK-First Architecture** - Direct API calls, no CLI dependencies
-- **🧠 Smart Block Analysis** - Automatic manifest detection and log head discovery
-- **🔄 Mapping-Independent Restore** - Restore databases without stored CID mappings
+Backup and restore **complete OrbitDB databases** to **Storacha/Filecoin** with perfect data integrity.
 
 ## 🚀 Quick Start
 
@@ -102,11 +94,36 @@ STORACHA_PROOF=your_proof_here
 
 ## 🧪 Testing
 
-The library includes comprehensive tests demonstrating:
-- ✅ 100% data preservation across backup/restore cycles
-- ✅ Perfect identity and address recovery
-- ✅ All OrbitDB block types handled correctly
-- ✅ CID format conversion accuracy
+### Prerequisites
+Ensure you have Storacha credentials in your `.env` file:
+```bash
+cp .env.example .env
+# Add your STORACHA_KEY and STORACHA_PROOF
+```
+
+### Run Tests
+```bash
+# Run all tests (includes automatic space clearing)
+npm test
+
+# Run only integration tests
+npm run test:integration
+
+# Run tests with verbose output
+npm run test:verbose
+
+# Manually clear Storacha space before testing
+npm run clear-space
+```
+
+### Test Features
+The comprehensive test suite validates:
+- ✅ **Data Integrity** - Exact same data in/out of backup/restore cycles
+- ✅ **Perfect Identity Recovery** - OrbitDB addresses preserved exactly
+- ✅ **All Block Types** - Log entries, manifests, access controllers, identities
+- ✅ **CID Format Conversion** - Accurate Storacha ↔ OrbitDB format bridging
+- ✅ **Mapping-Independent Restore** - Space discovery without stored mappings
+- ✅ **Automatic Cleanup** - Tests clean up OrbitDB directories and Storacha space
 
 ## 📊 Technical Details
 

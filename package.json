@@ -1,7 +1,7 @@
 {
   "name": "orbitdb-storacha-bridge",
-  "version": "1.0.0",
-  "description": "Complete OrbitDB database replication via Storacha/Filecoin with 100% hash preservation and identity recovery",
+  "version": "0.0.2",
+  "description": "OrbitDB database replication via Storacha/Filecoin",
   "main": "lib/orbitdb-storacha-bridge.js",
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "test:integration": "npm test -- test/integration.test.js",
     "test:space-download": "node --experimental-vm-modules test/test-space-download-approach.js",
     "test:w3-cli": "node --experimental-vm-modules test/test-w3-cli-integration.js",
-    "clear-space": "node --experimental-vm-modules -e \"import { clearStorachaSpace } from './test/test-w3-cli-integration.js'; clearStorachaSpace().then(r => process.exit(r.success ? 0 : 1))\"",
+    "clear-space": "node scripts/clear-space.js",
     "demo": "node examples/demo.js",
     "backup-demo": "node examples/backup-demo.js",
     "restore-demo": "node examples/restore-demo.js",
