@@ -62,6 +62,11 @@ jobs:
         env:
           NODE_OPTIONS: '--experimental-vm-modules --no-warnings'
 
+      - name: Run Integration Test
+        run: npm run test:integration
+        env:
+          NODE_OPTIONS: '--experimental-vm-modules --no-warnings'
+
       - name: Clean up test artifacts
         if: always()
         run: npm run clean
