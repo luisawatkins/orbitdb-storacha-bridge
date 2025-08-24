@@ -34,7 +34,7 @@ console.log(`${restored.entriesRecovered} entries restored perfectly!`)
 
 ## What This Does
 
-Backup and restore **complete OrbitDB databases** to **Storacha/Filecoin** with perfect data integrity. Right now a Storacha space contains one full backup. For another backup another space is needed!
+Backup and restore **complete OrbitDB databases** to **Storacha/Filecoin** within browser and NodeJS. Right now a Storacha space contains one full backup. For another backup - another space is needed!
 
 ## Installation
 
@@ -90,13 +90,11 @@ console.log(`Restored ${restore.entriesRecovered} entries`)
 ### Demo
 
 ```bash
-# If installed via npm
-npx orbitdb-storacha-bridge-demo  # Complete backup/restore demonstration
-npm test                          # Run test suite
+# If installed via npm and in the package directory
+npm run demo                     # Complete backup/restore demonstration
 
 # If using locally/developing
-node examples/demo.js             # Complete backup/restore demonstration
-npm test                          # Run test suite
+node examples/demo.js            # Complete backup/restore demonstration
 ```
 
 ## API Reference
