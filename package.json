@@ -63,12 +63,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/orbitdb-storacha-bridge.git"
+    "url": "https://github.com/NiKrause/orbitdb-storacha-bridge.git"
   },
   "bugs": {
-    "url": "https://github.com/your-org/orbitdb-storacha-bridge/issues"
+    "url": "https://github.com/NiKrause/orbitdb-storacha-bridge/issues"
   },
-  "homepage": "https://github.com/your-org/orbitdb-storacha-bridge#readme",
+  "homepage": "https://github.com/NiKrause/orbitdb-storacha-bridge#readme",
   "jest": {
     "testEnvironment": "node",
     "testTimeout": 60000,
