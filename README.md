@@ -6,74 +6,128 @@
 [![Node.js](https://img.shields.io/badge/Node.js-22+-green.svg)](https://nodejs.org/)
 [![CI/CD Pipeline](https://github.com/NiKrause/orbitdb-storacha-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/NiKrause/orbitdb-storacha-bridge/actions/workflows/ci.yml)
 [![ESLint](https://img.shields.io/badge/ESLint-passing-brightgreen.svg)](https://github.com/NiKause/orbitdb-storacha-bridge/actions/workflows/ci.yml)
+
+**🎯 Perfect OrbitDB backups to Filecoin in 3 lines of code**
+
+```javascript
+const backup = await backupDatabase(orbitdb, dbAddress, { storachaKey, storachaProof })
+const restored = await restoreDatabaseFromSpace(newOrbitdb, { storachaKey, storachaProof })
+console.log(`${restored.entriesRecovered} entries restored perfectly!`)
+```
+
+## Table of Contents
+
+- [What This Does](#what-this-does)
+- [Installation](#installation)
+- [Environment Setup](#environment-setup)
+- [Quick Start](#quick-start)
+- [API Reference](#api-reference)
+  - [Core Functions](#core-functions)
+  - [Class Interface](#class-interface)
+  - [Options](#options)
+- [Examples](#examples)
+- [How It Works](#how-it-works)
+- [Testing](#testing)
+- [Technical Details](#technical-details)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## What This Does
 
-Backup and restore **complete OrbitDB databases** to **Storacha/Filecoin** with perfect data integrity. Right now a Storacha space contains one full backup. For another backup another space is needed! 
+Backup and restore **complete OrbitDB databases** to **Storacha/Filecoin** with perfect data integrity. Right now a Storacha space contains one full backup. For another backup another space is needed!
 
-## 🚀 Quick Start
+## Installation
 
-### Installation
-
+**For using in your project:**
 ```bash
+npm install orbitdb-storacha-bridge
+```
+
+**For local development/contributing:**
+```bash
+git clone https://github.com/NiKrause/orbitdb-storacha-bridge.git
+cd orbitdb-storacha-bridge
 npm install
 cp .env.example .env
 # Add your Storacha credentials to .env
 ```
 
+## Environment Setup
+
+Get Storacha credentials from [web3.storage](https://web3.storage):
+
+```env
+STORACHA_KEY=your_private_key_here
+STORACHA_PROOF=your_proof_here
+```
+
+## Quick Start
+
 ### Basic Usage
 
 ```javascript
-import { backupDatabase, restoreDatabaseFromSpace } from './lib/orbitdb-storacha-bridge.js'
+// If installed via npm
+import { backupDatabase, restoreDatabaseFromSpace } from 'orbitdb-storacha-bridge'
+
+// If using locally/developing
+// import { backupDatabase, restoreDatabaseFromSpace } from './lib/orbitdb-storacha-bridge.js'
 
 // Backup database
-const backup = await backupDatabase(orbitdb, '/orbitdb/zdpu...')
+const backup = await backupDatabase(orbitdb, '/orbitdb/zdpu...', {
+  storachaKey: process.env.STORACHA_KEY,
+  storachaProof: process.env.STORACHA_PROOF
+})
 console.log(`Backed up ${backup.blocksUploaded} blocks`)
 
 // Restore (discovers all files in space automatically)
-const restore = await restoreDatabaseFromSpace(targetOrbitdb)
+const restore = await restoreDatabaseFromSpace(targetOrbitdb, {
+  storachaKey: process.env.STORACHA_KEY,
+  storachaProof: process.env.STORACHA_PROOF
+})
 console.log(`Restored ${restore.entriesRecovered} entries`)
 ```
 
 ### Demo
 
 ```bash
-node examples/demo.js  # Complete backup/restore demonstration
-npm test              # Run test suite
+# If installed via npm
+npx orbitdb-storacha-bridge-demo  # Complete backup/restore demonstration
+npm test                          # Run test suite
+
+# If using locally/developing
+node examples/demo.js             # Complete backup/restore demonstration
+npm test                          # Run test suite
 ```
 
-## 🏗️ How It Works
-
-1. **Extract Blocks** - Separates OrbitDB database into individual components (log entries, manifest, identities, access controls)
-2. **Upload to Storacha** - Each block uploaded separately to IPFS/Filecoin via Storacha
-3. **Smart Discovery** - Lists all files in Storacha space using SDK APIs
-4. **CID Bridging** - Converts between Storacha CIDs (`bafkre*`) and OrbitDB CIDs (`zdpu*`) 
-5. **Reconstruct Database** - Reassembles blocks and opens database with original identity
-
-## 📚 API
+## API Reference
 
 ### Core Functions
 
 ```javascript
 // Backup database to Storacha
-await backupDatabase(orbitdb, databaseAddress, options?)
+await backupDatabase(orbitdb, databaseAddress, options)
 
 // Restore from space (recommended - no mappings needed)
-await restoreDatabaseFromSpace(orbitdb, options?)
+await restoreDatabaseFromSpace(orbitdb, options)
 
 // Traditional restore (requires stored CID mappings)
-await restoreDatabase(orbitdb, manifestCID, cidMappings?, options?)
+await restoreDatabase(orbitdb, manifestCID, cidMappings, options)
 
 // List files in Storacha space
-await listStorachaSpaceFiles(options?)
+await listStorachaSpaceFiles(options)
 
 // Clear entire Storacha space
-await clearStorachaSpace(options?)
+await clearStorachaSpace(options)
 ```
 
 ### Class Interface
 
 ```javascript
-import { OrbitDBStorachaBridge } from './lib/orbitdb-storacha-bridge.js'
+// If installed via npm
+import { OrbitDBStorachaBridge } from 'orbitdb-storacha-bridge'
+
+// If using locally/developing  
+// import { OrbitDBStorachaBridge } from './lib/orbitdb-storacha-bridge.js'
 
 const bridge = new OrbitDBStorachaBridge({
   storachaKey: process.env.STORACHA_KEY,
@@ -84,16 +138,88 @@ await bridge.backup(orbitdb, databaseAddress)
 await bridge.restoreFromSpace(targetOrbitdb)
 ```
 
-## 🔧 Environment Setup
+### Options
 
-Get Storacha credentials from [web3.storage](https://web3.storage):
+#### Required Options
 
-```env
-STORACHA_KEY=your_private_key_here
-STORACHA_PROOF=your_proof_here
+**All operations require Storacha credentials:**
+
+- **`storachaKey`** - Your Storacha private key (required)
+- **`storachaProof`** - Your Storacha proof (required)
+
+These can be provided either:
+- As environment variables: `STORACHA_KEY` and `STORACHA_PROOF`
+- Or passed directly in the options object
+
+#### Optional Options
+
+The bridge supports these optional configuration options with their defaults:
+
+```javascript
+const DEFAULT_OPTIONS = {
+  timeout: 30000,           // Timeout in milliseconds
+  retries: 3,              // Number of retry attempts
+  gateway: 'https://w3s.link',  // IPFS gateway URL
+  validateIntegrity: true,  // Whether to validate data integrity
+  includeIdentity: true     // Whether to include identity blocks
+}
 ```
 
-## 🧪 Testing
+#### Additional Options for `listStorachaSpaceFiles()`
+
+- **`size`** - Maximum number of files to list (default: 1000000)
+- **`cursor`** - Pagination cursor for large result sets
+- **`pre`** - Prefix filter for file names
+
+## Examples
+
+### With Environment Variables
+
+```javascript
+// Set in .env file:
+// STORACHA_KEY=your_private_key_here  
+// STORACHA_PROOF=your_proof_here
+
+const backup = await backupDatabase(orbitdb, '/orbitdb/zdpu...')
+const restore = await restoreDatabaseFromSpace(targetOrbitdb)
+```
+
+### With Explicit Options
+
+```javascript
+const options = {
+  storachaKey: 'your_private_key_here',
+  storachaProof: 'your_proof_here',
+  timeout: 60000,  // Optional: extend timeout
+  retries: 5       // Optional: more retries
+}
+
+const backup = await backupDatabase(orbitdb, '/orbitdb/zdpu...', options)
+const restore = await restoreDatabaseFromSpace(targetOrbitdb, options)
+```
+
+### Using the Class Interface
+
+```javascript
+const bridge = new OrbitDBStorachaBridge({
+  storachaKey: process.env.STORACHA_KEY,
+  storachaProof: process.env.STORACHA_PROOF,
+  timeout: 45000  // Optional customization
+})
+
+const backup = await bridge.backup(orbitdb, databaseAddress)
+const restore = await bridge.restoreFromSpace(targetOrbitdb)
+```
+
+## How It Works
+
+1. **Extract Blocks** - Separates OrbitDB database into individual components (log entries, manifest, identities, access controls)
+2. **Upload to Storacha** - Each block uploaded separately to IPFS/Filecoin via Storacha
+3. **Smart Discovery** - Lists all files in Storacha space using SDK APIs
+4. **CID Bridging** - Converts between Storacha CIDs (`bafkre*`) and OrbitDB CIDs (`zdpu*`) 
+5. **Reconstruct Database** - Reassembles blocks and opens database with original identity
+
+## Testing
 
 ### Prerequisites
 Ensure you have Storacha credentials in your `.env` file:
@@ -126,7 +252,7 @@ The comprehensive test suite validates:
 - ✅ **Mapping-Independent Restore** - Space discovery without stored mappings
 - ✅ **Automatic Cleanup** - Tests clean up OrbitDB directories and Storacha space
 
-## 📊 Technical Details
+## Technical Details
 
 **CID Format Conversion:**
 - OrbitDB: `zdpu*` (base58btc, dag-cbor codec)
@@ -139,23 +265,13 @@ The comprehensive test suite validates:
 - Access controllers (permissions)
 - Identity blocks (cryptographic proofs)
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Add tests for new functionality
 4. Submit a pull request
 
-## 📜 License
+## License
 
 MIT License
-
----
-
-**🎯 Perfect OrbitDB backups to Filecoin in 3 lines of code**
-
-```javascript
-const backup = await backupDatabase(orbitdb, dbAddress)
-const restored = await restoreDatabaseFromSpace(newOrbitdb)
-console.log(`${restored.entriesRecovered} entries restored perfectly!`)
-```
