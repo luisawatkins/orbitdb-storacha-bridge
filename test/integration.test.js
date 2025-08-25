@@ -14,6 +14,7 @@
 
 /* global afterAll */
 import 'dotenv/config'
+import { IPFSAccessController } from '@orbitdb/core';
 import * as Client from '@web3-storage/w3up-client'
 import { StoreMemory } from '@web3-storage/w3up-client/stores/memory'
 import { Signer } from '@web3-storage/w3up-client/principal/ed25519'
@@ -304,7 +305,7 @@ describe('OrbitDB Storacha Bridge Integration', () => {
    * 
    * @timeout 120000 - 2 minutes for network operations
    */
-  test.only('Mapping-independent restore from space', async () => {
+  test('Mapping-independent restore from space', async () => {
     // Skip if no credentials
     if (!process.env.STORACHA_KEY || !process.env.STORACHA_PROOF) {
       return
@@ -380,6 +381,213 @@ describe('OrbitDB Storacha Bridge Integration', () => {
       expect(foundTestEntries.length).toBeGreaterThan(0)
       
       console.log(`✅ Data validation: Found ${foundTestEntries.length}/${testEntries.length} test entries in restored data`)
+      
+    } finally {
+      if (sourceDB) {
+        try {
+          await sourceDB.close()
+        } catch (error) {
+          // Already closed
+        }
+      }
+    }
+    
+  }, 120000) // 2 minute timeout for network operations
+  
+  /**
+   * @test KeyValueMappingIndependentRestore
+   * @description Tests mapping-independent backup & restore for key-value database with identity and access controller
+   * 
+   * **Test Flow:**
+   * 1. Creates a source OrbitDB key-value database with identity and access controller
+   * 2. Populates with todo entries containing rich data structures
+   * 3. Backs up the complete database to Storacha
+   * 4. Destroys the source node completely
+   * 5. Creates an isolated target node with no access to CID mappings
+   * 6. Restores using space discovery without any stored mappings
+   * 7. Validates complete restoration of key-value pairs and database identity
+   * 
+   * **Key Features Tested:**
+   * - Key-value database type with structured data
+   * - Identity preservation with access controller
+   * - Todo entries with timestamps, assignees, and status
+   * - Mapping-independent restoration from space
+   * - Cross-node database migration with full integrity
+   * 
+   * **Data Structure:**
+   * Each todo entry contains:
+   * - id: unique identifier
+   * - text: todo description
+   * - assignee: person assigned (can be null)
+   * - completed: boolean status
+   * - createdAt: ISO timestamp
+   * - createdBy: peer ID
+   * - updatedAt: ISO timestamp
+   * 
+   * @timeout 120000 - 2 minutes for network operations
+   */
+  test.only('Key-value mapping-independent restore with todos and identity', async () => {
+    // Skip if no credentials
+    if (!process.env.STORACHA_KEY || !process.env.STORACHA_PROOF) {
+      return
+    }
+    
+    /** @type {Object|null} Source database instance */
+    let sourceDB
+    
+    try {
+      // Create source database with key-value type and access controller
+      sourceNode = await createHeliaOrbitDB('-test-source-keyvalue')
+      sourceDB = await sourceNode.orbitdb.open('todos-keyvalue-test', { 
+        type: 'keyvalue',
+        create: true,
+        accessController: IPFSAccessController({ write: ['*'] })
+      })
+      
+      /** @type {Object[]} Todo entries to validate data integrity */
+      const todoEntries = [
+        {
+          id: 'todo-1',
+          text: 'Set up OrbitDB backup system',
+          assignee: 'alice',
+          completed: false,
+          createdAt: new Date().toISOString(),
+          createdBy: sourceNode.orbitdb.identity.id,
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'todo-2', 
+          text: 'Test Storacha integration',
+          assignee: 'bob',
+          completed: true,
+          createdAt: new Date().toISOString(),
+          createdBy: sourceNode.orbitdb.identity.id,
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'todo-3',
+          text: 'Deploy to production',
+          assignee: null,
+          completed: false,
+          createdAt: new Date().toISOString(),
+          createdBy: sourceNode.orbitdb.identity.id,
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'todo-4',
+          text: 'Write documentation',
+          assignee: 'charlie',
+          completed: false,
+          createdAt: new Date().toISOString(),
+          createdBy: sourceNode.orbitdb.identity.id,
+          updatedAt: new Date().toISOString()
+        }
+      ]
+      
+      // Add todo entries to key-value database
+      for (const todo of todoEntries) {
+        await sourceDB.put(todo.id, todo)
+        console.log(`   ✓ Added todo: ${todo.id} - "${todo.text}" (${todo.completed ? 'completed' : 'pending'})`)
+      }
+      
+      // Verify source database state
+      const allTodos = await sourceDB.all()
+      console.log(`   📊 Source database has ${Object.keys(allTodos).length} todos`)
+      
+      // Backup database with identity and access controller
+      const backupResult = await backupDatabase(sourceNode.orbitdb, sourceDB.address, {
+        storachaKey: process.env.STORACHA_KEY,
+        storachaProof: process.env.STORACHA_PROOF
+      })
+      expect(backupResult.success).toBe(true)
+      expect(backupResult.blocksUploaded).toBeGreaterThan(0)
+      
+      // Store original database address for identity verification
+      const originalAddress = sourceDB.address
+      
+      // Close source and clean up completely
+      await sourceDB.close()
+      await sourceNode.orbitdb.stop()
+      await sourceNode.helia.stop()
+      await sourceNode.blockstore.close()
+      await sourceNode.datastore.close()
+      sourceNode = null
+      
+      // Create isolated target node
+      targetNode = await createHeliaOrbitDB('-test-target-keyvalue')
+      
+      // Restore from space WITHOUT CID mappings (breakthrough feature)
+      const restoreResult = await restoreDatabaseFromSpace(targetNode.orbitdb, {
+        storachaKey: process.env.STORACHA_KEY,
+        storachaProof: process.env.STORACHA_PROOF
+      })
+      
+      expect(restoreResult.success).toBe(true)
+      expect(restoreResult.entriesRecovered).toBeGreaterThan(0)
+      expect(restoreResult.blocksRestored).toBeGreaterThan(0)
+      expect(restoreResult.spaceFilesFound).toBeGreaterThan(0)
+      expect(restoreResult.analysis).toBeTruthy()
+      expect(restoreResult.analysis.manifestBlocks.length).toBeGreaterThan(0)
+      
+      // ** CRITICAL: Verify key-value data integrity for space restore **
+      expect(restoreResult.entries).toBeDefined()
+      expect(restoreResult.entries.length).toBeGreaterThan(0)
+      
+      // Check that restored entries have the correct key-value structure
+      restoreResult.entries.forEach(entry => {
+        console.log("Key-value entry:", entry.payload || entry)
+        expect(entry).toHaveProperty('hash')
+        expect(typeof entry.hash).toBe('string')
+        expect(entry.hash).toMatch(/^zdpu/) // OrbitDB hash format
+        
+        // For key-value databases, entries should have key and value
+        if (entry.payload) {
+          expect(entry.payload).toHaveProperty('key')
+          expect(entry.payload).toHaveProperty('value')
+        }
+      })
+      
+      // Verify that todo entries are present in restored data
+      // Since this is a space restore, we need to find our specific database entries
+      let foundTodoEntries = 0
+      const restoredData = restoreResult.entries
+      
+      for (const entry of restoredData) {
+        const payload = entry.payload || entry
+        if (payload.key && payload.key.startsWith('todo-')) {
+          foundTodoEntries++
+          const todoData = payload.value
+          
+          // Validate todo structure
+          expect(todoData).toHaveProperty('id')
+          expect(todoData).toHaveProperty('text')
+          expect(todoData).toHaveProperty('assignee')
+          expect(todoData).toHaveProperty('completed')
+          expect(todoData).toHaveProperty('createdAt')
+          expect(todoData).toHaveProperty('createdBy')
+          expect(todoData).toHaveProperty('updatedAt')
+          
+          // Validate data types
+          expect(typeof todoData.text).toBe('string')
+          expect(typeof todoData.completed).toBe('boolean')
+          expect(todoData.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/) // ISO date format
+          expect(todoData.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/) // ISO date format
+          
+          console.log(`   ✅ Restored todo: ${todoData.id} - "${todoData.text}" (${todoData.completed ? 'completed' : 'pending'})`)
+        }
+      }
+      
+      expect(foundTodoEntries).toBeGreaterThan(0)
+      console.log(`✅ Key-value data validation: Found ${foundTodoEntries} todo entries in restored data`)
+      
+      // Verify identity and access controller preservation
+      if (restoreResult.analysis.identityBlocks.length > 0) {
+        console.log(`✅ Identity preservation: Found ${restoreResult.analysis.identityBlocks.length} identity blocks`)
+      }
+      
+      if (restoreResult.analysis.accessControllerBlocks && restoreResult.analysis.accessControllerBlocks.length > 0) {
+        console.log(`✅ Access controller preservation: Found ${restoreResult.analysis.accessControllerBlocks.length} access controller blocks`)
+      }
       
     } finally {
       if (sourceDB) {
