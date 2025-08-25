@@ -367,17 +367,17 @@ describe('OrbitDB Storacha Bridge Integration', () => {
       
       // Check that restored entries have the correct structure
       restoreResult.entries.forEach(entry => {
-        console.log("entry", entry.payload)
+        console.log("entry", entry)
         expect(entry).toHaveProperty('hash')
-        expect(entry).toHaveProperty('title') // Space restore uses 'title' field
+        expect(entry).toHaveProperty('value') 
         expect(typeof entry.hash).toBe('string')
         expect(entry.hash).toMatch(/^zdpu/) // OrbitDB hash format
       })
       
       // For this test, verify that at least some of our test entries are present
       // (Since we start with a clean space, all restored entries should be ours)
-      const restoredTitles = restoreResult.entries.map(entry => entry.title)
-      const foundTestEntries = testEntries.filter(testEntry => restoredTitles.includes(testEntry))
+      const restoredValues = restoreResult.entries.map(entry => entry.value)
+      const foundTestEntries = testEntries.filter(testEntry => restoredValues.includes(testEntry))
       expect(foundTestEntries.length).toBeGreaterThan(0)
       
       console.log(`✅ Data validation: Found ${foundTestEntries.length}/${testEntries.length} test entries in restored data`)
