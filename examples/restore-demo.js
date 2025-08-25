@@ -2,26 +2,26 @@
  * OrbitDB Storacha Bridge - Restore Demo
  * 
  * Demonstrates how to restore an OrbitDB database from Storacha backup
+ * using the mapping-independent restore function
  * 
  * Prerequisites: Run backup-demo.js first to create a backup
  */
 
 import 'dotenv/config'
-import { restoreDatabase, createHeliaOrbitDB, extractManifestCID } from '../lib/orbitdb-storacha-bridge.js'
+import { restoreDatabaseFromSpace, createHeliaOrbitDB } from '../lib/orbitdb-storacha-bridge.js'
 
 async function runRestoreDemo() {
   console.log('🔄 OrbitDB Storacha Bridge - Restore Demo')
   console.log('=' .repeat(50))
   
-  // You need to provide these values from a previous backup
-  // These are example values - replace with your actual backup data
-  const BACKUP_MANIFEST_CID = process.argv[2] || 'zdpuAy2JxUiqCzuTAhT5ukfHD1oxbcpJ6eH1VTUegC8Ljv4WK'
-  const ORIGINAL_DATABASE_ADDRESS = process.argv[3] || `/orbitdb/${BACKUP_MANIFEST_CID}`
-  
-  if (!process.argv[2]) {
-    console.log('ℹ️  Usage: node restore-demo.js <manifest-cid> [original-address]')
-    console.log('ℹ️  Using example CID for demonstration (this will likely fail)')
-    console.log('ℹ️  Run backup-demo.js first to get a real backup to restore')
+  // Check for required environment variables
+  if (!process.env.STORACHA_KEY || !process.env.STORACHA_PROOF) {
+    console.error('❌ Missing Storacha credentials!')
+    console.error('   Please set STORACHA_KEY and STORACHA_PROOF in your .env file')
+    console.log('\n💡 Example .env file:')
+    console.log('   STORACHA_KEY=your_private_key')
+    console.log('   STORACHA_PROOF=your_delegation_proof')
+    process.exit(1)
   }
   
   let targetNode
@@ -32,15 +32,16 @@ async function runRestoreDemo() {
     targetNode = await createHeliaOrbitDB('-restore-demo')
     
     console.log(`\n📋 Restore parameters:`)
-    console.log(`   Manifest CID: ${BACKUP_MANIFEST_CID}`)
-    console.log(`   Original Address: ${ORIGINAL_DATABASE_ADDRESS}`)
+    console.log(`   Using credentials from .env file`)
+    console.log(`   Will discover all files in Storacha space automatically`)
     
-    // Step 2: Restore from Storacha
-    console.log('\n💾 Starting restore from Storacha...')
-    const restoreResult = await restoreDatabase(
+    // Step 2: Restore from Storacha using space discovery
+    console.log('\n💾 Starting restore from Storacha space...')
+    const restoreResult = await restoreDatabaseFromSpace(
       targetNode.orbitdb, 
-      BACKUP_MANIFEST_CID,
       { 
+        storachaKey: process.env.STORACHA_KEY,
+        storachaProof: process.env.STORACHA_PROOF,
         timeout: 60000,
         verifyIntegrity: true 
       }
@@ -48,8 +49,9 @@ async function runRestoreDemo() {
     
     if (restoreResult.success) {
       console.log('\n🎉 Restore completed successfully!')
-      console.log(`📋 Database Address: ${restoreResult.databaseAddress}`)
+      console.log(`📋 Database Address: ${restoreResult.database.address}`)
       console.log(`📊 Entries recovered: ${restoreResult.entriesRecovered}`)
+      console.log(`📊 Blocks restored: ${restoreResult.blocksRestored}`)
       console.log(`🔗 Address match: ${restoreResult.addressMatch ? '✅ Perfect' : '❌ Different'}`)
       console.log(`📈 Block breakdown:`)
       for (const [type, count] of Object.entries(restoreResult.blockSummary || {})) {
@@ -60,7 +62,7 @@ async function runRestoreDemo() {
       console.log('\n🔍 Verifying restored database...')
       
       try {
-        const restoredDB = await targetNode.orbitdb.open(restoreResult.databaseAddress)
+        const restoredDB = await targetNode.orbitdb.open(restoreResult.database.address)
         const allEntries = await restoredDB.all()
         
         console.log(`\n📊 Database verification:`)
@@ -105,10 +107,10 @@ async function runRestoreDemo() {
       
       if (restoreResult.error?.includes('not found') || restoreResult.error?.includes('404')) {
         console.log('\n💡 Troubleshooting tips:')
-        console.log('   • Make sure the manifest CID exists on Storacha/IPFS')
-        console.log('   • Check that you\'re using the correct CID from a successful backup')
+        console.log('   • Make sure you have backed up a database to your Storacha space')
         console.log('   • Try running backup-demo.js first to create a fresh backup')
         console.log('   • Verify your Storacha credentials are correct')
+        console.log('   • Check that your Storacha space contains OrbitDB backup files')
       }
       
       process.exit(1)
@@ -147,19 +149,19 @@ function showUsage() {
   console.log('\n📚 OrbitDB Storacha Bridge - Restore Demo')
   console.log('\nThis demo shows how to restore an OrbitDB database from a Storacha backup.')
   console.log('\nUsage:')
-  console.log('  node restore-demo.js <manifest-cid> [original-address]')
-  console.log('\nExample:')
-  console.log('  node restore-demo.js zdpuAy2JxUiqCzuTAhT5ukfHD1oxbcpJ6eH1VTUegC8Ljv4WK')
+  console.log('  node restore-demo.js')
   console.log('\nPrerequisites:')
-  console.log('  1. Run backup-demo.js first to create a backup')
-  console.log('  2. Copy the Manifest CID from the backup output')
-  console.log('  3. Set up your .env file with Storacha credentials')
+  console.log('  1. Set up your .env file with Storacha credentials:')
+  console.log('     STORACHA_KEY=your_private_key')
+  console.log('     STORACHA_PROOF=your_delegation_proof')
+  console.log('  2. Run backup-demo.js first to create a backup in your space')
   console.log('\nWhat this demo does:')
   console.log('  • Creates a fresh OrbitDB instance')
-  console.log('  • Downloads blocks from Storacha using the manifest CID')
-  console.log('  • Reconstructs the database with perfect hash preservation')
+  console.log('  • Automatically discovers all backup files in your Storacha space')
+  console.log('  • Downloads and reconstructs the database with perfect hash preservation')
   console.log('  • Verifies data integrity and database functionality')
   console.log('  • Tests basic database operations on restored data')
+  console.log('\nNo CID parameters needed - this uses mapping-independent restore!')
 }
 
 // Handle help flag

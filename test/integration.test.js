@@ -14,6 +14,10 @@
 
 /* global afterAll */
 import 'dotenv/config'
+import * as Client from '@web3-storage/w3up-client'
+import { StoreMemory } from '@web3-storage/w3up-client/stores/memory'
+import { Signer } from '@web3-storage/w3up-client/principal/ed25519'
+import * as Proof from '@web3-storage/w3up-client/proof'
 import { 
   backupDatabase, 
   restoreDatabase,
@@ -24,6 +28,52 @@ import {
   cleanupOrbitDBDirectories,
   clearStorachaSpace
 } from '../lib/orbitdb-storacha-bridge.js'
+
+/**
+ * ANSI color codes for bright console output
+ */
+const colors = {
+  bright: '\x1b[1m',
+  cyan: '\x1b[96m',
+  magenta: '\x1b[95m',
+  yellow: '\x1b[93m',
+  green: '\x1b[92m',
+  reset: '\x1b[0m'
+}
+
+/**
+ * Display space and DID information in bright colors
+ * @param {Object} options - Configuration options
+ * @param {string} options.storachaKey - Storacha private key
+ * @param {string} options.storachaProof - Storacha proof
+ */
+async function displaySpaceAndDIDInfo(options) {
+  try {
+    console.log(`${colors.bright}${colors.cyan}╔════════════════════════════════════════════════════════════════╗${colors.reset}`)
+    console.log(`${colors.bright}${colors.cyan}║                    STORACHA TEST CONFIGURATION                 ║${colors.reset}`)
+    console.log(`${colors.bright}${colors.cyan}╚════════════════════════════════════════════════════════════════╝${colors.reset}`)
+    
+    // Initialize Storacha client to get space/DID info
+    const principal = Signer.parse(options.storachaKey)
+    const store = new StoreMemory()
+    const client = await Client.create({ principal, store })
+    
+    const proof = await Proof.parse(options.storachaProof)
+    const space = await client.addSpace(proof)
+    await client.setCurrentSpace(space.did())
+    
+    // Display DID information
+    const spaceDID = space.did()
+    const agentDID = client.agent.did()
+    
+    console.log(`${colors.bright}${colors.magenta}🆔 Agent DID: ${colors.yellow}${agentDID}${colors.reset}`)
+    console.log(`${colors.bright}${colors.green}🚀 Space DID: ${colors.yellow}${spaceDID}${colors.reset}`)
+    console.log(`${colors.bright}${colors.cyan}═══════════════════════════════════════════════════════════════════${colors.reset}\n`)
+    
+  } catch (error) {
+    console.warn(`${colors.bright}${colors.yellow}⚠️ Could not retrieve space/DID info: ${error.message}${colors.reset}`)
+  }
+}
 
 /**
  * @namespace OrbitDBStorachaBridgeIntegration
@@ -51,6 +101,12 @@ describe('OrbitDB Storacha Bridge Integration', () => {
       console.warn('⚠️ Skipping integration tests - no Storacha credentials')
       return
     }
+    
+    // Display space and DID information in bright colors
+    await displaySpaceAndDIDInfo({
+      storachaKey: process.env.STORACHA_KEY,
+      storachaProof: process.env.STORACHA_PROOF
+    })
     
     // Clear Storacha space before each test to ensure clean state
     console.log('🧹 Clearing Storacha space before test...')
@@ -248,7 +304,7 @@ describe('OrbitDB Storacha Bridge Integration', () => {
    * 
    * @timeout 120000 - 2 minutes for network operations
    */
-  test('Mapping-independent restore from space', async () => {
+  test.only('Mapping-independent restore from space', async () => {
     // Skip if no credentials
     if (!process.env.STORACHA_KEY || !process.env.STORACHA_PROOF) {
       return
@@ -310,6 +366,7 @@ describe('OrbitDB Storacha Bridge Integration', () => {
       
       // Check that restored entries have the correct structure
       restoreResult.entries.forEach(entry => {
+        console.log("entry", entry.payload)
         expect(entry).toHaveProperty('hash')
         expect(entry).toHaveProperty('title') // Space restore uses 'title' field
         expect(typeof entry.hash).toBe('string')

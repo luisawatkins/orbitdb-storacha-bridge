@@ -96,7 +96,27 @@ npm run demo                     # Complete backup/restore demonstration
 
 # If using locally/developing
 node examples/demo.js            # Complete backup/restore demonstration
+node examples/backup-demo.js     # Individual backup demonstration
+node examples/restore-demo.js    # Individual restore demonstration
 ```
+
+#### Individual Demos
+
+**Backup Demo** (`examples/backup-demo.js`)
+- Creates a sample OrbitDB database
+- Backs it up to your Storacha space
+- Shows backup progress and results
+
+**Restore Demo** (`examples/restore-demo.js`)
+- Uses a Storacha space as single source for a backup restore.
+- Restores the database with perfect hash preservation
+- Verifies data integrity and functionality
+- No CID parameters needed - uses mapping-independent restore!
+
+**Complete Demo** (`examples/demo.js`)
+- Runs both backup and restore in sequence
+- Shows the complete backup/restore cycle
+- Perfect for testing the full workflow
 
 ## API Reference
 
