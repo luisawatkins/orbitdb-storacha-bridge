@@ -502,8 +502,7 @@ describe('OrbitDB Storacha Bridge Integration', () => {
       expect(backupResult.success).toBe(true)
       expect(backupResult.blocksUploaded).toBeGreaterThan(0)
       
-      // Store original database address for identity verification
-      const originalAddress = sourceDB.address
+      // Address will be verified through restoreResult.addressMatch
       
       // Close source and clean up completely
       await sourceDB.close()
