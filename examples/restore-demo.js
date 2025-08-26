@@ -8,7 +8,10 @@
  */
 
 import 'dotenv/config'
-import { restoreDatabaseFromSpace, createHeliaOrbitDB } from '../lib/orbitdb-storacha-bridge.js'
+import { restoreDatabaseFromSpace } from '../lib/orbitdb-storacha-bridge.js'
+
+// Import utilities separately
+import { createHeliaOrbitDB } from '../lib/utils.js'
 
 async function runRestoreDemo() {
   console.log('🔄 OrbitDB Storacha Bridge - Restore Demo')

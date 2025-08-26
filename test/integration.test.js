@@ -23,12 +23,16 @@ import {
   backupDatabase, 
   restoreDatabase,
   restoreDatabaseFromSpace,
-  createHeliaOrbitDB,
   convertStorachaCIDToOrbitDB,
   extractManifestCID,
-  cleanupOrbitDBDirectories,
   clearStorachaSpace
 } from '../lib/orbitdb-storacha-bridge.js'
+
+// Import utilities separately
+import { 
+  createHeliaOrbitDB,
+  cleanupOrbitDBDirectories
+} from '../lib/utils.js'
 
 /**
  * ANSI color codes for bright console output

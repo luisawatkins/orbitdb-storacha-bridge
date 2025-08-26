@@ -5,7 +5,10 @@
  */
 
 import 'dotenv/config'
-import { backupDatabase, createHeliaOrbitDB } from '../lib/orbitdb-storacha-bridge.js'
+import { backupDatabase } from '../lib/orbitdb-storacha-bridge.js'
+
+// Import utilities separately
+import { createHeliaOrbitDB } from '../lib/utils.js'
 
 async function runBackupDemo() {
   console.log('🚀 OrbitDB Storacha Bridge - Backup Demo')

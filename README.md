@@ -157,38 +157,25 @@ await bridge.backup(orbitdb, databaseAddress)
 await bridge.restoreFromSpace(targetOrbitdb)
 ```
 
-### Options
+#### Progress Event Options
 
-#### Required Options
-
-**All operations require Storacha credentials:**
-
-- **`storachaKey`** - Your Storacha private key (required)
-- **`storachaProof`** - Your Storacha proof (required)
-
-These can be provided either:
-- As environment variables: `STORACHA_KEY` and `STORACHA_PROOF`
-- Or passed directly in the options object
-
-#### Optional Options
-
-The bridge supports these optional configuration options with their defaults:
+When using the `OrbitDBStorachaBridge` class, you can listen for progress events:
 
 ```javascript
-const DEFAULT_OPTIONS = {
-  timeout: 30000,           // Timeout in milliseconds
-  retries: 3,              // Number of retry attempts
-  gateway: 'https://w3s.link',  // IPFS gateway URL
-  validateIntegrity: true,  // Whether to validate data integrity
-  includeIdentity: true     // Whether to include identity blocks
-}
+const bridge = new OrbitDBStorachaBridge(options)
+
+// Listen for upload progress
+bridge.on('uploadProgress', (progress) => {
+  console.log(`Upload: ${progress.percentage}% (${progress.current}/${progress.total})`)
+})
+
+// Listen for download progress  
+bridge.on('downloadProgress', (progress) => {
+  console.log(`Download: ${progress.percentage}% (${progress.current}/${progress.total})`)
+})
 ```
 
-#### Additional Options for `listStorachaSpaceFiles()`
-
-- **`size`** - Maximum number of files to list (default: 1000000)
-- **`cursor`** - Pagination cursor for large result sets
-- **`pre`** - Prefix filter for file names
+Would you like me to help you update the README file directly, or would you prefer to copy this content and update it manually?
 
 ## Examples
 

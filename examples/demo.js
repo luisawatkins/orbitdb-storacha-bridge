@@ -9,10 +9,14 @@
 import 'dotenv/config'
 import { 
   backupDatabase, 
-  restoreDatabaseFromSpace, 
+  restoreDatabaseFromSpace
+} from '../lib/orbitdb-storacha-bridge.js'
+
+// Import utilities separately  
+import { 
   createHeliaOrbitDB,
   cleanupOrbitDBDirectories
-} from '../lib/orbitdb-storacha-bridge.js'
+} from '../lib/utils.js'
 
 /**
  * Test complete OrbitDB backup and restore workflow
