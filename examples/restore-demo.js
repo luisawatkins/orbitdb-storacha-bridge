@@ -43,7 +43,8 @@ async function runRestoreDemo() {
         storachaKey: process.env.STORACHA_KEY,
         storachaProof: process.env.STORACHA_PROOF,
         timeout: 60000,
-        verifyIntegrity: true 
+        verifyIntegrity: true,
+        restartAfterRestore: true
       }
     )
     
