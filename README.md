@@ -145,9 +145,6 @@ await clearStorachaSpace(options)
 // If installed via npm
 import { OrbitDBStorachaBridge } from 'orbitdb-storacha-bridge'
 
-// If using locally/developing  
-// import { OrbitDBStorachaBridge } from './lib/orbitdb-storacha-bridge.js'
-
 const bridge = new OrbitDBStorachaBridge({
   storachaKey: process.env.STORACHA_KEY,
   storachaProof: process.env.STORACHA_PROOF
