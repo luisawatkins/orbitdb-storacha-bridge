@@ -255,6 +255,9 @@ The comprehensive test suite validates:
 - ✅ **Mapping-Independent Restore** - Space discovery without stored mappings
 - ✅ **Automatic Cleanup** - Tests clean up OrbitDB directories and Storacha space
 
+### CAR Storage Tests
+The `car-storage.test.js` suite provides comprehensive validation of the CAR (Content Addressable Archive) storage layer that enables persistent file-based storage for OrbitDB databases. The **Full OrbitDB Integration with Persistence** test demonstrates complete database lifecycle management: creating an OrbitDB instance with CAR storage, adding todo entries, persisting to CAR files, closing the database, reopening with a new OrbitDB instance, and verifying all data is perfectly recovered. This test validates that CAR storage can serve as a reliable persistence layer for OrbitDB's entry, heads, and index storage, ensuring data survives across application restarts.
+
 ## Technical Details
 
 **CID Format Conversion:**
