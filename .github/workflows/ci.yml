@@ -67,6 +67,11 @@ jobs:
         env:
           NODE_OPTIONS: '--experimental-vm-modules --no-warnings'
 
+      - name: Run Car Storage Tests
+        run: npm test -- test/car-storage.test.js
+        env:
+          NODE_OPTIONS: '--experimental-vm-modules --no-warnings'
+
       - name: Clean up test artifacts
         if: always()
         run: npm run clean
