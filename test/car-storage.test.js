@@ -11,7 +11,7 @@
  * @requires ../lib/car-storage.js - CAR storage implementation
  */
 
-/* global describe, test, beforeEach, afterEach, beforeAll, afterAll, expect */
+/* global beforeAll, afterAll */
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import CARStorage from '../lib/car-storage.js'
@@ -589,19 +589,19 @@ describe('CAR Storage', () => {
 
       // Test amount limit
       const limitedEntries = []
-      for await (const [key, value] of storage.iterator({ amount: 3 })) {
+      for await (const [key, _value] of storage.iterator({ amount: 3 })) {
         limitedEntries.push(key)
       }
       expect(limitedEntries.length).toBe(3)
 
       // Test reverse order
       const allKeys = []
-      for await (const [key, value] of storage.iterator()) {
+      for await (const [key, _value] of storage.iterator()) {
         allKeys.push(key)
       }
 
       const reversedKeys = []
-      for await (const [key, value] of storage.iterator({ reverse: true })) {
+      for await (const [key, _value] of storage.iterator({ reverse: true })) {
         reversedKeys.push(key)
       }
 
@@ -700,7 +700,7 @@ describe('CAR Storage', () => {
       // Test iteration performance
       const iterStartTime = Date.now()
       let iteratedCount = 0
-      for await (const [key, value] of storage.iterator()) {
+      for await (const [_key, _value] of storage.iterator()) {
         iteratedCount++
       }
       const iterTime = Date.now() - iterStartTime
@@ -922,17 +922,17 @@ describe('Full OrbitDB Integration with Persistence', () => {
       
       // Check that data exists in the CAR storage layers
       let entryCount = 0
-      for await (const [key, value] of entryCarStorage2.iterator()) {
+      for await (const [_key, _value] of entryCarStorage2.iterator()) {
         entryCount++
       }
       
       let headsCount = 0
-      for await (const [key, value] of headsCarStorage2.iterator()) {
+      for await (const [_key, _value] of headsCarStorage2.iterator()) {
         headsCount++
       }
       
       let indexCount = 0
-      for await (const [key, value] of indexCarStorage2.iterator()) {
+      for await (const [_key, _value] of indexCarStorage2.iterator()) {
         indexCount++
       }
       
@@ -953,16 +953,16 @@ describe('Full OrbitDB Integration with Persistence', () => {
     } finally {
       // Cleanup
       if (orbitdbInstance1) {
-        try { await orbitdbInstance1.stop() } catch {}
+        try { await orbitdbInstance1.stop() } catch (e) { console.warn('Error stopping orbitdb1:', e.message) }
       }
       if (orbitdbInstance2) {
-        try { await orbitdbInstance2.stop() } catch {}
+        try { await orbitdbInstance2.stop() } catch (e) { console.warn('Error stopping orbitdb2:', e.message) }
       }
       if (heliaInstance1) {
-        try { await heliaInstance1.stop() } catch {}
+        try { await heliaInstance1.stop() } catch (e) { console.warn('Error stopping helia1:', e.message) }
       }
       if (heliaInstance2) {
-        try { await heliaInstance2.stop() } catch {}
+        try { await heliaInstance2.stop() } catch (e) { console.warn('Error stopping helia2:', e.message) }
       }
       
       // Clean up OrbitDB directories
