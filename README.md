@@ -16,6 +16,8 @@ const restored = await restoreDatabaseFromSpace(newOrbitdb, { storachaKey, stora
 console.log(`${restored.entriesRecovered} entries restored perfectly!`)
 ```
 
+### Overview Blog: [Bridging OrbitDB with Storacha: Decentralized Database Backups](https://medium.com/@akashjana663/bridging-orbitdb-with-storacha-decentralized-database-backups-44c7bee5c395)
+
 ## Table of Contents
 
 - [What This Does](#what-this-does)
