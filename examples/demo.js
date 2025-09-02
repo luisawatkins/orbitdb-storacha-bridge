@@ -104,7 +104,7 @@ async function testOrbitDBStorachaBridge() {
     console.log('\n📄 Restored entries:')
     for (let i = 0; i < restoreResult.entries.length; i++) {
       const entry = restoreResult.entries[i]
-      console.log(`   ${i + 1}. ${entry.hash.substring(0, 16)}... - "${entry.title}"`)
+      console.log(`   ${i + 1}. ${entry.hash.substring(0, 16)}... - "${entry.value}"`)
     }
     
     const originalCount = sampleData.length
