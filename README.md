@@ -166,16 +166,28 @@ await clearStorachaSpace(options)
 
 ```javascript
 {
-  storachaKey: string,      // Required: Storacha private key
-  storachaProof: string,    // Required: Storacha proof
-  timeout: 30000,           // Optional: timeout in milliseconds
-  gateway: 'https://w3s.link', // Optional: IPFS gateway URL
-  batchSize: 10,            // Optional: batch size for operations
-  maxConcurrency: 3,        // Optional: max concurrent operations
-  fallbackDatabaseName: string, // Optional: custom name for fallback
-  forceFallback: false      // Optional: force fallback reconstruction
+  // Required credentials
+  storachaKey: string,      // Your Storacha private key from web3.storage
+  storachaProof: string,    // Your delegation proof from web3.storage
+  
+  // Performance tuning
+  timeout: 30000,           // Request timeout in milliseconds (default: 30s)
+  gateway: 'https://w3s.link', // IPFS gateway URL for downloads
+  batchSize: 10,            // Number of blocks to process per batch
+  maxConcurrency: 3,        // Maximum concurrent upload operations
+  
+  // Fallback/Recovery options
+  fallbackDatabaseName: string, // Custom name when fallback reconstruction is needed
+                               // Default: 'restored-{timestamp}'
+  forceFallback: false      // Force fallback mode even if manifest is found
+                           // Use when normal restore fails or for data-only recovery
 }
 ```
+
+**When to use fallback options:**
+
+- `forceFallback`: Enable when you need data recovery without preserving identity, db address and access controller e.g. when a successful restore results in an empty db and could not be read successfully
+- `fallbackDatabaseName`: Set a meaningful name for recovered databases (e.g., 'emergency-backup-2024')
 
 ## Demo
 
@@ -275,3 +287,154 @@ The `car-storage.test.js` suite provides comprehensive validation of the CAR (Co
 ## License
 
 MIT License
+
+## Troubleshooting
+
+### Common Issues
+
+#### Authentication Errors
+```
+Error: Invalid credentials or proof
+```
+**Solution:** Verify your `.env` file contains valid Storacha credentials:
+```bash
+STORACHA_KEY=your_private_key_here
+STORACHA_PROOF=your_proof_here
+```
+
+#### Restore Fails with "No files found"
+```
+Error: No files found in Storacha space
+```
+**Solutions:**
+- Run a backup first: `npm run demo` or use `examples/backup-demo.js`
+- Verify you're using the correct Storacha space
+- Check that backup completed successfully
+
+#### Database Reconstruction Issues
+```
+Error: No manifest blocks found
+```
+**Solutions:**
+- Enable fallback mode: `{ forceFallback: true }`
+- Use custom database name: `{ fallbackDatabaseName: 'my-recovery-db' }`
+- This creates a new database with recovered data (addresses won't match original)
+
+#### Network/Timeout Issues
+```
+Error: Request timeout
+```
+**Solutions:**
+- Increase timeout: `{ timeout: 60000 }` (60 seconds)
+- Check internet connection
+- Try different IPFS gateway: `{ gateway: 'https://ipfs.io' }`
+
+### Recovery Modes
+
+The library supports two restoration approaches:
+
+1. **Normal Restore** (default): Preserves original database structure, addresses, and hashes
+2. **Fallback Restore**: Creates new database with recovered data when normal restore fails
+
+Use fallback when:
+- Original database structure is corrupted
+- You only need the data, not the exact database identity
+- Normal restore consistently fails
+
+### Return Values
+
+#### Backup Results
+```javascript
+const backup = await bridge.backup(orbitdb, databaseAddress)
+// Returns:
+{
+  success: true,
+  blocksUploaded: 42,
+  totalSize: 15420,
+  uploadTime: 2.3,
+  databaseAddress: '/orbitdb/zdpu...',
+  manifest: { /* database metadata */ }
+}
+```
+
+#### Restore Results
+```javascript
+const restore = await bridge.restoreFromSpace(orbitdb)
+// Returns:
+{
+  success: true,
+  database: OrbitDBInstance,
+  entriesRecovered: 25,
+  entriesCount: 25,
+  method: 'normal-reconstruction', // or 'fallback-reconstruction'
+  preservedHashes: true,
+  preservedAddress: true,
+  metadata: { /* restoration details */ }
+}
+```
+
+## Use Cases
+
+### Database Migration
+Move OrbitDB databases between different environments or nodes:
+```javascript
+// Source environment
+await bridge.backup(sourceOrbitdb, databaseAddress)
+
+// Target environment  
+const restored = await bridge.restoreFromSpace(targetOrbitdb)
+```
+
+### Disaster Recovery
+Recover from data loss with automatic fallback:
+```javascript
+const restored = await bridge.restoreFromSpace(orbitdb, {
+  forceFallback: true,
+  fallbackDatabaseName: 'emergency-recovery-2024'
+})
+// Creates new database with all recoverable data
+```
+
+### Long-term Archival
+Archive databases to Filecoin for permanent storage:
+```javascript
+// Archive
+await bridge.backup(orbitdb, databaseAddress)
+
+// Later restore (months/years later)
+await bridge.restoreFromSpace(newOrbitdb)
+```
+
+## Performance Guidelines
+
+### Optimal Settings by Database Size
+
+| Database Size | batchSize | maxConcurrency | Expected Time |
+|---------------|-----------|----------------|---------------|
+| Small (< 1MB) | 5         | 2              | < 30s         |
+| Medium (1-10MB) | 10      | 3              | 1-5 min       |
+| Large (> 10MB) | 20       | 5              | 5+ min        |
+
+### Memory Usage
+- Each block kept in memory during processing
+- Large databases may require Node.js memory limits: `node --max-old-space-size=4096`
+
+### Network Considerations
+- Upload speed depends on your internet connection
+- Download uses IPFS gateways (may vary in performance)
+- Consider timeout increases for slow connections
+
+## Migration Guide
+
+### From OrbitDB v1 to v2
+This library works with OrbitDB v2. For v1 databases:
+1. Upgrade OrbitDB to v2
+2. Migrate database format
+3. Use this bridge for backup
+
+### From Other Backup Solutions
+If migrating from custom backup solutions:
+1. Ensure OrbitDB database is accessible
+2. Run backup: `bridge.backup(orbitdb, address)`
+3. Test restore on separate OrbitDB instance
+4. Verify data integrity before switching
