@@ -35,14 +35,14 @@ console.log(`${restored.entriesRecovered} entries restored perfectly!`)
 
 ## What This Does
 
-So far mainly, "Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with or without identity preservation. Works in both Node.js and browser environments.
+So far mainly, "Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with or without identity preservation. Works in both Node.js and browser environments (the latter at this tie only without identity preservation)
 
 ## RoadMap
 
 - [x] backup/restore between OrbitDB and Storacha in NodeJS via Storacha key and proof credential (hash and identity preserving)
-- [ ] backup/restore between OrbitDB and Storacha in browser (Svelte) (hash and identity preserving)
+- [ ] backup/restore between OrbitDB and Storacha in browser (StorachaIntegration.svelte) (hash and identity preserving)
 - [ ] backup/restore between OrbitDB and Storacha in NodeJS via UCAN privatekey and UCAN (hash and identity preserving)
-- [x] backup/restore between OrbitDB and Storacha in browser (Svelte) (entries only - into new OrbitDB with new identity)
+- [x] backup/restore between OrbitDB and Storacha in browser (StorachaIntegration.svelte) (entries only - into new OrbitDB with new identity)
 - [x] OrbitDB UCAN file storage (OrbitDB CustomStorage)
 - [ ] OrbitDB Storacha storage (OrbitDB CustomStorage) in NodeJS - storage ok - but OrbitDB CustomStore doesn't store the Manifest.Initial-sync therefore difficult
 - [ ] OrbitDB Storacha storage (OrbitDB CustomStorage) in NodeJS (entries only - initial sync)
