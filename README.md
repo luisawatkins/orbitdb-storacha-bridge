@@ -41,9 +41,9 @@ So far mainly, "Backup and restore between **OrbitDB databases** and **Storacha/
 
 - [x] backup/restore between OrbitDB and Storacha in NodeJS via Storacha key and proof credential (hash and identity preserving)
 - [ ] backup/restore between OrbitDB and Storacha in browser (StorachaIntegration.svelte) (hash and identity preserving)
-- [ ] backup/restore between OrbitDB and Storacha in NodeJS via UCAN privatekey and UCAN (hash and identity preserving)
 - [x] backup/restore between OrbitDB and Storacha in browser (StorachaIntegration.svelte) (entries only - into new OrbitDB with new identity)
-- [x] OrbitDB UCAN file storage (OrbitDB CustomStorage)
+- [x] OrbitDB CAR file storage (OrbitDB CustomStorage)
+- [ ] backup/restore between OrbitDB and Storacha in NodeJS via UCAN and privatekey (hash and identity preserving)
 - [ ] OrbitDB Storacha storage (OrbitDB CustomStorage) in NodeJS - storage ok - but OrbitDB CustomStore doesn't store the Manifest.Initial-sync therefore difficult
 - [ ] OrbitDB Storacha storage (OrbitDB CustomStorage) in NodeJS (entries only - initial sync)
 
