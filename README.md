@@ -8,7 +8,7 @@
 [![ESLint](https://img.shields.io/badge/ESLint-passing-brightgreen.svg)](https://github.com/NiKause/orbitdb-storacha-bridge/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/orbitdb-storacha-bridge.svg)](https://www.npmjs.com/package/orbitdb-storacha-bridge)
 
-## 🎯 Perfect OrbitDB backups to Filecoin in 3 lines of code
+## 🎯  OrbitDB backups and restore to Filecoin in 3 lines of code
 
 ```javascript
 const bridge = new OrbitDBStorachaBridge({ storachaKey, storachaProof })
@@ -56,11 +56,39 @@ npm install orbitdb-storacha-bridge
 
 ## Environment Setup
 
+### Option 1: Traditional Authentication
+
 Get Storacha credentials from [web3.storage](https://web3.storage):
 
 ```env
 STORACHA_KEY=your_private_key_here
 STORACHA_PROOF=your_proof_here
+```
+
+### Option 2: UCAN Authentication (Recommended)
+
+Use decentralized UCAN tokens instead of traditional API keys:
+
+```bash
+# Create UCAN delegation automatically
+npm run create-ucan
+
+# Or manually with w3 CLI
+npm install -g @web3-storage/w3cli
+w3 login your-email@example.com
+w3 space create my-orbitdb-space
+w3 delegation create --can '*' --audience did:key:your-agent-did --output orbitdb-ucan.car
+```
+
+```env
+# UCAN Configuration
+STORACHA_UCAN_FILE=./orbitdb-ucan.car
+# OR
+STORACHA_UCAN_TOKEN=base64-encoded-ucan
+
+# Optional: Explicit DIDs (auto-detected if not provided)
+STORACHA_AGENT_DID=did:key:your-agent-did
+STORACHA_SPACE_DID=did:key:your-space-did
 ```
 
 ## Quick Start
