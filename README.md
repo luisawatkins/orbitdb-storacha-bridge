@@ -35,7 +35,7 @@ console.log(`${restored.entriesRecovered} entries restored perfectly!`)
 
 ## What This Does
 
-So far mainly, "Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with or without identity preservation. Works in both Node.js and browser environments (the latter at this tie only without identity preservation)
+So far mainly, "Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with or without identity preservation. Works in both Node.js and browser environments (the latter at this time only without identity preservation)
 
 ## RoadMap
 
