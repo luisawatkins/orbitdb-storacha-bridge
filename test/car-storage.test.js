@@ -6,8 +6,7 @@
  * functionality of storing, retrieving, and persisting OrbitDB data using CAR files,
  * as well as integration with OrbitDB's ComposedStorage system.
  * 
- * @author OrbitDB Storacha Bridge Team
- * @version 1.0.0
+ * @author @NiKrause
  * @requires ../lib/car-storage.js - CAR storage implementation
  */
 
