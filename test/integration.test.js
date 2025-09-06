@@ -6,10 +6,7 @@
  * functionality of preserving database identity, content integrity, and successful
  * cross-node restoration.
  * 
- * @author OrbitDB Storacha Bridge Team
- * @version 1.0.0
- * @requires dotenv - For environment variable configuration
- * @requires ../lib/orbitdb-storacha-bridge.js - Main bridge library functions
+ * @author @NiKrause
  */
 
 /* global afterAll */
