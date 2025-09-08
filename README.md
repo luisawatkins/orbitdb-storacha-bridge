@@ -49,7 +49,9 @@ The [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) scrip
 
 Additionally exists a [`StorachaIntegration.svelte`](src/components/StorachaIntegration.svelte) which authenticates with Storacha, creates backups and restores for any OrbitDB Svelte app. (but has the above stated 'issue'). Since this isn't always an issue, StorachaTest.svelte is demonstrating a different approach when dealing with the entries in the oplog only and recreating/restoring the OrbitDB by adding a dbconfig object separately. This way the exact same db can be restored.
 
-Upcoming: UCAN authentication (instead of Storacha-Key and proof credentials) and a StorachaStorage (a OrbitDB CustomerStorage) where it will be possible to use Storacha in parallel and permanent backup while other peers are replicating.
+Implemented but untested: 
+  - UCAN authentication (instead of Storacha key and proof credentials) and 
+  - StorachaStorage (a OrbitDB CustomStorage) where it will be possible to reactively store an orbitdb live on Storacha as a permanent backup while other peers are replicating as normal.
 
 ## RoadMap
 
