@@ -31,16 +31,15 @@ Simple backup and restore functionality for OrbitDB databases using Storacha/Fil
 If Alice & Bob are working on the same OrbitDB without
 
 - 24/7 internet connection between their browsers or via
-- a signalling or relay node (network) which is live pinning their OrbitDB changes (e.g. via OrbitDB-Voyager or or other custom OrbitDB node instance)
+- a signalling or relay node (network) which is live pinning their OrbitDB changes (e.g. via OrbitDB-Voyager or other custom OrbitDB node instance)
 
-... can backup and restore their work to Storacha space via
+... so both can backup and restore their work to a Storacha space via
 
 - a complete Storacha backup / restore or
-- a OrbitDB CustomStorage (for the entries only)
+- a OrbitDB CustomStorage (for the entries only) 
 
-So that when Alice finishes work, Bob can load it from a Storacha Store!
-
-Remark: In theory Alice & Bob don't need to restore anything if they are connected directly via peer-to-peer. Hence: This should be only for emergencies e.g. when both Alice & Bob lose their data or devices for some reason. Then a new Alice or Bob can come and restore the work from Storacha.
+Remark: In theory and a perfact world Alice & Bob don't need to restore anything if they are connected directly via peer-to-peer and attached 24/7 OrbitDB pinning nodes. 
+Storacha full backup and restore is only for absolute emergencies e.g. when both Alice & Bob lose their data or devices. Then a new Alice or Bob or even Peter can restore their work from Storacha. It is happing that networks block IP's, ports and protocols e.g. to WebRTC or Websocket gateways etc. in such case it would be desirable to have a possibility to restore an OrbitDB directly from IPFS and push/upload back to it via Storacha.
 
 ## What This Does
 
