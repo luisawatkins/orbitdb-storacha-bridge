@@ -8,7 +8,7 @@
 [![ESLint](https://img.shields.io/badge/ESLint-passing-brightgreen.svg)](https://github.com/NiKause/orbitdb-storacha-bridge/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/orbitdb-storacha-bridge.svg)](https://www.npmjs.com/package/orbitdb-storacha-bridge)
 
-## 🎯  OrbitDB backups and restore to Filecoin via Storacha
+## 🎯  OrbitDB backups, restore an more ...
 
 Simple backup and restore functionality for OrbitDB databases using Storacha/Filecoin.
 
@@ -28,10 +28,10 @@ Simple backup and restore functionality for OrbitDB databases using Storacha/Fil
 
 ## What we want to accomplish
 
-If Alice & Bob are working on the same OrbitDB without
+If Alice & Bob are working on the same OrbitDB:
 
-- 24/7 internet connection between their browsers or via
-- a signalling or relay node (network) which is live pinning their OrbitDB changes (e.g. via OrbitDB-Voyager or other custom OrbitDB node instance)
+- without 24/7 internet connection between their browsers 
+- without a signalling or relay node (network) which is live pinning their OrbitDB changes (e.g. via OrbitDB-Voyager or other custom OrbitDB node instance)
 
 ... so both can backup and restore their work to a Storacha space via
 
