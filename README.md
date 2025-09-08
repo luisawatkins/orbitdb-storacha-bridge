@@ -10,12 +10,7 @@
 
 ## 🎯  OrbitDB backups and restore to Filecoin in 3 lines of code
 
-```javascript
-const bridge = new OrbitDBStorachaBridge({ storachaKey, storachaProof })
-const backup = await bridge.backup(orbitdb, dbAddress)
-const restored = await bridge.restoreFromSpace(newOrbitdb)
-console.log(`${restored.entriesRecovered} entries restored perfectly!`)
-```
+Simple backup and restore functionality for OrbitDB databases using Storacha/Filecoin.
 
 ## Table of Contents
 
@@ -23,9 +18,6 @@ console.log(`${restored.entriesRecovered} entries restored perfectly!`)
 - [RoadMap](#roadmap)
 - [Installation](#installation)
 - [Environment Setup](#environment-setup)
-- [Quick Start](#quick-start)
-- [API Reference](#api-reference)
-- [Advanced Examples](#advanced-examples)
 - [Demo](#demo)
 - [How It Works](#how-it-works)
 - [Testing](#testing)
@@ -47,181 +39,46 @@ So far mainly, "Backup and restore between **OrbitDB databases** and **Storacha/
 - [ ] OrbitDB Storacha storage (OrbitDB CustomStorage) in NodeJS - storage ok - but OrbitDB CustomStore doesn't store the Manifest.Initial-sync therefore difficult
 - [ ] OrbitDB Storacha storage (OrbitDB CustomStorage) in NodeJS (entries only - initial sync)
 
-**Key Features:**
-
-- 🔄 Hash preservation and identity recovery
-- 🌐 Works in Node.js and browsers
-- 📦 One Storacha space = one complete database backup
-- 🚀 Automatic block discovery and CID format conversion
-- 📊 Progress tracking and event emission
-
 > **Note:** Currently, each Storacha space contains one full backup. For multiple backups, use separate spaces.
 
 Read more: [Bridging OrbitDB with Storacha: Decentralized Database Backups](https://medium.com/@akashjana663/bridging-orbitdb-with-storacha-decentralized-database-backups-44c7bee5c395)
 
 ## Installation
 
-```bash
-npm install orbitdb-storacha-bridge
-```
+Install the package via npm.
 
 ## Environment Setup
 
-Get Storacha credentials from [web3.storage](https://web3.storage):
-
-```env
-STORACHA_KEY=your_private_key_here
-STORACHA_PROOF=your_proof_here
-```
-
-## Quick Start
-
-### Using the Class Interface (Recommended)
-
-```javascript
-import { OrbitDBStorachaBridge } from 'orbitdb-storacha-bridge'
-
-// Initialize with credentials
-const bridge = new OrbitDBStorachaBridge({
-  storachaKey: process.env.STORACHA_KEY,
-  storachaProof: process.env.STORACHA_PROOF
-})
-
-// Optional: Listen for progress events
-bridge.on('uploadProgress', (progress) => {
-  console.log(`Upload: ${progress.percentage}% (${progress.current}/${progress.total})`)
-})
-
-bridge.on('downloadProgress', (progress) => {
-  console.log(`Download: ${progress.percentage}% (${progress.current}/${progress.total})`)
-})
-
-// Backup database
-const backup = await bridge.backup(orbitdb, '/orbitdb/zdpu...')
-console.log(`✅ Backed up ${backup.blocksUploaded} blocks`)
-
-// Restore (discovers all files in space automatically)
-const restore = await bridge.restoreFromSpace(targetOrbitdb)
-console.log(`✅ Restored ${restore.entriesRecovered} entries`)
-```
-
-### Using Simple Functions
-
-```javascript
-import { backupDatabase, restoreDatabaseFromSpace } from 'orbitdb-storacha-bridge'
-
-const options = {
-  storachaKey: process.env.STORACHA_KEY,
-  storachaProof: process.env.STORACHA_PROOF
-}
-
-const backup = await backupDatabase(orbitdb, '/orbitdb/zdpu...', options)
-const restore = await restoreDatabaseFromSpace(targetOrbitdb, options)
-```
-
-## API Reference
-
-### OrbitDBStorachaBridge Class (Primary Interface)
-
-```javascript
-import { OrbitDBStorachaBridge } from 'orbitdb-storacha-bridge'
-
-const bridge = new OrbitDBStorachaBridge({
-  storachaKey: process.env.STORACHA_KEY,
-  storachaProof: process.env.STORACHA_PROOF,
-  timeout: 30000  // Optional: timeout in milliseconds
-})
-
-// Core methods
-await bridge.backup(orbitdb, databaseAddress)
-await bridge.restoreFromSpace(orbitdb)
-
-// Utility methods
-await bridge.listSpaceFiles()
-const analysis = await bridge.analyzeBlocks(blockstore, downloadedBlocks)
-const orbitdbCID = bridge.convertCID(storachaCID)
-```
-
-**Progress Events:**
-
-```javascript
-bridge.on('uploadProgress', ({ percentage, current, total }) => {
-  console.log(`Upload: ${percentage}% (${current}/${total})`)
-})
-
-bridge.on('downloadProgress', ({ percentage, current, total }) => {
-  console.log(`Download: ${percentage}% (${current}/${total})`)
-})
-```
-
-### Simple Functions (Alternative Interface)
-
-```javascript
-import { 
-  backupDatabase, 
-  restoreDatabaseFromSpace,
-  listStorachaSpaceFiles,
-  clearStorachaSpace
-} from 'orbitdb-storacha-bridge'
-
-// All functions accept options as the last parameter
-const options = { storachaKey, storachaProof }
-
-await backupDatabase(orbitdb, databaseAddress, options)
-await restoreDatabaseFromSpace(orbitdb, options)
-await listStorachaSpaceFiles(options)
-await clearStorachaSpace(options)
-```
-
-### Configuration Options
-
-```javascript
-{
-  // Required credentials
-  storachaKey: string,      // Your Storacha private key from web3.storage
-  storachaProof: string,    // Your delegation proof from web3.storage
-  
-  // Performance tuning
-  timeout: 30000,           // Request timeout in milliseconds (default: 30s)
-  gateway: 'https://w3s.link', // IPFS gateway URL for downloads
-  batchSize: 10,            // Number of blocks to process per batch
-  maxConcurrency: 3,        // Maximum concurrent upload operations
-  
-  // Fallback/Recovery options
-  fallbackDatabaseName: string, // Custom name when fallback reconstruction is needed
-                               // Default: 'restored-{timestamp}'
-  forceFallback: false      // Force fallback mode even if manifest is found
-                           // Use when normal restore fails or for data-only recovery
-}
-```
-
-**When to use fallback options:**
-
-- `forceFallback`: Enable when you need data recovery without preserving identity, db address and access controller e.g. when a successful restore results in an empty db and could not be read successfully
-- `fallbackDatabaseName`: Set a meaningful name for recovered databases (e.g., 'emergency-backup-2024')
+Get Storacha credentials from [web3.storage](https://web3.storage) and set up your environment variables for STORACHA_KEY and STORACHA_PROOF.
 
 ## Demo
 
-Run the complete demonstration:
+**NodeJS Demo Scripts:**
 
-```bash
-npm install 
-npm run demo                     # Complete backup/restore demonstration
-```
+- `node examples/demo.js` - Complete backup/restore cycle
+- `node examples/backup-demo.js` - Backup demonstration only  
+- `node examples/restore-demo.js` - Restore demonstration only
 
-**Individual Demo Scripts:**
+**Storacha Svelte components**
 
-- `examples/demo.js` - Complete backup/restore cycle
-- `examples/backup-demo.js` - Backup demonstration only  
-- `examples/restore-demo.js` - Restore demonstration only
+- StorachaAuth.svelte  
+    use this component when authenticating against Storacha with three different authentication methods: 
+    1. Storacha credentials (Storacha-Key and Storacha Proof)
+    2. UCAN (a UCAN which was delegated from another Storacha DID) + a corresponding private key
+    3. Email (create a new Storacha account and space by email confirmation)
 
-**What the Demo Shows:**
+- StorachaTest.svelte 
+    use the component in order to demonstrate a collaboration between Alice & Bob both working with independent OrbitDB todo db's.
+    Alice creates an OrbitDB and a DID from a generated mnemonic seed, creates todo items and creates a backup to Storacha by extracting then entries from IPFS storage and uploading them to Storacha.
+    Bob creates another OrbitDB with the same or a new seed connects to the same Storacha space as Alice and restores the Todo Items in his own OrbitDB.
 
-- ✅ Creates a sample OrbitDB database with test data
-- ✅ Backs up the complete database to Storacha/Filecoin
-- ✅ Restores the database with perfect hash preservation
-- ✅ Verifies data integrity and identity recovery
-- ✅ Shows progress tracking and performance metrics
+    Remark: Alice & Bob's OrbitDB's in this scenario are independent db's with two different OrbitDB addresses and therefore cannot replicate records peer-to-peer! 
+    If you want to achieve peer-to-peer replication between both db's (no restore would be required), in such case you'd need to open the db on Bob's side with Alice /orbitdb/address 
+
+
+**Svelte App Demonstations & Components**
+- `node scripts/svelte-backup-restore` - A script creating a example Svelte app in a sub directory which adds StorachaAuth.svelte and StorachaTest.svelte
+
 
 ## How It Works
 
@@ -233,41 +90,8 @@ npm run demo                     # Complete backup/restore demonstration
 
 ## Testing
 
-### Prerequisites
-
-Ensure you have Storacha credentials in your `.env` file:
-
-```bash
-cp .env.example .env
-# Add your STORACHA_KEY and STORACHA_PROOF
-```
-
-### Run Tests
-
-```bash
-# Run all tests (includes automatic space clearing)
-npm test
-
-# Run only integration tests
-npm run test:integration
-
-# Run tests with verbose output
-npm run test:verbose
-
-# Manually clear Storacha space before testing
-npm run clear-space
-```
-
-### Test Features
-
-The comprehensive test suite validates:
-
-- ✅ **Data Integrity** - Exact same data in/out of backup/restore cycles
-- ✅ **Perfect Identity Recovery** - OrbitDB addresses preserved exactly
-- ✅ **All Block Types** - Log entries, manifests, access controllers, identities
-- ✅ **CID Format Conversion** - Accurate Storacha ↔ OrbitDB format bridging
-- ✅ **Mapping-Independent Restore** - Space discovery without stored mappings
-- ✅ **Automatic Cleanup** - Tests clean up OrbitDB directories and Storacha space
+Ensure you have Storacha credentials in your `.env` file.
+Use npm test commands to run various test suites including integration tests and verbose output.
 
 ### CAR Storage Tests
 
@@ -304,41 +128,20 @@ MIT License
 ### Common Issues
 
 #### Authentication Errors
-```
-Error: Invalid credentials or proof
-```
-**Solution:** Verify your `.env` file contains valid Storacha credentials:
-```bash
-STORACHA_KEY=your_private_key_here
-STORACHA_PROOF=your_proof_here
-```
+
+Invalid credentials or proof errors can be resolved by verifying your `.env` file contains valid Storacha credentials.
 
 #### Restore Fails with "No files found"
-```
-Error: No files found in Storacha space
-```
-**Solutions:**
-- Run a backup first: `npm run demo` or use `examples/backup-demo.js`
-- Verify you're using the correct Storacha space
-- Check that backup completed successfully
+
+When no files are found in Storacha space, run a backup first, verify you're using the correct Storacha space, and check that backup completed successfully.
 
 #### Database Reconstruction Issues
-```
-Error: No manifest blocks found
-```
-**Solutions:**
-- Enable fallback mode: `{ forceFallback: true }`
-- Use custom database name: `{ fallbackDatabaseName: 'my-recovery-db' }`
-- This creates a new database with recovered data (addresses won't match original)
+
+When no manifest blocks are found, enable fallback mode or use custom database name. This creates a new database with recovered data (addresses won't match original).
 
 #### Network/Timeout Issues
-```
-Error: Request timeout
-```
-**Solutions:**
-- Increase timeout: `{ timeout: 60000 }` (60 seconds)
-- Check internet connection
-- Try different IPFS gateway: `{ gateway: 'https://ipfs.io' }`
+
+Request timeout errors can be resolved by increasing timeout, checking internet connection, or trying different IPFS gateway.
 
 ### Recovery Modes
 
@@ -355,66 +158,23 @@ Use fallback when:
 ### Return Values
 
 #### Backup Results
-```javascript
-const backup = await bridge.backup(orbitdb, databaseAddress)
-// Returns:
-{
-  success: true,
-  blocksUploaded: 42,
-  totalSize: 15420,
-  uploadTime: 2.3,
-  databaseAddress: '/orbitdb/zdpu...',
-  manifest: { /* database metadata */ }
-}
-```
+
+Backup operations return success status, blocks uploaded count, total size, upload time, database address, and manifest information.
 
 #### Restore Results
-```javascript
-const restore = await bridge.restoreFromSpace(orbitdb)
-// Returns:
-{
-  success: true,
-  database: OrbitDBInstance,
-  entriesRecovered: 25,
-  entriesCount: 25,
-  method: 'normal-reconstruction', // or 'fallback-reconstruction'
-  preservedHashes: true,
-  preservedAddress: true,
-  metadata: { /* restoration details */ }
-}
-```
+
+Restore operations return success status, database instance, entries recovered count, method used, preservation flags, and metadata.
 
 ## Use Cases
 
 ### Database Migration
-Move OrbitDB databases between different environments or nodes:
-```javascript
-// Source environment
-await bridge.backup(sourceOrbitdb, databaseAddress)
-
-// Target environment  
-const restored = await bridge.restoreFromSpace(targetOrbitdb)
-```
+Move OrbitDB databases between different environments or nodes using backup and restore operations.
 
 ### Disaster Recovery
-Recover from data loss with automatic fallback:
-```javascript
-const restored = await bridge.restoreFromSpace(orbitdb, {
-  forceFallback: true,
-  fallbackDatabaseName: 'emergency-recovery-2024'
-})
-// Creates new database with all recoverable data
-```
+Recover from data loss with automatic fallback mode to create new database with all recoverable data.
 
 ### Long-term Archival
-Archive databases to Filecoin for permanent storage:
-```javascript
-// Archive
-await bridge.backup(orbitdb, databaseAddress)
-
-// Later restore (months/years later)
-await bridge.restoreFromSpace(newOrbitdb)
-```
+Archive databases to Filecoin for permanent storage and later restoration.
 
 ## Performance Guidelines
 
@@ -428,7 +188,7 @@ await bridge.restoreFromSpace(newOrbitdb)
 
 ### Memory Usage
 - Each block kept in memory during processing
-- Large databases may require Node.js memory limits: `node --max-old-space-size=4096`
+- Large databases may require Node.js memory limits
 
 ### Network Considerations
 - Upload speed depends on your internet connection
@@ -446,6 +206,6 @@ This library works with OrbitDB v2. For v1 databases:
 ### From Other Backup Solutions
 If migrating from custom backup solutions:
 1. Ensure OrbitDB database is accessible
-2. Run backup: `bridge.backup(orbitdb, address)`
+2. Run backup operation
 3. Test restore on separate OrbitDB instance
 4. Verify data integrity before switching
