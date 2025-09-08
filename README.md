@@ -28,9 +28,9 @@ Simple backup and restore functionality for OrbitDB databases using Storacha/Fil
 
 ## What This Does
 
-"Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with or without full hash and identity preservation. Works in both Node.js and browser environments (in browsers at this time only without fully hash identity preservation by restoring db entries only [Issue #4](../../issues/4))
+"Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with or without full hash and identity preservation. Works in both Node.js and browser environments (in browsers at this time only without full hash identity preservation by restoring db entries only [Issue #4](../../issues/4))
 
-Furthermore, a [`StorachaTest.svelte`](src/components/StorachaTest.svelte)(and a [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte)) which demonstrates a typical basic OrbitDB Todo example workflow between two OrbitDB instances (with two separate libp2p, IPFS nodes) of Alice & Bob (inside one browser page).
+Furthermore, a [`StorachaTest.svelte`](src/components/StorachaTest.svelte) and a [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte) which demonstrates a typical basic OrbitDB Todo example workflow between two OrbitDB instances (with two separate libp2p, IPFS nodes) of Alice & Bob (inside one browser page).
 
 The script at scripts/svelte-backup-restore.js is setting up a complete example Svelte App with StorachaTest.svelte and StorachaAuth.svelte
 
