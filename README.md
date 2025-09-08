@@ -61,13 +61,13 @@ Get Storacha credentials from [web3.storage](https://web3.storage) and set up yo
 
 **Storacha Svelte components**
 
-- StorachaAuth.svelte  
+- [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte) ([view on GitHub](https://github.com/NiKrause/orbitdb-storacha-bridge/blob/HEAD/src/components/StorachaAuth.svelte))  
     use this component when authenticating against Storacha with three different authentication methods: 
     1. Storacha credentials (Storacha-Key and Storacha Proof)
     2. UCAN (a UCAN which was delegated from another Storacha DID) + a corresponding private key
     3. Email (create a new Storacha account and space by email confirmation)
 
-- StorachaTest.svelte 
+- [`StorachaTest.svelte`](src/components/StorachaTest.svelte) ([view on GitHub](https://github.com/NiKrause/orbitdb-storacha-bridge/blob/HEAD/src/components/StorachaTest.svelte)) 
     use the component in order to demonstrate a collaboration between Alice & Bob both working with independent OrbitDB todo db's.
     Alice creates an OrbitDB and a DID from a generated mnemonic seed, creates todo items and creates a backup to Storacha by extracting then entries from IPFS storage and uploading them to Storacha.
     Bob creates another OrbitDB with the same or a new seed connects to the same Storacha space as Alice and restores the Todo Items in his own OrbitDB.
@@ -77,7 +77,7 @@ Get Storacha credentials from [web3.storage](https://web3.storage) and set up yo
 
 
 **Svelte App Demonstations & Components**
-- `node scripts/svelte-backup-restore` - A script creating a example Svelte app in a sub directory which adds StorachaAuth.svelte and StorachaTest.svelte
+- `node` [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) - A script creating a example Svelte app in a sub directory which adds StorachaAuth.svelte and StorachaTest.svelte
 
 
 ## How It Works
