@@ -22,7 +22,6 @@ Simple backup and restore functionality for OrbitDB databases using Storacha/Fil
 - [Demo](#demo)
 - [How It Works](#how-it-works)
 - [Testing](#testing)
-- [Technical Details](#technical-details)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -109,7 +108,7 @@ Get Storacha credentials from [web3.storage](https://web3.storage) and set up yo
 
 1. **Extract Blocks** - Separates OrbitDB database into individual components (log entries, manifest, identities, access controls)
 2. **Upload to Storacha** - Each block is uploaded separately to IPFS/Filecoin via Storacha
-3. **Smart Discovery** - Lists all files in Storacha space using SDK APIs
+3. **Block Discovery** - Lists all files in Storacha space using Storacha SDK APIs
 4. **CID Bridging** - Converts between Storacha CIDs (`bafkre*`) and OrbitDB CIDs (`zdpu*`)
 5. **Reconstruct Database** - Reassembles blocks and opens database with original identity
 
@@ -132,90 +131,3 @@ The `car-storage.test.js` suite provides comprehensive validation of the CAR (Co
 ## License
 
 MIT License
-
-## Troubleshooting
-
-### Common Issues
-
-#### Authentication Errors
-
-Invalid credentials or proof errors can be resolved by verifying your `.env` file contains valid Storacha credentials.
-
-#### Restore Fails with "No files found"
-
-When no files are found in Storacha space, run a backup first, verify you're using the correct Storacha space, and check that backup completed successfully.
-
-#### Database Reconstruction Issues
-
-When no manifest blocks are found, enable fallback mode or use custom database name. This creates a new database with recovered data (addresses won't match original).
-
-#### Network/Timeout Issues
-
-Request timeout errors can be resolved by increasing timeout, checking internet connection, or trying a different IPFS gateway.
-
-### Recovery Modes
-
-The library supports two restoration approaches:
-
-1. **Normal Restore** (default): Preserves original database structure, addresses, and hashes
-2. **Fallback Restore**: Creates new database with recovered data when normal restore fails
-
-Use fallback when:
-- Original database structure is corrupted
-- You only need the data, not the exact database identity
-- Normal restore consistently fails
-
-### Return Values
-
-#### Backup Results
-
-Backup operations return success status, blocks uploaded count, total size, upload time, database address, and manifest information.
-
-#### Restore Results
-
-Restore operations return success status, database instance, entries recovered count, method used, preservation flags, and metadata.
-
-## Use Cases
-
-### Database Migration
-Move OrbitDB databases between different environments or nodes using backup and restore operations.
-
-### Disaster Recovery
-Recover from data loss with automatic fallback mode to create new database with all recoverable data.
-
-### Long-term Archival
-Archive databases to Filecoin for permanent storage and later restoration.
-
-## Performance Guidelines
-
-### Optimal Settings by Database Size
-
-| Database Size | batchSize | maxConcurrency | Expected Time |
-|---------------|-----------|----------------|---------------|
-| Small (< 1MB) | 5         | 2              | < 30s         |
-| Medium (1-10MB) | 10      | 3              | 1-5 min       |
-| Large (> 10MB) | 20       | 5              | 5+ min        |
-
-### Memory Usage
-- Each block is kept in memory during processing
-- Large databases may require Node.js memory limits
-
-### Network Considerations
-- Upload speed depends on your internet connection
-- Download uses IPFS gateways (may vary in performance)
-- Consider timeout increases for slow connections
-
-## Migration Guide
-
-### From OrbitDB v1 to v2
-This library works with OrbitDB v2. For v1 databases:
-1. Upgrade OrbitDB to v2
-2. Migrate database format
-3. Use this bridge for backup
-
-### From Other Backup Solutions
-If migrating from custom backup solutions:
-1. Ensure OrbitDB database is accessible
-2. Run backup operation
-3. Test restore on separate OrbitDB instance
-4. Verify data integrity before switching
