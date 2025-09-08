@@ -53,21 +53,21 @@ Get Storacha credentials from [web3.storage](https://web3.storage) and set up yo
 
 ## Demo
 
-**NodeJS Demo Scripts:**
+### NodeJS Demo Scripts (full backup with Manifest, Identity and AccessController and entries blocks)
 
-- `node examples/demo.js` - Complete backup/restore cycle
-- `node examples/backup-demo.js` - Backup demonstration only  
-- `node examples/restore-demo.js` - Restore demonstration only
+- `node` [`examples/demo.js`](examples/demo.js) - Complete backup/restore cycle
+- `node` [`examples/backup-demo.js`](examples/backup-demo.js) - Backup demonstration only  
+- `node` [`examples/restore-demo.js`](examples/restore-demo.js) - Restore demonstration only
 
-**Storacha Svelte components**
+### Storacha Svelte Components
 
-- [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte) ([view on GitHub](https://github.com/NiKrause/orbitdb-storacha-bridge/blob/HEAD/src/components/StorachaAuth.svelte))  
+- [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte) 
     use this component when authenticating against Storacha with three different authentication methods: 
     1. Storacha credentials (Storacha-Key and Storacha Proof)
     2. UCAN (a UCAN which was delegated from another Storacha DID) + a corresponding private key
     3. Email (create a new Storacha account and space by email confirmation)
 
-- [`StorachaTest.svelte`](src/components/StorachaTest.svelte) ([view on GitHub](https://github.com/NiKrause/orbitdb-storacha-bridge/blob/HEAD/src/components/StorachaTest.svelte)) 
+- [`StorachaTest.svelte`](src/components/StorachaTest.svelte)
     use the component in order to demonstrate a collaboration between Alice & Bob both working with independent OrbitDB todo db's.
     Alice creates an OrbitDB and a DID from a generated mnemonic seed, creates todo items and creates a backup to Storacha by extracting then entries from IPFS storage and uploading them to Storacha.
     Bob creates another OrbitDB with the same or a new seed connects to the same Storacha space as Alice and restores the Todo Items in his own OrbitDB.
@@ -75,10 +75,9 @@ Get Storacha credentials from [web3.storage](https://web3.storage) and set up yo
     Remark: Alice & Bob's OrbitDB's in this scenario are independent db's with two different OrbitDB addresses and therefore cannot replicate records peer-to-peer! 
     If you want to achieve peer-to-peer replication between both db's (no restore would be required), in such case you'd need to open the db on Bob's side with Alice /orbitdb/address 
 
+### Svelte App Demonstrations & Components
 
-**Svelte App Demonstations & Components**
-- `node` [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) - A script creating a example Svelte app in a sub directory which adds StorachaAuth.svelte and StorachaTest.svelte
-
+- `node` [`scripts/svelte-backup-restore.js`] - A script creating a example Svelte app in a sub directory which adds and demonstrates StorachaAuth.svelte and StorachaTest.svelte
 
 ## How It Works
 
@@ -96,21 +95,6 @@ Use npm test commands to run various test suites including integration tests and
 ### CAR Storage Tests
 
 The `car-storage.test.js` suite provides comprehensive validation of the CAR (Content Addressable Archive) storage layer that enables persistent file-based storage for OrbitDB databases. The **Full OrbitDB Integration with Persistence** test demonstrates complete database lifecycle management: creating an OrbitDB instance with CAR storage, adding todo entries, persisting to CAR files, closing the database, reopening with a new OrbitDB instance, and verifying all data is perfectly recovered. This test validates that CAR storage can serve as a reliable persistence layer for OrbitDB's entry, heads, and index storage, ensuring data survives across application restarts.
-
-## Technical Details
-
-**CID Format Conversion:**
-
-- OrbitDB: `zdpu*` (base58btc, dag-cbor codec)
-- Storacha: `bafkre*` (base32, raw codec)
-- Same content hash, different encoding
-
-**Block Types Handled:**
-
-- Log entries (actual data)
-- Database manifests (metadata)
-- Access controllers (permissions)
-- Identity blocks (cryptographic proofs)
 
 ## Contributing
 
