@@ -28,9 +28,15 @@ Simple backup and restore functionality for OrbitDB databases using Storacha/Fil
 
 ## What This Does
 
-So far mainly, "Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with or without identity preservation. Works in both Node.js and browser environments (the latter at this time only without identity preservation)
+"Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with or without full hash and identity preservation. Works in both Node.js and browser environments (in browsers at this time only without fully hash identity preservation by restoring db entries only [Issue #4](../../issues/4))
 
-## What we want to accomplish (and demonstrate)
+Furthermore, a [`StorachaTest.svelte`](src/components/StorachaTest.svelte)(and a [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte)) which demonstrates a typical basic OrbitDB Todo example workflow between two OrbitDB instances (with two separate libp2p, IPFS nodes) of Alice & Bob (inside one browser page).
+
+The script at scripts/svelte-backup-restore.js is setting up a complete example Svelte App with StorachaTest.svelte and StorachaAuth.svelte
+
+Additionally, exists a [`StorachaIntegration.svelte`](src/components/StorachaIntegration.svelte) which authenticates with Storacha, creates backups and restores for any OrbitDB Svelte app. (but has the above stated 'issue'). Since this issue isn't always wanted or needed StorachaTest.svelte is demonstrating a different approach.
+
+## What we want to accomplish
 
 If Alice & Bob working on the same OrbitDB without
 
@@ -49,7 +55,7 @@ Remark: In theory Alice & Bob don't need to restore anything if they are connect
 ## RoadMap
 
 - [x] backup/restore between OrbitDB and Storacha in NodeJS via Storacha key and proof credential (hash and identity preserving)
-- [ ] backup/restore between OrbitDB and Storacha in browser (StorachaIntegration.svelte) (hash and identity preserving)
+- [ ] backup/restore between OrbitDB and Storacha in browser (StorachaIntegration.svelte) (hash and identity preserving) - [Issue #4](../../issues/4)
 - [x] backup/restore between OrbitDB and Storacha in browser ([`StorachaTest.svelte`](src/components/StorachaTest.svelte)) (entries only - without manifest and identity preservation into new OrbitDB)
   - [x] using Storacha Credentials by [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte)
   - [ ] using UCAN + privatekey (implemented but untested)
