@@ -32,9 +32,9 @@ Simple backup and restore functionality for OrbitDB databases using Storacha/Fil
 
 Furthermore, a [`StorachaTest.svelte`](src/components/StorachaTest.svelte) and a [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte) which demonstrate a typical basic OrbitDB Todo example workflow between two OrbitDB instances (with two separate libp2p, IPFS nodes running in the browser - Alice & Bob)
 
-The script at [`StorachaTest.svelte`](scripts/svelte-backup-restore.js) is setting up a complete example Svelte App with StorachaTest.svelte and StorachaAuth.svelte
+The the [`scripts/svelte-backup-restore.js)](scripts/svelte-backup-restore.js) script is setting up a complete example Svelte App with StorachaTest.svelte and StorachaAuth.svelte
 
-Additionally, exists a [`StorachaIntegration.svelte`](src/components/StorachaIntegration.svelte) which authenticates with Storacha, creates backups and restores for any OrbitDB Svelte app. (but has the above stated 'issue'). Since this issue isn't always wanted or needed StorachaTest.svelte is demonstrating a different approach.
+Additionally exists a [`StorachaIntegration.svelte`](src/components/StorachaIntegration.svelte) which authenticates with Storacha, creates backups and restores for any OrbitDB Svelte app. (but has the above stated 'issue'). Since this isn't always an issue, StorachaTest.svelte is demonstrating a different approach when dealing with the entries in the oplog only and recreating/restoreing the OrbitDB by adding a dbconfig object separately. Like that the exact same db can be restored.
 
 ## What we want to accomplish
 
