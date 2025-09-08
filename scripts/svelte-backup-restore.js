@@ -182,6 +182,7 @@ class StorachaTestAutomator {
 				"typescript": "^5.9.2",
 				"vite": "^7.1.4",
 				"vite-plugin-pwa": "^1.0.3",
+				"vite-plugin-node-polyfills": "^0.24.0",
 				"vitest": "^3.2.4",
 				"vitest-browser-svelte": "^0.1.0"
 			},

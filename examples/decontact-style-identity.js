@@ -20,7 +20,8 @@
  */
 
 import 'dotenv/config'
-import { generateMnemonic, mnemonicToSeedSync } from 'bip39'
+import { generateMnemonic, mnemonicToSeedSync } from '@scure/bip39'
+import { wordlist as english } from '@scure/bip39/wordlists/english'
 import { createHash } from 'crypto'
 import { Signer } from '@web3-storage/w3up-client/principal/ed25519'
 import * as ed25519 from '@ucanto/principal/ed25519'
@@ -41,11 +42,16 @@ function convertTo32BitSeed(origSeed) {
     return hash.digest()
 }
 
+// Convert Uint8Array to hex (browser-safe)
+function toHex(u8) {
+    return Array.from(u8).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 /**
  * Generate master seed from mnemonic (same as deContact)
  */
 function generateMasterSeed(mnemonicSeedphrase, password = 'password') {
-    return mnemonicToSeedSync(mnemonicSeedphrase, password).toString('hex')
+    return toHex(mnemonicToSeedSync(mnemonicSeedphrase, password))
 }
 
 /**
@@ -251,7 +257,7 @@ async function main() {
         console.log('\n🌱 Step 1: Generate seed phrase (like deContact onboarding)')
         
         // Generate or use existing seed phrase
-        const seedPhrase = process.env.DEMO_SEED_PHRASE || generateMnemonic()
+        const seedPhrase = process.env.DEMO_SEED_PHRASE || generateMnemonic(english)
         console.log(`   🔤 Seed phrase: ${seedPhrase}`)
         
         // Generate master seed (deContact style)

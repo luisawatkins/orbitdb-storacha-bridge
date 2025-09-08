@@ -16,7 +16,8 @@
  */
 
 import 'dotenv/config'
-import { generateMnemonic } from 'bip39'
+import { generateMnemonic } from '@scure/bip39'
+import { wordlist as english } from '@scure/bip39/wordlists/english'
 import { OrbitDBStorachaBridgeUCAN } from '../lib/ucan-bridge.js'
 import { createHeliaOrbitDB, cleanupOrbitDBDirectories } from '../lib/utils.js'
 import { 
@@ -190,7 +191,7 @@ async function main() {
         console.log('-'.repeat(50))
         
         // Use consistent seed phrase for reproducible demo
-        const seedPhrase = process.env.DEMO_SEED_PHRASE || generateMnemonic()
+        const seedPhrase = process.env.DEMO_SEED_PHRASE || generateMnemonic(english)
         console.log(`   🔤 Seed phrase: ${seedPhrase}`)
         
         const masterSeed = generateMasterSeed(seedPhrase, 'password')

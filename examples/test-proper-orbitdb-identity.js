@@ -8,7 +8,8 @@
  */
 
 import 'dotenv/config'
-import { generateMnemonic } from 'bip39'
+import { generateMnemonic } from '@scure/bip39'
+import { wordlist as english } from '@scure/bip39/wordlists/english'
 import { createLibp2p } from 'libp2p'
 import { createHelia } from 'helia'
 import { LevelBlockstore } from 'blockstore-level'
@@ -34,7 +35,7 @@ async function testProperOrbitDBIdentity() {
         console.log('\n🌱 Step 1: Generate seed phrase and master seed')
         
         // Generate test seed
-        const seedPhrase = generateMnemonic()
+        const seedPhrase = generateMnemonic(english)
         const masterSeed = generateMasterSeed(seedPhrase, 'password')
         
         console.log(`   🔤 Seed phrase: ${seedPhrase}`)

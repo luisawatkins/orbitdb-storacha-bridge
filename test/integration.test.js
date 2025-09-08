@@ -428,7 +428,6 @@ describe('OrbitDB Storacha Bridge Integration', () => {
    * @timeout 120000 - 2 minutes for network operations
    */
   test('Key-value mapping-independent restore with todos and identity', async () => {
-    // Skip if no credentials
     if (!process.env.STORACHA_KEY || !process.env.STORACHA_PROOF) {
       return
     }

@@ -31,7 +31,8 @@
     import OrbitDBIdentityProviderDID from '@orbitdb/identity-provider-did';
     import { Ed25519Provider } from 'key-did-provider-ed25519';
     import * as KeyDIDResolver from 'key-did-resolver';
-    import { generateMnemonic, mnemonicToSeedSync } from 'bip39';
+    import { generateMnemonic, mnemonicToSeedSync } from '@scure/bip39';
+    import { wordlist as english } from '@scure/bip39/wordlists/english';
     import { createHash } from 'crypto';
 	
 	// Import the new Storacha Auth component
@@ -143,11 +144,16 @@ function convertTo32BitSeed(origSeed) {
     return hash.digest();
 }
 
+// Convert Uint8Array to hex (browser-safe)
+function toHex(u8) {
+    return Array.from(u8).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 /**
  * Generate master seed from mnemonic
  */
 function generateMasterSeed(mnemonicSeedphrase, password = 'password') {
-    return mnemonicToSeedSync(mnemonicSeedphrase, password).toString('hex');
+    return toHex(mnemonicToSeedSync(mnemonicSeedphrase, password));
 }
 
 /**
@@ -157,7 +163,7 @@ async function createReusableIdentity(persona = 'shared') {
     console.log(`🆔 Creating ${persona} identity...`);
     
     // Generate a test seed phrase for consistent identity
-    const seedPhrase = generateMnemonic();
+    const seedPhrase = generateMnemonic(english);
     const masterSeed = generateMasterSeed(seedPhrase, `${persona}-password`);
     const seed32 = convertTo32BitSeed(masterSeed);
     
