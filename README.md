@@ -1,6 +1,6 @@
 # OrbitDB Storacha Bridge
 
-> **OrbitDB database backup and restoration via Storacha/Filecoin**
+> **OrbitDB database backup, restoration, replication, UCANs and more via Storacha/Filecoin**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-22+-green.svg)](https://nodejs.org/)
@@ -8,9 +8,6 @@
 [![ESLint](https://img.shields.io/badge/ESLint-passing-brightgreen.svg)](https://github.com/NiKause/orbitdb-storacha-bridge/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/orbitdb-storacha-bridge.svg)](https://www.npmjs.com/package/orbitdb-storacha-bridge)
 
-## 🎯  OrbitDB backups, restore an more ...
-
-Simple backup and restore functionality for OrbitDB databases using Storacha/Filecoin.
 
 ## Table of Contents
 
@@ -28,17 +25,17 @@ Simple backup and restore functionality for OrbitDB databases using Storacha/Fil
 
 ## What we want to accomplish
 
-If Alice & Bob are working on the same OrbitDB:
+If Alice & Bob are working with the same OrbitDB:
 
-- without 24/7 internet connection between their browsers 
-- without a signalling or relay node (network) which is live pinning their OrbitDB changes (e.g. via OrbitDB-Voyager or other custom OrbitDB node instance)
+- without 24/7 internet connection between their browsers and also
+- without a signalling or relay node (or network) which is live pinning their OrbitDB changes (e.g. via OrbitDB-Voyager or other custom OrbitDB node instance)
 
 ... so both can backup and restore their work to a Storacha space via
 
 - a complete Storacha backup / restore or
-- a OrbitDB CustomStorage (for the entries only) 
+- an OrbitDB CustomStorage (for the entries, index and identities - no Manifest here so far) 
 
-Remark: In theory and a perfect world Alice & Bob don't need to restore anything if they are connected directly via peer-to-peer and attached 24/7 OrbitDB pinning nodes. If Alice looses her data, Bob would still have them and Alice could anytime resync from Bob (that is current state of technologie of OrbitDB)
+In theory and a perfect world Alice & Bob don't need to restore anything if they are connected directly via peer-to-peer and attached 24/7 OrbitDB pinning nodes. If Alice looses her data, Bob would still have them and Alice could anytime resync from Bob (that is current state of technologie of OrbitDB)
 
 Storacha full backup and restore is only for certain emergencies e.g. when both Alice & Bob lose their data or devices. Then a new Alice or Bob or even Peter can restore their work from Storacha. It is happing that networks block IP's, ports and protocols e.g. to WebRTC or Websocket gateways etc. in such case it would be desirable to have a possibility to restore an OrbitDB directly from IPFS and push/upload back to it via Storacha/Filecoin.
 
