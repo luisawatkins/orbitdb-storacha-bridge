@@ -14,8 +14,8 @@ Simple backup and restore functionality for OrbitDB databases using Storacha/Fil
 
 ## Table of Contents
 
-- [What This Does](#what-this-does)
 - [What we want to accomplish](#what-we-want-to-accomplish)
+- [What This Does](#what-this-does)
 - [RoadMap](#roadmap)
 - [Installation](#installation)
 - [Environment Setup](#environment-setup)
@@ -24,6 +24,23 @@ Simple backup and restore functionality for OrbitDB databases using Storacha/Fil
 - [Testing](#testing)
 - [Contributing](#contributing)
 - [License](#license)
+
+
+## What we want to accomplish
+
+If Alice & Bob are working on the same OrbitDB without
+
+- 24/7 internet connection between their browsers or via
+- a signalling or relay node (network) which is live pinning their OrbitDB changes (e.g. via OrbitDB-Voyager or or other custom OrbitDB node instance)
+
+... can backup and restore their work to Storacha space via
+
+- a complete Storacha backup / restore or
+- a OrbitDB CustomStorage (for the entries only)
+
+So that when Alice finishes work, Bob can load it from a Storacha Store!
+
+Remark: In theory Alice & Bob don't need to restore anything if they are connected directly via peer-to-peer. Hence: This should be only for emergencies e.g. when both Alice & Bob lose their data or devices for some reason. Then a new Alice or Bob can come and restore the work from Storacha.
 
 ## What This Does
 
@@ -36,22 +53,6 @@ The [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) scrip
 Additionally exists a [`StorachaIntegration.svelte`](src/components/StorachaIntegration.svelte) which authenticates with Storacha, creates backups and restores for any OrbitDB Svelte app. (but has the above stated 'issue'). Since this isn't always an issue, StorachaTest.svelte is demonstrating a different approach when dealing with the entries in the oplog only and recreating/restoring the OrbitDB by adding a dbconfig object separately. This way the exact same db can be restored.
 
 Upcoming: UCAN authentication (instead of Storacha-Key and proof credentials) and a StorachaStorage (a OrbitDB CustomerStorage) where it will be possible to use Storacha in parallel and permanent backup while other peers are replicating.
-
-## What we want to accomplish
-
-If Alice & Bob are working on the same OrbitDB without
-
-- 24/7 internet connection between their browsers or via
-- a signalling or relay server which is live pinning their OrbitDB (e.g. OrbitDB-Voyager)
-
-... can backup and restore their work to Storacha space via
-
-- a complete Storacha backup / restore or
-- a OrbitDB CustomStorage (for the entries only)
-
-So that when Alice finishes work, Bob can load it from a Storacha Store!
-
-Remark: In theory Alice & Bob don't need to restore anything if they are connected directly via peer-to-peer. Hence: This should be only for emergencies e.g. when both Alice & Bob lose their data or devices for some reason. Then a new Alice or Bob can come and restore the work from Storacha.
 
 ## RoadMap
 
