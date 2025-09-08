@@ -1,12 +1,19 @@
 <script>
 	import {
-		Play,
+		Plus,
+		Upload,
+		Download,
 		Database,
 		CheckCircle,
 		AlertCircle,
 		Loader2,
 		Eye,
-		EyeOff
+		EyeOff,
+		User,
+		Users,
+		ArrowRight,
+		ToggleLeft,
+		ToggleRight
 	} from 'lucide-svelte';
 	import { createLibp2p } from 'libp2p';
 	import { createHelia } from 'helia';
@@ -19,70 +26,115 @@
     import { gossipsub } from '@chainsafe/libp2p-gossipsub';
     import { all } from '@libp2p/websockets/filters';
     import { createOrbitDB, IPFSAccessController } from '@orbitdb/core';
-	import { backupDatabase, restoreDatabaseFromSpace, clearStorachaSpace } from '../../lib/orbitdb-storacha-bridge';
+	import { backupDatabase, restoreLogEntriesOnly, clearStorachaSpace } from './orbitdb-storacha-bridge';
     import { Identities, useIdentityProvider } from '@orbitdb/core';
     import OrbitDBIdentityProviderDID from '@orbitdb/identity-provider-did';
     import { Ed25519Provider } from 'key-did-provider-ed25519';
     import * as KeyDIDResolver from 'key-did-resolver';
     import { generateMnemonic, mnemonicToSeedSync } from 'bip39';
     import { createHash } from 'crypto';
+	
+	// Import the new Storacha Auth component
+	import StorachaAuth from './StorachaAuth.svelte';
 
-	// Test state
-	let testRunning = false;
-	let testStep = '';
-	let testResults = [];
-	let testError = null;
-	let testSuccess = false;
+	// Storacha authentication state
+	let storachaAuthenticated = false;
+	let storachaClient = null;
+	let storachaCredentials = null;
+
+	// Alice's state (creates data and backs up)
+	let aliceRunning = false;
+	let aliceOrbitDB = null;
+	let aliceDatabase = null;
+	let aliceHelia = null;
+	let aliceLibp2p = null;
+	let aliceTodos = [];
+	let aliceResults = [];
+	let aliceStep = '';
+	let aliceError = null;
+
+	// Bob's state (restores data)
+	let bobRunning = false;
+	let bobOrbitDB = null;
+	let bobDatabase = null;
+	let bobHelia = null;
+	let bobLibp2p = null;
+	let bobTodos = [];
+	let bobResults = [];
+	let bobStep = '';
+	let bobError = null;
+	let bobUseSameIdentity = true; // Toggle for Bob's identity choice
+	let bobIdentity = null; // Bob's own identity if he creates one
+	let bobIdentities = null; // Bob's own identities instance
+
+	// Shared state
+	let sharedIdentity = null;
+	let sharedIdentities = null;
+	let backupResult = null;
+	let restoreResult = null;
 	let showDetails = false;
 
 	// Test data
 	let originalTodos = [
 		{
 			id: 'test_todo_1',
-			text: 'Test Todo 1 - Buy groceries',
+			text: 'Buy groceries for the week',
 			completed: false,
 			createdAt: new Date().toISOString(),
-			createdBy: 'test-peer-1'
+			createdBy: 'alice'
 		},
 		{
 			id: 'test_todo_2',
-			text: 'Test Todo 2 - Walk the dog',
+			text: 'Walk the dog in the park',
 			completed: true,
-			createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // 1 hour ago
-			createdBy: 'test-peer-2'
+			createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+			createdBy: 'alice'
 		},
 		{
 			id: 'test_todo_3',
-			text: 'Test Todo 3 - Finish project',
+			text: 'Finish the OrbitDB project',
 			completed: false,
-			createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
-			createdBy: 'test-peer-1'
+			createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+			createdBy: 'alice'
 		}
 	];
 
-	// Test instances
-	let testOrbitDB1 = null;
-	let testOrbitDB2 = null;
-	let testDatabase1 = null;
-	let testDatabase2 = null;
-	let testHelia1 = null;
-	let testHelia2 = null;
-	let testLibp2p1 = null;
-	let testLibp2p2 = null;
+	// Keep track of database addresses
+	let storachaTestDatabaseAddresses = new Set();
 
-	// Storacha credentials (will be loaded from localStorage)
-	let storachaKey = '';
-	let storachaProof = '';
+	// Handle Storacha authentication events
+	function handleStorachaAuthenticated(event) {
+		console.log('🔐 Storacha authenticated:', event.detail);
+		storachaAuthenticated = true;
+		storachaClient = event.detail.client;
+		storachaCredentials = {
+			method: event.detail.method,
+			spaces: event.detail.spaces,
+			identity: event.detail.identity // Available if authenticated with seed
+		};
 
-	// Backup results
-	let backupResult = null;
-	let restoreResult = null;
+		// Store credentials for backup/restore operations
+		if (event.detail.method === 'credentials') {
+			// For key/proof authentication, we need to extract the credentials
+			console.log('📝 Credentials-based authentication - storing for backup operations');
+		} else if (event.detail.method === 'ucan' || event.detail.method === 'seed') {
+			console.log(`📝 ${event.detail.method}-based authentication - ready for operations`);
+		}
+	}
 
-	// Add identity variables at the top level
-	let sharedIdentity = null;
-	let sharedIdentities = null;
+	function handleStorachaLogout() {
+		console.log('🚪 Storacha logged out');
+		storachaAuthenticated = false;
+		storachaClient = null;
+		storachaCredentials = null;
+	}
 
-	/**
+	function handleSpaceChanged(event) {
+		console.log('🔄 Storacha space changed:', event.detail.space);
+		// Update any space-dependent operations
+	}
+
+/**
  * Convert 64-bit seed to 32-bit seed (same as deContact)
  */
 function convertTo32BitSeed(origSeed) {
@@ -101,12 +153,12 @@ function generateMasterSeed(mnemonicSeedphrase, password = 'password') {
 /**
  * Create a reusable OrbitDB identity from seed
  */
-async function createReusableIdentity() {
-    console.log('🆔 Creating reusable OrbitDB identity...');
+async function createReusableIdentity(persona = 'shared') {
+    console.log(`🆔 Creating ${persona} identity...`);
     
     // Generate a test seed phrase for consistent identity
     const seedPhrase = generateMnemonic();
-    const masterSeed = generateMasterSeed(seedPhrase, 'test-password');
+    const masterSeed = generateMasterSeed(seedPhrase, `${persona}-password`);
     const seed32 = convertTo32BitSeed(masterSeed);
     
     // Set up DID resolver and register the official DID provider
@@ -127,13 +179,11 @@ async function createReusableIdentity() {
         }) 
     });
     
-    console.log(`✅ Reusable identity created: ${identity.id}`);
-    console.log(`🔑 Identity type: ${identity.type}`);
-    
+    console.log(`✅ ${persona} identity created: ${identity.id}`);
     return { identity, identities, seedPhrase, masterSeed };
 }
 
-function addTestResult(step, status, message, data = null) {
+function addResult(persona, step, status, message, data = null) {
 		const result = {
 			step,
 			status, // 'running', 'success', 'error'
@@ -141,25 +191,36 @@ function addTestResult(step, status, message, data = null) {
 			data,
 			timestamp: new Date().toISOString()
 		};
-		testResults = [...testResults, result];
-		console.log(`🧪 Test ${step}: ${status} - ${message}`, data || '');
+		
+		if (persona === 'alice') {
+			aliceResults = [...aliceResults, result];
+		} else {
+			bobResults = [...bobResults, result];
+		}
+		console.log(`🧪 ${persona}: ${step} - ${status} - ${message}`, data || '');
 	}
 
-	function updateLastTestResult(status, message, data = null) {
-		if (testResults.length > 0) {
-			const lastResult = testResults[testResults.length - 1];
+	function updateLastResult(persona, status, message, data = null) {
+		const results = persona === 'alice' ? aliceResults : bobResults;
+		if (results.length > 0) {
+			const lastResult = results[results.length - 1];
 			lastResult.status = status;
 			lastResult.message = message;
 			if (data) lastResult.data = data;
-			testResults = [...testResults];
+			
+			if (persona === 'alice') {
+				aliceResults = [...aliceResults];
+			} else {
+				bobResults = [...bobResults];
+			}
 		}
 	}
 
-	async function createTestOrbitDB(instanceId, databaseName, databaseConfig, enableNetworkConnection = false, enablePeerConnections = false, identity = null, identities = null) {
-		console.log(`🔧 Creating test OrbitDB instance ${instanceId}...`);
+	async function createOrbitDBInstance(persona, instanceId, databaseName, databaseConfig, useSharedIdentity = true) {
+		console.log(`🔧 Creating OrbitDB instance for ${persona}...`);
 
 		// Use minimal libp2p config to avoid relay connections
-		const config = DefaultLibp2pBrowserOptions // createMinimalLibp2pConfig();
+		const config = DefaultLibp2pBrowserOptions;
 
 		// Create libp2p instance
 		const libp2p = await createLibp2p(config);
@@ -174,38 +235,44 @@ function addTestResult(step, status, message, data = null) {
 		// Create OrbitDB instance with unique ID and memory storage
 		const orbitdbConfig = {
 			ipfs: helia,
-			id: `storacha-test-${instanceId}-${Date.now()}-${Math.random()}`,
-			directory: `./orbitdb-storacha-test-${instanceId}`,
+			id: `${persona}-${instanceId}-${Date.now()}-${Math.random()}`,
+			directory: `./orbitdb-${persona}-${instanceId}`,
 		};
 
-		// Add identity if provided
-		if (identity && identities) {
-			orbitdbConfig.identity = identity;
-			orbitdbConfig.identities = identities;
-			console.log(`🆔 Using shared identity: ${identity.id}`);
+		// Choose identity based on persona and settings
+		if (persona === 'alice' && sharedIdentity && sharedIdentities) {
+			orbitdbConfig.identity = sharedIdentity;
+			orbitdbConfig.identities = sharedIdentities;
+		} else if (persona === 'bob') {
+			if (useSharedIdentity && sharedIdentity && sharedIdentities) {
+				orbitdbConfig.identity = sharedIdentity;
+				orbitdbConfig.identities = sharedIdentities;
+				console.log(`🔗 Bob using Alice's shared identity: ${sharedIdentity.id}`);
+			} else if (bobIdentity && bobIdentities) {
+				orbitdbConfig.identity = bobIdentity;
+				orbitdbConfig.identities = bobIdentities;
+				console.log(`🆔 Bob using his own identity: ${bobIdentity.id}`);
+			}
 		}
 
 		const orbitdb = await createOrbitDB(orbitdbConfig);
         console.log('orbitdb', orbitdb);
 
 		// Create database with access controller (like working integration test)
-		const database = await orbitdb.open(databaseName,databaseConfig);
+		const database = await orbitdb.open(databaseName, databaseConfig);
         console.log('database', database);
 
 		// Set up event listeners for this database
-		setupDatabaseEventListeners(database, instanceId);
+		setupDatabaseEventListeners(database, persona);
 
 		return { libp2p, helia, orbitdb, database };
 	}
 
-	// Keep track of all StorachaTest database addresses
-	let storachaTestDatabaseAddresses = new Set();
-
 	// Add this new function to set up event listeners for StorachaTest databases only
-function setupDatabaseEventListeners(database, instanceId) {
+function setupDatabaseEventListeners(database, persona) {
 	if (!database) return;
 
-	console.log(`🎧 [StorachaTest] Setting up event listeners for database instance ${instanceId}...`);
+	console.log(`🎧 Setting up event listeners for ${persona}'s database...`);
 	console.log(`🎯 [StorachaTest] Database address: ${database.address}`);
 	
 	// Add this database address to our tracking set
@@ -217,7 +284,7 @@ function setupDatabaseEventListeners(database, instanceId) {
 		const eventAddress = address?.toString() || address;
 		
 		if (storachaTestDatabaseAddresses.has(eventAddress)) {
-			console.log(`🔗 [StorachaTest-${instanceId}] JOIN EVENT:`, {
+			console.log(`🔗 [StorachaTest-${persona}] JOIN EVENT:`, {
 				address: eventAddress,
 				entry: {
 					hash: entry?.hash?.toString() || entry?.hash,
@@ -230,8 +297,15 @@ function setupDatabaseEventListeners(database, instanceId) {
 			});
 			
 			// Add to test results if test is running
-			if (testRunning) {
-				addTestResult(`Join Event [${instanceId}]`, 'success', `New entry joined: ${entry?.key || 'unknown key'}`, {
+			if (persona === 'alice') {
+				addResult('alice', 'Join Event', 'success', `New entry joined: ${entry?.key || 'unknown key'}`, {
+					address: eventAddress,
+					entryHash: entry?.hash?.toString() || entry?.hash,
+					entryKey: entry?.key,
+					entryValue: entry?.value
+				});
+			} else if (persona === 'bob') {
+				addResult('bob', 'Join Event', 'success', `New entry joined: ${entry?.key || 'unknown key'}`, {
 					address: eventAddress,
 					entryHash: entry?.hash?.toString() || entry?.hash,
 					entryKey: entry?.key,
@@ -247,7 +321,7 @@ function setupDatabaseEventListeners(database, instanceId) {
 		const eventAddress = address?.toString() || address;
 		
 		if (storachaTestDatabaseAddresses.has(eventAddress)) {
-			console.log(`🔄 [StorachaTest-${instanceId}] UPDATE EVENT:`, {
+			console.log(`🔄 [StorachaTest-${persona}] UPDATE EVENT:`, {
 				address: eventAddress,
 				entry: {
 					hash: entry?.hash?.toString() || entry?.hash,
@@ -260,8 +334,15 @@ function setupDatabaseEventListeners(database, instanceId) {
 			});
 
 			// Add to test results if test is running
-			if (testRunning) {
-				addTestResult(`Update Event [${instanceId}]`, 'success', `Entry updated: ${entry?.key || 'unknown key'}`, {
+			if (persona === 'alice') {
+				addResult('alice', 'Update Event', 'success', `Entry updated: ${entry?.key || 'unknown key'}`, {
+					address: eventAddress,
+					entryHash: entry?.hash?.toString() || entry?.hash,
+					entryKey: entry?.key,
+					entryValue: entry?.value
+				});
+			} else if (persona === 'bob') {
+				addResult('bob', 'Update Event', 'success', `Entry updated: ${entry?.key || 'unknown key'}`, {
 					address: eventAddress,
 					entryHash: entry?.hash?.toString() || entry?.hash,
 					entryKey: entry?.key,
@@ -271,7 +352,7 @@ function setupDatabaseEventListeners(database, instanceId) {
 		}
 	});
 
-	console.log(`✅ [StorachaTest] Event listeners set up for database instance ${instanceId}`);
+	console.log(`✅ [StorachaTest] Event listeners set up for database instance ${persona}`);
 }
 
 	async function clearIndexedDB() {
@@ -288,7 +369,9 @@ function setupDatabaseEventListeners(database, instanceId) {
 			db.name.includes('orbit') || 
 			db.name.includes('level') ||
 			db.name.includes('simple-todo') ||
-			db.name.includes('storacha-test')
+			db.name.includes('storacha-test') ||
+			db.name.includes('alice') ||
+			db.name.includes('bob')
 		);
 		
 		for (const db of dbsToDelete) {
@@ -325,461 +408,403 @@ function setupDatabaseEventListeners(database, instanceId) {
 	console.log('🧹 IndexedDB cleanup completed');
 }
 
-	async function runComprehensiveTest() {
-		testRunning = true;
-		testStep = '';
-		testResults = [];
-		testError = null;
-		testSuccess = false;
-		backupResult = null;
-		restoreResult = null;
+	// Alice's functions
+	async function initializeAlice() {
+		if (aliceRunning) return;
+
+		// Check Storacha authentication first
+		if (!storachaAuthenticated || !storachaClient) {
+			addResult('alice', 'Error', 'error', 'Please authenticate with Storacha first');
+			return;
+		}
 		
-		// Clear the database addresses tracking set for a fresh test
-		storachaTestDatabaseAddresses.clear();
+		aliceRunning = true;
+		aliceError = null;
+		aliceResults = [];
+		aliceStep = 'Initializing Alice...';
 
 		try {
-			// Load Storacha credentials
-			storachaKey = localStorage.getItem('storacha_key') || '';
-			storachaProof = localStorage.getItem('storacha_proof') || '';
+			// Create shared identity if not exists
+			if (!sharedIdentity) {
+				addResult('alice', 'Identity', 'running', 'Creating shared identity...');
+				const identityResult = await createReusableIdentity('shared');
+				sharedIdentity = identityResult.identity;
+				sharedIdentities = identityResult.identities;
+				updateLastResult('alice', 'success', `Shared identity created: ${sharedIdentity.id}`);
+			}
 
-		if (!storachaKey || !storachaProof) {
-			throw new Error('Storacha credentials not found. Please login to Storacha first.');
-		}
+			// Create Alice's OrbitDB instance
+			addResult('alice', 'Setup', 'running', 'Setting up Alice\'s OrbitDB instance...');
+			
+			const databaseConfig = {
+				type: 'keyvalue',
+				create: true,
+				sync: true,
+				accessController: IPFSAccessController({ write: ['*'] })
+			};
 
-		// Step 0: Clear Storacha space for clean test
-		testStep = 'Clearing Storacha space';
-		addTestResult('Step 0', 'running', 'Clearing Storacha space to ensure clean test environment...');
+			const instance = await createOrbitDBInstance('alice', 'instance', 'shared-todos', databaseConfig, true);
+			aliceOrbitDB = instance.orbitdb;
+			aliceDatabase = instance.database;
+			aliceHelia = instance.helia;
+			aliceLibp2p = instance.libp2p;
 
-		const clearResult = await clearStorachaSpace({
-			storachaKey,
-			storachaProof,
-			timeout: 60000
-		});
-
-		if (clearResult.success) {
-			updateLastTestResult('success', `Storacha space cleared: ${clearResult.totalRemoved} files removed`, {
-				totalFiles: clearResult.totalFiles,
-				totalRemoved: clearResult.totalRemoved,
-				totalFailed: clearResult.totalFailed,
-				byLayer: clearResult.byLayer
+			updateLastResult('alice', 'success', `Alice's OrbitDB instance ready`, {
+				orbitDBId: aliceOrbitDB.id,
+				identityId: aliceOrbitDB.identity.id,
+				databaseAddress: aliceDatabase.address
 			});
-		} else {
-			// Don't fail the test if cleanup has issues - just warn
-			updateLastTestResult('success', `Storacha space cleanup completed with warnings: ${clearResult.totalRemoved}/${clearResult.totalFiles} files removed`, {
-				totalFiles: clearResult.totalFiles,
-				totalRemoved: clearResult.totalRemoved,
-				totalFailed: clearResult.totalFailed,
-				byLayer: clearResult.byLayer
-			});
+
+			aliceStep = 'Alice ready to add todos';
+
+		} catch (error) {
+			console.error('❌ Alice initialization failed:', error);
+			aliceError = error.message;
+			aliceStep = `Alice initialization failed: ${error.message}`;
+			updateLastResult('alice', 'error', error.message);
+		} finally {
+			aliceRunning = false;
 		}
+	}
 
-		// Step 1: Create shared identity
-		testStep = 'Creating shared identity';
-		addTestResult('Step 1', 'running', 'Creating shared identity for both instances...');
-
-		const identityResult = await createReusableIdentity();
-		sharedIdentity = identityResult.identity;
-		sharedIdentities = identityResult.identities;
-
-		updateLastTestResult('success', `Shared identity created: ${sharedIdentity.id}`, {
-			identityId: sharedIdentity.id,
-			identityType: sharedIdentity.type,
-			seedPhrase: identityResult.seedPhrase.substring(0, 20) + '...' // Show partial for verification
-		});
-
-		// Step 2: Create first OrbitDB instance and database with shared identity
-		testStep = 'Creating first OrbitDB instance';
-		addTestResult('Step 2', 'running', 'Creating first OrbitDB instance with shared identity...');
-
-		const databaseConfig = {
-			type: 'keyvalue',
-			create: true,
-			sync: true,
-			accessController: IPFSAccessController({ write: ['*'] })
-		};
-
-		const instance1 = await createTestOrbitDB('instance1', 'test-todos', databaseConfig, true, true, sharedIdentity, sharedIdentities);
-		testOrbitDB1 = instance1.orbitdb;
-		testDatabase1 = instance1.database;
-		testHelia1 = instance1.helia;
-		testLibp2p1 = instance1.libp2p;
-
-		updateLastTestResult('success', `First OrbitDB instance created with shared identity: ${testOrbitDB1.identity.id}`, {
-			orbitDBId: testOrbitDB1.id,
-			identityId: testOrbitDB1.identity.id,
-			databaseAddress: testDatabase1.address,
-			peerId: testLibp2p1.peerId.toString()
-		});
-
-		// Step 3: Add test todos to first database
-		testStep = 'Adding test todos';
-		addTestResult('Step 3', 'running', 'Adding 3 test todos to first database...');
-
-		for (let i = 0; i < originalTodos.length; i++) {
-			const todo = originalTodos[i];
-			await testDatabase1.put(todo.id, todo);
-			console.log(`✅ Added todo ${i + 1}:`, todo);
-		}
-
-		// Verify todos were added
-		const addedTodos = await testDatabase1.all();
-		if (addedTodos.length !== 3) {
-			throw new Error(`Expected 3 todos, but found ${addedTodos.length}`);
-		}
-
-		updateLastTestResult('success', `Successfully added ${addedTodos.length} test todos`, {
-			todosAdded: addedTodos.map(t => ({ key: t.key, text: t.value.text, completed: t.value.completed }))
-		});
-
-		// Step 4: Create backup to Storacha
-		testStep = 'Creating backup';
-		addTestResult('Step 4', 'running', 'Creating backup to Storacha...');
-
-		backupResult = await backupDatabase(testOrbitDB1, testDatabase1.address, {
-			storachaKey,
-			storachaProof,
-			dbConfig: databaseConfig,
-			timeout: 60000
-		});
-
-		if (!backupResult.success) {
-			throw new Error(`Backup failed: ${backupResult.error}`);
-		}
-
-		updateLastTestResult('success', `Backup created successfully with ${backupResult.blocksUploaded}/${backupResult.blocksTotal} blocks`, {
-			manifestCID: backupResult.manifestCID,
-			databaseAddress: backupResult.databaseAddress,
-			blocksTotal: backupResult.blocksTotal,
-			blocksUploaded: backupResult.blocksUploaded
-		});
-
-		// Step 5: Close and cleanup first instance
-		testStep = 'Cleaning up first instance';
-		addTestResult('Step 5', 'running', 'Properly shutting down first OrbitDB instance...');
-
-		// PROPER SHUTDOWN SEQUENCE (based on bridge library examples)
+	async function addTodos() {
+		if (aliceRunning || !aliceDatabase) return;
+		
+		aliceRunning = true;
+		aliceStep = 'Adding todos...';
+		
 		try {
-			console.log('🧹 Starting proper shutdown sequence for instance 1...');
+			addResult('alice', 'Adding Todos', 'running', 'Adding test todos to database...');
+
+			for (let i = 0; i < originalTodos.length; i++) {
+				const todo = originalTodos[i];
+				await aliceDatabase.put(todo.id, todo);
+				console.log(`✅ Alice added todo ${i + 1}:`, todo);
+			}
+
+			// Get all todos to verify and display
+			aliceTodos = await aliceDatabase.all();
 			
-			// 1. Close individual databases first
-			if (testDatabase1) {
-				console.log('📝 Closing database 1...');
-				await testDatabase1.close();
-				console.log('✅ Database 1 closed');
+			updateLastResult('alice', 'success', `Successfully added ${aliceTodos.length} todos`, {
+				todosAdded: aliceTodos.map(t => ({ key: t.key, text: t.value.text, completed: t.value.completed }))
+			});
+
+			aliceStep = 'Alice ready to backup';
+
+		} catch (error) {
+			console.error('❌ Adding todos failed:', error);
+			aliceError = error.message;
+			aliceStep = `Adding todos failed: ${error.message}`;
+			updateLastResult('alice', 'error', error.message);
+		} finally {
+			aliceRunning = false;
+		}
+	}
+
+	async function backupAlice() {
+		if (aliceRunning || !aliceDatabase) return;
+
+		// Check Storacha authentication
+		if (!storachaAuthenticated || !storachaClient) {
+			addResult('alice', 'Error', 'error', 'Storacha authentication required for backup');
+			return;
+		}
+		
+		aliceRunning = true;
+		aliceStep = 'Creating backup...';
+		
+		try {
+			addResult('alice', 'Backup', 'running', 'Creating backup to Storacha...');
+
+			const databaseConfig = {
+				type: 'keyvalue',
+				create: true,
+				sync: true,
+				accessController: IPFSAccessController({ write: ['*'] })
+			};
+
+			// Get Storacha credentials based on authentication method
+			let backupOptions = {
+				dbConfig: databaseConfig,
+				logEntriesOnly: true,
+				timeout: 60000
+			};
+
+			// Add credentials based on authentication method
+			if (storachaCredentials.method === 'credentials') {
+				// For credentials-based auth, we need the actual key/proof
+				const storachaKey = localStorage.getItem('storacha_key');
+				const storachaProof = localStorage.getItem('storacha_proof');
+				
+				if (storachaKey && storachaProof) {
+					backupOptions.storachaKey = storachaKey;
+					backupOptions.storachaProof = storachaProof;
+				} else {
+					throw new Error('Storacha credentials not found in storage');
+				}
+			} else {
+				// For UCAN or seed-based auth, we can use the client directly
+				throw new Error(`Backup with ${storachaCredentials.method} authentication not yet implemented`);
+			}
+
+			backupResult = await backupDatabase(aliceOrbitDB, aliceDatabase.address, backupOptions);
+
+			if (!backupResult.success) {
+				throw new Error(`Backup failed: ${backupResult.error}`);
+			}
+
+			updateLastResult('alice', 'success', `Backup created successfully with ${backupResult.blocksUploaded}/${backupResult.blocksTotal} blocks`, {
+				manifestCID: backupResult.manifestCID,
+				databaseAddress: backupResult.databaseAddress,
+				blocksTotal: backupResult.blocksTotal,
+				blocksUploaded: backupResult.blocksUploaded
+			});
+
+			aliceStep = 'Alice backup complete - Bob can now restore';
+
+		} catch (error) {
+			console.error('❌ Backup failed:', error);
+			aliceError = error.message;
+			aliceStep = `Backup failed: ${error.message}`;
+			updateLastResult('alice', 'error', error.message);
+		} finally {
+			aliceRunning = false;
+		}
+	}
+
+	// Bob's functions
+	async function initializeBob() {
+		if (bobRunning || !backupResult) return;
+
+		// Check Storacha authentication first
+		if (!storachaAuthenticated || !storachaClient) {
+			addResult('bob', 'Error', 'error', 'Please authenticate with Storacha first');
+			return;
+		}
+		
+		bobRunning = true;
+		bobError = null;
+		bobResults = [];
+		bobStep = 'Initializing Bob...';
+
+		try {
+			if (!sharedIdentity && bobUseSameIdentity) {
+				throw new Error('Shared identity not available. Alice must initialize first.');
+			}
+
+			// Create Bob's own identity if needed
+			if (!bobUseSameIdentity && !bobIdentity) {
+				addResult('bob', 'Identity', 'running', 'Creating Bob\'s own identity...');
+				const identityResult = await createReusableIdentity('bob');
+				bobIdentity = identityResult.identity;
+				bobIdentities = identityResult.identities;
+				updateLastResult('bob', 'success', `Bob's identity created: ${bobIdentity.id}`, {
+					identityId: bobIdentity.id,
+					identityType: bobIdentity.type
+				});
+			}
+
+			addResult('bob', 'Setup', 'running', `Setting up Bob's OrbitDB instance with ${bobUseSameIdentity ? 'shared' : 'own'} identity...`);
+			
+			const databaseConfig = {
+				type: 'keyvalue',
+				create: true,
+				sync: true,
+				accessController: IPFSAccessController({ write: ['*'] })
+			};
+
+			const instance = await createOrbitDBInstance('bob', 'instance', 'shared-todos', databaseConfig, bobUseSameIdentity);
+			bobOrbitDB = instance.orbitdb;
+			bobDatabase = instance.database;
+			bobHelia = instance.helia;
+			bobLibp2p = instance.libp2p;
+
+			const identityUsed = bobUseSameIdentity ? sharedIdentity : bobIdentity;
+			updateLastResult('bob', 'success', `Bob's OrbitDB instance ready with ${bobUseSameIdentity ? 'shared' : 'own'} identity`, {
+				orbitDBId: bobOrbitDB.id,
+				identityId: bobOrbitDB.identity.id,
+				databaseAddress: bobDatabase.address,
+				usingSameIdentity: bobUseSameIdentity,
+				identityMatches: bobOrbitDB.identity.id === (sharedIdentity?.id || 'none')
+			});
+
+			bobStep = 'Bob ready to restore';
+
+		} catch (error) {
+			console.error('❌ Bob initialization failed:', error);
+			bobError = error.message;
+			bobStep = `Bob initialization failed: ${error.message}`;
+			updateLastResult('bob', 'error', error.message);
+		} finally {
+			bobRunning = false;
+		}
+	}
+
+	async function restoreBob() {
+		if (bobRunning || !bobOrbitDB || !backupResult) return;
+
+		// Check Storacha authentication
+		if (!storachaAuthenticated || !storachaClient) {
+			addResult('bob', 'Error', 'error', 'Storacha authentication required for restore');
+			return;
+		}
+		
+		bobRunning = true;
+		bobStep = 'Restoring from backup...';
+		
+		try {
+			const identityInfo = bobUseSameIdentity ? 'same identity as Alice' : 'his own identity';
+			addResult('bob', 'Restore', 'running', `Restoring database from Storacha backup using ${identityInfo}...`);
+
+			const databaseConfig = {
+				type: 'keyvalue',
+				create: true,
+				sync: true,
+				accessController: IPFSAccessController({ write: ['*'] })
+			};
+
+			// Get Storacha credentials based on authentication method
+			let restoreOptions = {
+				dbName: 'shared-todos',
+				dbConfig: databaseConfig,
+				timeout: 120000
+			};
+
+			// Add credentials based on authentication method
+			if (storachaCredentials.method === 'credentials') {
+				const storachaKey = localStorage.getItem('storacha_key');
+				const storachaProof = localStorage.getItem('storacha_proof');
+				
+				if (storachaKey && storachaProof) {
+					restoreOptions.storachaKey = storachaKey;
+					restoreOptions.storachaProof = storachaProof;
+				} else {
+					throw new Error('Storacha credentials not found in storage');
+				}
+			} else {
+				throw new Error(`Restore with ${storachaCredentials.method} authentication not yet implemented`);
+			}
+
+			restoreResult = await restoreLogEntriesOnly(bobOrbitDB, restoreOptions);
+
+			if (!restoreResult.success) {
+				throw new Error(`Restore failed: ${restoreResult.error}`);
+			}
+
+			// Get restored todos
+			const restoredDatabase = restoreResult.database;
+			
+			// Add restored database to tracking
+			if (restoredDatabase && restoredDatabase.address) {
+				storachaTestDatabaseAddresses.add(restoredDatabase.address?.toString() || restoredDatabase.address);
 			}
 			
-			// 2. Stop OrbitDB instance
-			if (testOrbitDB1) {
-				console.log('🛑 Stopping OrbitDB 1...');
-				await testOrbitDB1.stop();
-				console.log('✅ OrbitDB 1 stopped');
-			}
-			
-			// 3. Stop Helia IPFS node
-			if (testHelia1) {
-				console.log('🌐 Stopping Helia 1...');
-				await testHelia1.stop();
-				console.log('✅ Helia 1 stopped');
-			}
-			
-			// 4. Stop libp2p node
-			if (testLibp2p1) {
-				console.log('🔗 Stopping libp2p 1...');
-				await testLibp2p1.stop();
-				console.log('✅ libp2p 1 stopped');
-			}
-			
-			console.log('✅ Proper shutdown sequence completed for instance 1');
-			
-		} catch (shutdownError) {
-			console.warn('⚠️ Error during shutdown sequence:', shutdownError.message);
+			// Wait for indexing
+			await new Promise(resolve => setTimeout(resolve, 5000));
+			bobTodos = await restoredDatabase.all();
+
+			const optimizationInfo = restoreResult.optimizationSavings 
+				? `(${restoreResult.optimizationSavings.percentageSaved}% fewer downloads)` 
+				: '';
+
+			updateLastResult('bob', 'success', `Database restored successfully with ${restoreResult.entriesRecovered} entries using ${identityInfo} ${optimizationInfo}`, {
+				manifestCID: restoreResult.manifestCID,
+				databaseAddress: restoreResult.address,
+				entriesRecovered: restoreResult.entriesRecovered,
+				todosRestored: bobTodos.map(t => ({ key: t.key, text: t.value.text, completed: t.value.completed })),
+				usingSameIdentity: bobUseSameIdentity,
+				identityUsed: bobOrbitDB.identity.id
+			});
+
+			bobStep = 'Bob restore complete';
+
+		} catch (error) {
+			console.error('❌ Restore failed:', error);
+			bobError = error.message;
+			bobStep = `Restore failed: ${error.message}`;
+			updateLastResult('bob', 'error', error.message);
+		} finally {
+			bobRunning = false;
+		}
+	}
+
+	// Cleanup functions
+	async function cleanup() {
+		console.log('🧹 Cleaning up all instances...');
+		
+		// Cleanup Alice
+		try {
+			if (aliceDatabase) await aliceDatabase.close();
+			if (aliceOrbitDB) await aliceOrbitDB.stop();
+			if (aliceHelia) await aliceHelia.stop();
+			if (aliceLibp2p) await aliceLibp2p.stop();
+		} catch (error) {
+			console.warn('⚠️ Alice cleanup error:', error.message);
+		}
+		
+		// Cleanup Bob
+		try {
+			if (bobDatabase) await bobDatabase.close();
+			if (bobOrbitDB) await bobOrbitDB.stop();
+			if (bobHelia) await bobHelia.stop();
+			if (bobLibp2p) await bobLibp2p.stop();
+		} catch (error) {
+			console.warn('⚠️ Bob cleanup error:', error.message);
 		}
 
-		// Clear IndexedDB after proper shutdown
 		await clearIndexedDB();
 
-		// Clear references
-		testDatabase1 = null;
-		testOrbitDB1 = null;
-		testHelia1 = null;
-		testLibp2p1 = null;
+		// Reset state
+		aliceOrbitDB = null;
+		aliceDatabase = null;
+		aliceHelia = null;
+		aliceLibp2p = null;
+		aliceTodos = [];
+		aliceResults = [];
+		aliceStep = '';
+		aliceError = null;
 
-		updateLastTestResult('success', 'First instance cleaned up and storage cleared');
+		bobOrbitDB = null;
+		bobDatabase = null;
+		bobHelia = null;
+		bobLibp2p = null;
+		bobTodos = [];
+		bobResults = [];
+		bobStep = '';
+		bobError = null;
+		bobUseSameIdentity = true;
+		bobIdentity = null;
+		bobIdentities = null;
 
-		// Step 6: Create completely new OrbitDB instance with SAME identity
-		testStep = 'Creating second OrbitDB instance';
-		addTestResult('Step 6', 'running', 'Creating completely new OrbitDB instance with SAME identity...');
-
-		// Wait a bit to ensure cleanup is complete
-		await new Promise(resolve => setTimeout(resolve, 1000));
-		const instance2 = await createTestOrbitDB('instance2', 'test-todos', databaseConfig, true, true, sharedIdentity, sharedIdentities);
-		testOrbitDB2 = instance2.orbitdb;
-		testDatabase2 = instance2.database;
-		testHelia2 = instance2.helia;
-		testLibp2p2 = instance2.libp2p;
-        console.log('testOrbitDB2', testOrbitDB2);
-        console.log('testDatabase2', testDatabase2);
-        console.log('testHelia2', testHelia2);
-        console.log('testLibp2p2', testLibp2p2);
-
-		// Verify it uses the same identity
-		const newTodos = await testDatabase2.all();
-		if (newTodos.length !== 0) {
-			console.warn(`⚠️ New database should be empty but contains ${newTodos.length} entries`);
-		}
-
-		updateLastTestResult('success', `Second OrbitDB instance created with SAME identity: ${testOrbitDB2.identity.id}`, {
-			orbitDBId: testOrbitDB2.id,
-			identityId: testOrbitDB2.identity.id,
-			databaseAddress: testDatabase2.address,
-			peerId: testLibp2p2.peerId.toString(),
-			initialTodoCount: newTodos.length,
-			identityMatches: testOrbitDB1?.identity.id === testOrbitDB2?.identity.id
-		});
-
-		// Step 7: Restore from Storacha backup
-		testStep = 'Restoring from backup';
-		addTestResult('Step 7', 'running', 'Restoring database from Storacha backup...');
-
-		restoreResult = await restoreDatabaseFromSpace(testOrbitDB2, {
-			storachaKey,
-			storachaProof,
-			dbName: 'test-todos',
-			dbConfig: databaseConfig,
-			forceFallback: true,
-			timeout: 120000 // Increase timeout to 2 minutes
-		});
-
-		if (!restoreResult.success) {
-			throw new Error(`Restore failed: ${restoreResult.error}`);
-		}
-
-		updateLastTestResult('success', `Database restored successfully with ${restoreResult.entriesRecovered} entries`, {
-			manifestCID: restoreResult.manifestCID,
-			databaseAddress: restoreResult.address,
-			entriesRecovered: restoreResult.entriesRecovered,
-			blocksRestored: restoreResult.blocksRestored
-		});
-
-		// Step 7: Verify restored data
-		testStep = 'Verifying restored data';
-		addTestResult('Step 7', 'running', 'Verifying all original todos are readable...');
-
-		// Get the restored database instance
-		const restoredDatabase = restoreResult.database;
-		
-		// Add the restored database address to our tracking set
-		if (restoredDatabase && restoredDatabase.address) {
-			storachaTestDatabaseAddresses.add(restoredDatabase.address?.toString() || restoredDatabase.address);
-			console.log(`🎯 [StorachaTest] Added restored database address to tracking: ${restoredDatabase.address}`);
-		}
-		
-		// Add extra wait time for database indexing in browser
-		console.log('⏳ Waiting additional time for browser database indexing...');
-		await new Promise(resolve => setTimeout(resolve, 10000)); // 10 second wait
-		
-		const restoredTodos = await restoredDatabase.all();
-		console.log(`🔍 Database type: ${restoredDatabase.type}`);
-		console.log(`🔍 Database address: ${restoredDatabase.address}`);
-		console.log(`🔍 Restored todos count: ${restoredTodos.length}`);
-
-		console.log('🔍 Original todos:', originalTodos);
-		console.log('🔍 Restored todos:', restoredTodos);
-		
-		// Try different approaches to get data
-		if (restoredTodos.length === 0) {
-			console.log('🔍 Trying alternative data access methods...');
-			
-			// Try accessing log entries directly
-			try {
-				const logEntries = await restoredDatabase.log.values();
-				console.log(`🔍 Log entries count: ${logEntries.length}`);
-				logEntries.forEach((entry, i) => {
-					console.log(`🔍 Log entry ${i}:`, {
-						hash: entry.hash,
-						payload: entry.payload,
-						clock: entry.clock
-					});
-				});
-			} catch (error) {
-				console.warn('⚠️ Could not access log entries:', error.message);
-			}
-			
-			// Try iterator approach
-			try {
-				const entries = [];
-				for (const entry of restoredDatabase.iterator()) {
-					entries.push(entry);
-				}
-				console.log(`🔍 Iterator entries count: ${entries.length}`);
-			} catch (error) {
-				console.warn('⚠️ Iterator approach failed:', error.message);
-			}
-		}
-
-		// Verify count
-		if (restoredTodos.length !== originalTodos.length) {
-			throw new Error(`Expected ${originalTodos.length} todos, but restored ${restoredTodos.length}`);
-		}
-
-		// Verify content using working integration test pattern
-		const verificationResults = [];
-		let foundTodoEntries = 0;
-		
-		for (const entry of restoredTodos) {
-			// Use the working pattern: check payload or entry
-			const payload = entry.payload || entry;
-			console.log('🔍 Checking entry payload:', payload);
-			
-			if (payload.key && payload.key.startsWith('test_todo_')) {
-				foundTodoEntries++;
-				const todoData = payload.value;
-				
-				// Find matching original todo
-				const originalTodo = originalTodos.find(t => t.id === payload.key);
-				if (!originalTodo) {
-					throw new Error(`Restored todo not found in original data: ${payload.key}`);
-				}
-				
-				// Validate todo structure
-				if (!todoData.id || !todoData.text || typeof todoData.completed !== 'boolean') {
-					throw new Error(`Invalid todo structure for: ${payload.key}`);
-				}
-				
-				const matches = {
-					text: todoData.text === originalTodo.text,
-					completed: todoData.completed === originalTodo.completed,
-					createdBy: todoData.createdBy === originalTodo.createdBy
-				};
-
-				verificationResults.push({
-					originalId: originalTodo.id,
-					restoredKey: payload.key,
-					originalText: originalTodo.text,
-					restoredText: todoData.text,
-					matches
-				});
-
-				if (!matches.text || !matches.completed) {
-					throw new Error(`Data mismatch for todo: ${originalTodo.text}`);
-				}
-				
-				console.log(`✅ Verified todo: ${todoData.id} - "${todoData.text}" (${todoData.completed ? 'completed' : 'pending'})`);
-			}
-		}
-		
-		if (foundTodoEntries === 0) {
-			throw new Error('No todo entries found in restored data! Check if backup/restore worked correctly.');
-		}
-		
-		if (foundTodoEntries !== originalTodos.length) {
-			throw new Error(`Expected ${originalTodos.length} todos, but found ${foundTodoEntries}`);
-		}
-
-		updateLastTestResult('success', `All ${originalTodos.length} todos verified successfully!`, {
-			verificationResults,
-			restoredCount: restoredTodos.length,
-			originalCount: originalTodos.length
-		});
-
-		// Test completed successfully
-		testSuccess = true;
-		testStep = 'Test completed successfully!';
-
-	} catch (error) {
-		console.error('❌ Test failed:', error);
-		testError = error.message;
-		testStep = `Test failed: ${error.message}`;
-		
-		if (testResults.length > 0) {
-			updateLastTestResult('error', error.message);
-		} else {
-			addTestResult('Error', 'error', error.message);
-		}
-	} finally {
-		// Final cleanup with proper shutdown sequence
-		console.log('🧹 Final cleanup - shutting down all test instances...');
-		
-		// Cleanup instance 1 with proper sequence
-		try {
-			if (testDatabase1) {
-				console.log('📝 Final: Closing database 1...');
-				await testDatabase1.close();
-			}
-			if (testOrbitDB1) {
-				console.log('🛑 Final: Stopping OrbitDB 1...');
-				await testOrbitDB1.stop();
-			}
-			if (testHelia1) {
-				console.log('🌐 Final: Stopping Helia 1...');
-				await testHelia1.stop();
-			}
-			if (testLibp2p1) {
-				console.log('🔗 Final: Stopping libp2p 1...');
-				await testLibp2p1.stop();
-			}
-		} catch (cleanupError1) {
-			console.warn('⚠️ Instance 1 cleanup error:', cleanupError1.message);
-		}
-		
-		// Cleanup instance 2 with proper sequence
-		try {
-			if (testDatabase2) {
-				console.log('📝 Final: Closing database 2...');
-				await testDatabase2.close();
-			}
-			if (testOrbitDB2) {
-				console.log('🛑 Final: Stopping OrbitDB 2...');
-				await testOrbitDB2.stop();
-			}
-			if (testHelia2) {
-				console.log('🌐 Final: Stopping Helia 2...');
-				await testHelia2.stop();
-			}
-			if (testLibp2p2) {
-				console.log('🔗 Final: Stopping libp2p 2...');
-				await testLibp2p2.stop();
-			}
-		} catch (cleanupError2) {
-			console.warn('⚠️ Instance 2 cleanup error:', cleanupError2.message);
-		}
-		
-		console.log('✅ Final cleanup completed');
-
-		testRunning = false;
+		sharedIdentity = null;
+		sharedIdentities = null;
+		backupResult = null;
+		restoreResult = null;
+		storachaTestDatabaseAddresses.clear();
 	}
-}
 
+	// Utility functions
 	function formatTimestamp(timestamp) {
 		return new Date(timestamp).toLocaleTimeString();
 	}
 
 	function getStatusIcon(status) {
 		switch (status) {
-			case 'running':
-				return Loader2;
-			case 'success':
-				return CheckCircle;
-			case 'error':
-				return AlertCircle;
-			default:
-				return AlertCircle;
+			case 'running': return Loader2;
+			case 'success': return CheckCircle;
+			case 'error': return AlertCircle;
+			default: return AlertCircle;
 		}
 	}
 
 	function getStatusClass(status) {
 		switch (status) {
-			case 'running':
-				return 'text-blue-600 dark:text-blue-400';
-			case 'success':
-				return 'text-green-600 dark:text-green-400';
-			case 'error':
-				return 'text-red-600 dark:text-red-400';
-			default:
-				return 'text-gray-600 dark:text-gray-400';
+			case 'running': return 'text-blue-600 dark:text-blue-400';
+			case 'success': return 'text-green-600 dark:text-green-400';
+			case 'error': return 'text-red-600 dark:text-red-400';
+			default: return 'text-gray-600 dark:text-gray-400';
 		}
 	}
-
 
 	/**
  * A basic Libp2p configuration for browser nodes.
@@ -807,45 +832,48 @@ const DefaultLibp2pBrowserOptions = {
 }
 </script>
 
-<div class="mt-6 rounded-lg border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 p-4 dark:border-gray-600 dark:from-gray-700 dark:to-gray-600">
-	<!-- Header -->
-	<div class="mb-4 flex items-center justify-between">
-		<div class="flex items-center space-x-2">
-			<Database class="h-5 w-5 text-purple-600 dark:text-purple-400" />
-			<h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-				Storacha Bridge Test Suite
-			</h3>
-		</div>
+<div class="mt-6 rounded-lg border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 p-6 dark:border-gray-600 dark:from-gray-700 dark:to-gray-600">
+	<!-- Storacha Authentication Section -->
+	<div class="mb-8">
+		<StorachaAuth 
+			on:authenticated={handleStorachaAuthenticated}
+			on:logout={handleStorachaLogout}
+			on:spaceChanged={handleSpaceChanged}
+			autoLogin={true}
+			showTitle={true}
+			compact={false}
+		/>
+		
+		{#if !storachaAuthenticated}
+			<div class="mt-4 rounded-md border border-orange-300 bg-orange-100 p-3 dark:border-orange-600 dark:bg-orange-900/30">
+				<div class="flex items-center space-x-2">
+					<AlertCircle class="h-4 w-4 text-orange-600 dark:text-orange-400" />
+					<span class="text-sm text-orange-700 dark:text-orange-300">
+						Please authenticate with Storacha above to enable backup and restore functionality
+					</span>
+				</div>
+			</div>
+		{/if}
 	</div>
 
-	<!-- Description -->
-	<div class="mb-4 rounded-md bg-purple-100 p-3 dark:bg-purple-900/30">
+	<!-- Header -->
+	<div class="mb-6 text-center">
+		<div class="mb-4 flex items-center justify-center space-x-2">
+			<Database class="h-6 w-6 text-purple-600 dark:text-purple-400" />
+			<h3 class="text-xl font-bold text-gray-800 dark:text-white">
+				Alice & Bob Backup/Restore Demo
+			</h3>
+		</div>
 		<p class="text-sm text-purple-800 dark:text-purple-200">
-			This test creates an independent OrbitDB instance, adds 3 test todos, backs them up to Storacha, 
-			completely destroys the database and storage, creates a new OrbitDB instance with a different ID, 
-			and verifies that all data can be restored correctly.
+			Alice creates todos and backs them up to Storacha. Bob restores the data from the backup using either the same identity or his own.
 		</p>
 	</div>
 
-	<!-- Test Controls -->
-	<div class="mb-4 flex items-center space-x-3">
-		<button
-			on:click={runComprehensiveTest}
-			disabled={testRunning}
-			class="flex items-center space-x-2 rounded-md bg-purple-600 px-4 py-2 transition-colors hover:bg-purple-700 disabled:opacity-50"
-		>
-			{#if testRunning}
-				<Loader2 class="h-4 w-4 animate-spin" />
-				<span>Running Test...</span>
-			{:else}
-				<Play class="h-4 w-4" />
-				<span>Run Test</span>
-			{/if}
-		</button>
-
+	<!-- Controls -->
+	<div class="mb-6 flex items-center justify-center space-x-3">
 		<button
 			on:click={() => (showDetails = !showDetails)}
-			class="flex items-center space-x-2 rounded-md bg-gray-600 px-4 py-2 transition-colors hover:bg-gray-700"
+			class="flex items-center space-x-2 rounded-md bg-gray-600 px-3 py-2 text-sm text-white transition-colors hover:bg-gray-700"
 		>
 			{#if showDetails}
 				<EyeOff class="h-4 w-4" />
@@ -855,101 +883,329 @@ const DefaultLibp2pBrowserOptions = {
 				<span>Show Details</span>
 			{/if}
 		</button>
+
+		<button
+			on:click={cleanup}
+			class="flex items-center space-x-2 rounded-md bg-red-600 px-3 py-2 text-sm text-white transition-colors hover:bg-red-700"
+		>
+			<span>Reset All</span>
+		</button>
 	</div>
 
-	<!-- Current Status -->
-	{#if testRunning || testStep}
-		<div class="mb-4 rounded-md border bg-white p-3 dark:bg-gray-700">
-			<div class="flex items-center space-x-2">
-				{#if testRunning}
-					<Loader2 class="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
-				{:else if testSuccess}
-					<CheckCircle class="h-4 w-4 text-green-600 dark:text-green-400" />
-				{:else if testError}
-					<AlertCircle class="h-4 w-4 text-red-600 dark:text-red-400" />
-				{/if}
-				<span class="font-medium text-gray-800 dark:text-white">
-					{testStep}
-				</span>
+	<!-- Two-column layout -->
+	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+		<!-- Alice's Section -->
+		<div class="rounded-lg border bg-white p-4 dark:bg-gray-800">
+			<div class="mb-4 flex items-center space-x-2">
+				<div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+					<User class="h-4 w-4 text-blue-600 dark:text-blue-400" />
+				</div>
+				<h4 class="text-lg font-semibold text-gray-800 dark:text-white">
+					Alice (Data Creator)
+				</h4>
 			</div>
-		</div>
-	{/if}
 
-	<!-- Test Results -->
-	{#if testResults.length > 0}
-		<div class="rounded-md border bg-white p-4 dark:bg-gray-700">
-			<h4 class="mb-3 font-medium text-gray-800 dark:text-white">Test Results</h4>
-			
-			<div class="space-y-2">
-				{#each testResults as result, index}
-					<div class="flex items-start space-x-3 rounded border bg-gray-50 p-3 dark:bg-gray-600">
-						<div class="flex-shrink-0">
-							<svelte:component 
-								this={getStatusIcon(result.status)} 
-								class="h-4 w-4 {getStatusClass(result.status)} {result.status === 'running' ? 'animate-spin' : ''}" 
-							/>
-						</div>
-						<div class="flex-1">
-							<div class="flex items-center justify-between">
-								<span class="font-medium text-gray-800 dark:text-white">
-									{result.step}
-								</span>
-								<span class="text-xs text-gray-500 dark:text-gray-400">
-									{formatTimestamp(result.timestamp)}
+			<!-- Alice's Status -->
+			{#if aliceStep}
+				<div class="mb-3 rounded-md border bg-blue-50 p-3 dark:bg-blue-900/20">
+					<div class="flex items-center space-x-2">
+						{#if aliceRunning}
+							<Loader2 class="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
+						{:else if aliceError}
+							<AlertCircle class="h-4 w-4 text-red-600 dark:text-red-400" />
+						{:else}
+							<CheckCircle class="h-4 w-4 text-green-600 dark:text-green-400" />
+						{/if}
+						<span class="text-sm font-medium text-gray-800 dark:text-white">
+							{aliceStep}
+						</span>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Alice's Actions -->
+			<div class="mb-4 space-y-2">
+				<button
+					on:click={initializeAlice}
+					disabled={aliceRunning || aliceOrbitDB || !storachaAuthenticated}
+					class="flex w-full items-center justify-center space-x-2 rounded-md bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+				>
+					{#if aliceRunning}
+						<Loader2 class="h-4 w-4 animate-spin" />
+					{:else}
+						<Database class="h-4 w-4" />
+					{/if}
+					<span>1. Initialize Alice</span>
+				</button>
+
+				<button
+					on:click={addTodos}
+					disabled={aliceRunning || !aliceDatabase || aliceTodos.length > 0}
+					class="flex w-full items-center justify-center space-x-2 rounded-md bg-green-600 px-4 py-2 text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+				>
+					{#if aliceRunning}
+						<Loader2 class="h-4 w-4 animate-spin" />
+					{:else}
+						<Plus class="h-4 w-4" />
+					{/if}
+					<span>2. Add Todos</span>
+				</button>
+
+				<button
+					on:click={backupAlice}
+					disabled={aliceRunning || aliceTodos.length === 0 || backupResult || !storachaAuthenticated}
+					class="flex w-full items-center justify-center space-x-2 rounded-md bg-purple-600 px-4 py-2 text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
+				>
+					{#if aliceRunning}
+						<Loader2 class="h-4 w-4 animate-spin" />
+					{:else}
+						<Upload class="h-4 w-4" />
+					{/if}
+					<span>3. Backup to Storacha</span>
+				</button>
+			</div>
+
+			<!-- Alice's Todos -->
+			{#if aliceTodos.length > 0}
+				<div class="mb-4">
+					<h5 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Alice's Todos:</h5>
+					<div class="space-y-1">
+						{#each aliceTodos as todo}
+							<div class="flex items-center space-x-2 rounded bg-gray-50 p-2 text-xs dark:bg-gray-700">
+								<span class="font-mono text-gray-500">{todo.key}:</span>
+								<span class={todo.value.completed ? 'line-through text-gray-500' : 'text-gray-800 dark:text-white'}>
+									{todo.value.text}
 								</span>
 							</div>
-							<p class="text-sm text-gray-600 dark:text-gray-300">
-								{result.message}
-							</p>
-							
-							{#if showDetails && result.data}
-								<details class="mt-2">
-									<summary class="cursor-pointer text-xs text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300">
-										Show Details
-									</summary>
-									<pre class="mt-1 overflow-x-auto rounded bg-gray-100 p-2 text-xs text-gray-800 dark:bg-gray-800 dark:text-gray-200">{JSON.stringify(result.data, null, 2)}</pre>
-								</details>
-							{/if}
-						</div>
+						{/each}
 					</div>
-				{/each}
-			</div>
-		</div>
-	{/if}
+				</div>
+			{/if}
 
-	<!-- Final Results Summary -->
-	{#if testSuccess}
-		<div class="mt-4 rounded-md border border-green-300 bg-green-100 p-4 dark:border-green-600 dark:bg-green-900/30">
+			<!-- Alice's Results -->
+			{#if aliceResults.length > 0}
+				<div class="rounded-md border bg-gray-50 p-3 dark:bg-gray-700">
+					<h5 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Alice's Progress:</h5>
+					<div class="space-y-2">
+						{#each aliceResults as result}
+							<div class="flex items-start space-x-2">
+								<svelte:component 
+									this={getStatusIcon(result.status)} 
+									class="h-3 w-3 mt-0.5 {getStatusClass(result.status)} {result.status === 'running' ? 'animate-spin' : ''}" 
+								/>
+								<div class="flex-1">
+									<div class="flex items-center justify-between">
+										<span class="text-xs font-medium text-gray-800 dark:text-white">
+											{result.step}
+										</span>
+										<span class="text-xs text-gray-500">
+											{formatTimestamp(result.timestamp)}
+										</span>
+									</div>
+									<p class="text-xs text-gray-600 dark:text-gray-300">
+										{result.message}
+									</p>
+									{#if showDetails && result.data}
+										<details class="mt-1">
+											<summary class="cursor-pointer text-xs text-blue-600 hover:text-blue-800">
+												Details
+											</summary>
+											<pre class="mt-1 overflow-x-auto rounded bg-gray-100 p-1 text-xs dark:bg-gray-800">{JSON.stringify(result.data, null, 2)}</pre>
+										</details>
+									{/if}
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</div>
+
+		<!-- Bob's Section -->
+		<div class="rounded-lg border bg-white p-4 dark:bg-gray-800">
+			<div class="mb-4 flex items-center space-x-2">
+				<div class="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900">
+					<User class="h-4 w-4 text-orange-600 dark:text-orange-400" />
+				</div>
+				<h4 class="text-lg font-semibold text-gray-800 dark:text-white">
+					Bob (Data Restorer)
+				</h4>
+			</div>
+
+			<!-- Bob's Identity Toggle -->
+			<div class="mb-4 rounded-md border bg-orange-50 p-3 dark:bg-orange-900/20">
+				<div class="mb-2 flex items-center justify-between">
+					<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+						Identity Choice:
+					</span>
+					<button
+						on:click={() => bobUseSameIdentity = !bobUseSameIdentity}
+						disabled={bobRunning || bobOrbitDB}
+						class="flex items-center space-x-1 text-sm transition-colors hover:text-orange-600 disabled:opacity-50"
+					>
+						<svelte:component 
+							this={bobUseSameIdentity ? ToggleRight : ToggleLeft}
+							class="h-5 w-5 {bobUseSameIdentity ? 'text-orange-600' : 'text-gray-400'}"
+						/>
+						<span class="text-xs text-gray-600 dark:text-gray-400">
+							{bobUseSameIdentity ? 'Same as Alice' : 'Own Identity'}
+						</span>
+					</button>
+				</div>
+				<p class="text-xs text-gray-600 dark:text-gray-400">
+					{#if bobUseSameIdentity}
+						🔗 Bob will use Alice's shared identity (DID) - typical for same user restoring data
+					{:else}
+						🆔 Bob will create his own identity (DID) - demonstrates cross-identity data sharing
+					{/if}
+				</p>
+			</div>
+
+			<!-- Bob's Status -->
+			{#if bobStep}
+				<div class="mb-3 rounded-md border bg-orange-50 p-3 dark:bg-orange-900/20">
+					<div class="flex items-center space-x-2">
+						{#if bobRunning}
+							<Loader2 class="h-4 w-4 animate-spin text-orange-600 dark:text-orange-400" />
+						{:else if bobError}
+							<AlertCircle class="h-4 w-4 text-red-600 dark:text-red-400" />
+						{:else}
+							<CheckCircle class="h-4 w-4 text-green-600 dark:text-green-400" />
+						{/if}
+						<span class="text-sm font-medium text-gray-800 dark:text-white">
+							{bobStep}
+						</span>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Bob's Actions -->
+			<div class="mb-4 space-y-2">
+				<button
+					on:click={initializeBob}
+					disabled={bobRunning || !backupResult || bobOrbitDB || !storachaAuthenticated}
+					class="flex w-full items-center justify-center space-x-2 rounded-md bg-orange-600 px-4 py-2 text-white transition-colors hover:bg-orange-700 disabled:opacity-50"
+				>
+					{#if bobRunning}
+						<Loader2 class="h-4 w-4 animate-spin" />
+					{:else}
+						<Database class="h-4 w-4" />
+					{/if}
+					<span>1. Initialize Bob</span>
+				</button>
+
+				<button
+					on:click={restoreBob}
+					disabled={bobRunning || !bobOrbitDB || restoreResult || !storachaAuthenticated}
+					class="flex w-full items-center justify-center space-x-2 rounded-md bg-indigo-600 px-4 py-2 text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+				>
+					{#if bobRunning}
+						<Loader2 class="h-4 w-4 animate-spin" />
+					{:else}
+						<Download class="h-4 w-4" />
+					{/if}
+					<span>2. Restore from Storacha</span>
+				</button>
+			</div>
+
+			<!-- Backup Status Indicator -->
+			{#if !backupResult}
+				<div class="mb-4 rounded-md border border-gray-300 bg-gray-50 p-3 dark:bg-gray-700">
+					<div class="flex items-center space-x-2">
+						<ArrowRight class="h-4 w-4 text-gray-400" />
+						<span class="text-sm text-gray-600 dark:text-gray-400">
+							Waiting for Alice to create backup...
+						</span>
+					</div>
+				</div>
+			{:else}
+				<div class="mb-4 rounded-md border border-green-300 bg-green-50 p-3 dark:bg-green-900/20">
+					<div class="flex items-center space-x-2">
+						<CheckCircle class="h-4 w-4 text-green-600" />
+						<span class="text-sm text-green-700 dark:text-green-300">
+							Backup available from Alice
+						</span>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Bob's Todos -->
+			{#if bobTodos.length > 0}
+				<div class="mb-4">
+					<h5 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Bob's Restored Todos:</h5>
+					<div class="space-y-1">
+						{#each bobTodos as todo}
+							<div class="flex items-center space-x-2 rounded bg-gray-50 p-2 text-xs dark:bg-gray-700">
+								<span class="font-mono text-gray-500">{todo.key}:</span>
+								<span class={todo.value.completed ? 'line-through text-gray-500' : 'text-gray-800 dark:text-white'}>
+									{todo.value.text}
+								</span>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- Bob's Results -->
+			{#if bobResults.length > 0}
+				<div class="rounded-md border bg-gray-50 p-3 dark:bg-gray-700">
+					<h5 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Bob's Progress:</h5>
+					<div class="space-y-2">
+						{#each bobResults as result}
+							<div class="flex items-start space-x-2">
+								<svelte:component 
+									this={getStatusIcon(result.status)} 
+									class="h-3 w-3 mt-0.5 {getStatusClass(result.status)} {result.status === 'running' ? 'animate-spin' : ''}" 
+								/>
+								<div class="flex-1">
+									<div class="flex items-center justify-between">
+										<span class="text-xs font-medium text-gray-800 dark:text-white">
+											{result.step}
+										</span>
+										<span class="text-xs text-gray-500">
+											{formatTimestamp(result.timestamp)}
+										</span>
+									</div>
+									<p class="text-xs text-gray-600 dark:text-gray-300">
+										{result.message}
+									</p>
+									{#if showDetails && result.data}
+										<details class="mt-1">
+											<summary class="cursor-pointer text-xs text-orange-600 hover:text-orange-800">
+												Details
+											</summary>
+											<pre class="mt-1 overflow-x-auto rounded bg-gray-100 p-1 text-xs dark:bg-gray-800">{JSON.stringify(result.data, null, 2)}</pre>
+										</details>
+									{/if}
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</div>
+	</div>
+
+	<!-- Success Summary -->
+	{#if aliceTodos.length > 0 && bobTodos.length > 0 && aliceTodos.length === bobTodos.length}
+		<div class="mt-6 rounded-md border border-green-300 bg-green-100 p-4 dark:border-green-600 dark:bg-green-900/30">
 			<div class="flex items-start space-x-2">
 				<CheckCircle class="h-5 w-5 text-green-600 dark:text-green-400" />
 				<div>
 					<h4 class="font-medium text-green-800 dark:text-green-200">
-						Test Completed Successfully! ✅
+						Success! Data Successfully Transferred ✅
 					</h4>
 					<p class="text-sm text-green-700 dark:text-green-300">
-						The OrbitDB-Storacha bridge successfully backed up and restored all test data. 
-						All {originalTodos.length} todos were verified after complete database recreation.
+						Alice created {aliceTodos.length} todos and backed them up to Storacha. 
+						Bob successfully restored all {bobTodos.length} todos from the backup using {bobUseSameIdentity ? 'the same identity' : 'his own identity'}!
 					</p>
 					{#if backupResult && restoreResult}
 						<div class="mt-2 text-xs text-green-600 dark:text-green-400">
-							Backup: {backupResult.blocksUploaded}/{backupResult.blocksTotal} blocks uploaded •
-							Restore: {restoreResult.entriesRecovered} entries recovered
+							Backup: {backupResult.blocksUploaded}/{backupResult.blocksTotal} blocks • 
+							Restore: {restoreResult.entriesRecovered} entries recovered • 
+							Identity: {bobUseSameIdentity ? 'Shared (Same DID)' : 'Separate (Different DID)'}
 						</div>
 					{/if}
-				</div>
-			</div>
-		</div>
-	{:else if testError}
-		<div class="mt-4 rounded-md border border-red-300 bg-red-100 p-4 dark:border-red-600 dark:bg-red-900/30">
-			<div class="flex items-start space-x-2">
-				<AlertCircle class="h-5 w-5 text-red-600 dark:text-red-400" />
-				<div>
-					<h4 class="font-medium text-red-800 dark:text-red-200">
-						Test Failed ❌
-					</h4>
-					<p class="text-sm text-red-700 dark:text-red-300">
-						{testError}
-					</p>
 				</div>
 			</div>
 		</div>
