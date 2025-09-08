@@ -40,7 +40,7 @@ If Alice & Bob are working on the same OrbitDB without
 
 Remark: In theory and a perfect world Alice & Bob don't need to restore anything if they are connected directly via peer-to-peer and attached 24/7 OrbitDB pinning nodes. If Alice looses her data, Bob would still have them and Alice could anytime resync from Bob (that is current state of technologie of OrbitDB)
 
-Storacha full backup and restore is only for certain emergencies e.g. when both Alice & Bob lose their data or devices. Then a new Alice or Bob or even Peter can restore their work from Storacha. It is happing that networks block IP's, ports and protocols e.g. to WebRTC or Websocket gateways etc. in such case it would be desirable to have a possibility to restore an OrbitDB directly from IPFS and push/upload back to it via Storacha.
+Storacha full backup and restore is only for certain emergencies e.g. when both Alice & Bob lose their data or devices. Then a new Alice or Bob or even Peter can restore their work from Storacha. It is happing that networks block IP's, ports and protocols e.g. to WebRTC or Websocket gateways etc. in such case it would be desirable to have a possibility to restore an OrbitDB directly from IPFS and push/upload back to it via Storacha/Filecoin.
 
 ## What This Does
 
