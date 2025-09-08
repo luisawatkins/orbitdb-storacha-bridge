@@ -521,7 +521,7 @@ describe('OrbitDB Storacha Bridge Integration', () => {
         storachaKey: process.env.STORACHA_KEY,
         storachaProof: process.env.STORACHA_PROOF
       })
-      
+      console.log("restoreResult", restoreResult)
       expect(restoreResult.success).toBe(true)
       expect(restoreResult.entriesRecovered).toBeGreaterThan(0)
       expect(restoreResult.blocksRestored).toBeGreaterThan(0)
@@ -539,22 +539,21 @@ describe('OrbitDB Storacha Bridge Integration', () => {
         expect(entry).toHaveProperty('hash')
         expect(typeof entry.hash).toBe('string')
         expect(entry.hash).toMatch(/^zdpu/) // OrbitDB hash format
-        
+      
         // For key-value databases, entries should have key and value
         if (entry.payload) {
+          console.log("entry.payload", entry.payload)
           expect(entry.payload).toHaveProperty('key')
           expect(entry.payload).toHaveProperty('value')
         }
       })
-      
       // Verify that todo entries are present in restored data
       // Since this is a space restore, we need to find our specific database entries
       let foundTodoEntries = 0
       const restoredData = restoreResult.entries
-      
       for (const entry of restoredData) {
         const payload = entry.payload || entry
-        if (payload.key && payload.key.startsWith('todo-')) {
+        if (payload.value && payload.value.id.startsWith('todo-')) {
           foundTodoEntries++
           const todoData = payload.value
           
