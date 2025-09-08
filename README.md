@@ -15,6 +15,7 @@ Simple backup and restore functionality for OrbitDB databases using Storacha/Fil
 ## Table of Contents
 
 - [What This Does](#what-this-does)
+- [What we want to accomplish](#what-we-want-to-accomplish)
 - [RoadMap](#roadmap)
 - [Installation](#installation)
 - [Environment Setup](#environment-setup)
@@ -28,6 +29,22 @@ Simple backup and restore functionality for OrbitDB databases using Storacha/Fil
 ## What This Does
 
 So far mainly, "Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with or without identity preservation. Works in both Node.js and browser environments (the latter at this time only without identity preservation)
+
+## What we want to accomplish (and demonstrate)
+
+If Alice & Bob working on the same OrbitDB without
+
+- 24/7 internet connection between their browsers or via
+- a signalling or relay server which is live pinning their OrbitDB (e.g. OrbitDB-Voyager)
+
+... can backup and restore their work to Storacha to space via
+
+- a complete Storacha backup / restore or
+- a OrbitDB CustomStorage (for the entries only)
+
+So that Alice is finishing work, Bob can load it from a Storacha Store!
+
+Remark: In theory Alice & Bob don't need to restore anything if they are connected directly via peer-to-peer. Hence: This should be only for emergency e.g. when both Alice & Bob loose their data or devices for some reason. Then a new Alice or Bob can come and restore the work from Storacha.
 
 ## RoadMap
 

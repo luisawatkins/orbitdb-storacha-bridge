@@ -12,6 +12,8 @@
     },
     "./StorachaIntegration.svelte": "./dist/components/StorachaIntegration.svelte",
     "./StorachaTest.svelte": "./dist/components/StorachaTest.svelte",
+    "./StorachaAuth.svelte": "./dist/components/StorachaAuth.svelte",
+    "./storacha-backup": "./dist/components/storacha-backup.js",
     "./components/*": "./dist/components/*"
   },
   "scripts": {
@@ -28,7 +30,7 @@
     "lint": "eslint lib/ examples/ test/",
     "format": "prettier --write lib/ examples/ test/",
     "clean": "rm -rf ./cid-bridge-test* ./demo-test*",
-    "build:components": "mkdir -p dist/components && cp src/components/*.svelte dist/components/",
+    "build:components": "mkdir -p dist/components && cp src/components/*.svelte dist/components/ && cp src/components/*.js dist/components/",
     "prepublishOnly": "npm run build:components"
   },
   "keywords": [
