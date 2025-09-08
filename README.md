@@ -8,7 +8,7 @@
 [![ESLint](https://img.shields.io/badge/ESLint-passing-brightgreen.svg)](https://github.com/NiKause/orbitdb-storacha-bridge/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/orbitdb-storacha-bridge.svg)](https://www.npmjs.com/package/orbitdb-storacha-bridge)
 
-## 🎯  OrbitDB backups and restore to Filecoin in 3 lines of code
+## 🎯  OrbitDB backups and restore to Filecoin via Storacha
 
 Simple backup and restore functionality for OrbitDB databases using Storacha/Filecoin.
 
@@ -27,13 +27,14 @@ Simple backup and restore functionality for OrbitDB databases using Storacha/Fil
 
 ## What This Does
 
-Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with or without full hash and identity preservation. Works in both Node.js and browser environments (in browsers at this time only without full hash identity preservation by restoring db entries only [Issue #4](../../issues/4))
+Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with or without full hash and identity preservation (both valid approaches). Works in both Node.js and browser environments (in browsers at this time only without the full hash identity preservation by restoring db entries only [Issue #4](../../issues/4))
 
 Furthermore, a [`StorachaTest.svelte`](src/components/StorachaTest.svelte) and a [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte) which demonstrate a typical basic OrbitDB Todo example workflow between two OrbitDB instances (with two separate libp2p, IPFS nodes running in the browser - Alice & Bob)
 
-The [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) script is setting up a complete example Svelte App with StorachaTest.svelte and StorachaAuth.svelte
-
+The [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) script is setting up a complete example Svelte App with StorachaTest.svelte and StorachaAuth.svelte - which is already uploaded here: [https://w3s.link/ipfs/bafybeib56xv2i7f3vti6fytma7kh6bhl5ngvcyk47rti5qygbb5hxjvp6m](https://w3s.link/ipfs/bafybeib56xv2i7f3vti6fytma7kh6bhl5ngvcyk47rti5qygbb5hxjvp6m)
 Additionally exists a [`StorachaIntegration.svelte`](src/components/StorachaIntegration.svelte) which authenticates with Storacha, creates backups and restores for any OrbitDB Svelte app. (but has the above stated 'issue'). Since this isn't always an issue, StorachaTest.svelte is demonstrating a different approach when dealing with the entries in the oplog only and recreating/restoring the OrbitDB by adding a dbconfig object separately. This way the exact same db can be restored.
+
+Upcoming: UCAN authentication (instead of Storacha-Key and proof credentials) and a StorachaStorage (a OrbitDB CustomerStorage) where it will be possible to use Storacha in parallel and permanent backup while other peers are replicating.
 
 ## What we want to accomplish
 
@@ -61,7 +62,7 @@ Remark: In theory Alice & Bob don't need to restore anything if they are connect
   - [ ] by creating a new account via an email confirmation (implemented but untested)
 - [x] OrbitDB CAR file storage (OrbitDB CustomStorage)
 - [ ] backup/restore between OrbitDB and Storacha in NodeJS via UCAN and privatekey (hash and identity preserving)
-- [ ] OrbitDB Storacha storage (OrbitDB CustomStorage) in NodeJS - storage ok - but OrbitDB CustomStore doesn't store the Manifest.Initial-sync therefore difficult
+- [ ] OrbitDB Storacha storage (OrbitDB CustomStorage) in NodeJS - storage ok - but OrbitDB CustomStore doesn't store the Manifest. Initial-sync therefore difficult but manageable by a standard restore of the orbitdb-storacha-bridge function!
 - [ ] OrbitDB Storacha storage (OrbitDB CustomStorage) in NodeJS (entries only - initial sync)
 
 > **Note:** Currently, each Storacha space contains one full backup. For multiple backups, use separate spaces.

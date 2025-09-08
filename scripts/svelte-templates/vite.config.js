@@ -43,6 +43,8 @@ export default defineConfig({
 			// PWA configuration optimized for mobile browsers and IndexedDB
 			registerType: 'autoUpdate',
 			workbox: {
+				// Increase file size limit to handle large bundles (OrbitDB/libp2p dependencies are large)
+				maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB limit
 				// Use network-first strategy to avoid interfering with OrbitDB/libp2p
 				runtimeCaching: [
 					{
@@ -92,6 +94,19 @@ export default defineConfig({
 			periodicSyncForUpdates: 20
 		})
 	],
+	// build: {
+	// 	rollupOptions: {
+	// 		external: [
+	// 			// Externalize the problematic buffer shim import
+	// 			'vite-plugin-node-polyfills/shims/buffer'
+	// 		],
+	// 		output: {
+	// 			globals: {
+	// 				'vite-plugin-node-polyfills/shims/buffer': 'Buffer'
+	// 			}
+	// 		}
+	// 	}
+	// },
 	define: {
 		__APP_VERSION__: JSON.stringify(pkg.version),
 		__BUILD_DATE__: JSON.stringify(buildDate)

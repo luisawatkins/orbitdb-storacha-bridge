@@ -14,7 +14,8 @@ import { Signer } from '@web3-storage/w3up-client/principal/ed25519'
 import * as Proof from '@web3-storage/w3up-client/proof'
 import * as Delegation from '@ucanto/core/delegation'
 import * as ed25519 from '@ucanto/principal/ed25519'
-import { generateMnemonic, mnemonicToSeedSync } from 'bip39'
+import { generateMnemonic, mnemonicToSeedSync } from '@scure/bip39'
+import { wordlist as english } from '@scure/bip39/wordlists/english'
 import { createHash } from 'crypto'
 
 /**
@@ -89,11 +90,16 @@ function convertTo32BitSeed(origSeed) {
   return hash.digest()
 }
 
+// Convert Uint8Array to hex (browser-safe)
+function toHex(u8) {
+  return Array.from(u8).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 /**
  * Generate master seed from mnemonic
  */
 function generateMasterSeed(mnemonicSeedphrase, password = 'password') {
-  return mnemonicToSeedSync(mnemonicSeedphrase, password).toString('hex')
+  return toHex(mnemonicToSeedSync(mnemonicSeedphrase, password))
 }
 
 /**
@@ -271,7 +277,7 @@ export async function createSpace(client, spaceName) {
  * Generate a new seed phrase
  */
 export function generateSeedPhrase() {
-  return generateMnemonic()
+  return generateMnemonic(english)
 }
 
 /**

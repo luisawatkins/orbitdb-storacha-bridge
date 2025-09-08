@@ -104,7 +104,7 @@ node examples/seed-to-orbitdb-backup.js
 ```bash
 npm install
 # Additional dependencies for examples
-npm install bip39 key-did-provider-ed25519 key-did-resolver @orbitdb/identity-provider-did
+npm install @scure/bip39 key-did-provider-ed25519 key-did-resolver @orbitdb/identity-provider-did
 ```
 
 ### 2. Configure Environment
@@ -206,7 +206,7 @@ This enables deContact users to:
 
 If examples fail:
 
-1. **Missing Dependencies**: Run `npm install bip39 key-did-provider-ed25519 key-did-resolver @orbitdb/identity-provider-did`
+1. **Missing Dependencies**: Run `npm install @scure/bip39 key-did-provider-ed25519 key-did-resolver @orbitdb/identity-provider-did`
 
 2. **Missing Credentials**: Add `STORACHA_KEY` and `STORACHA_PROOF` to `.env`
 
