@@ -68,7 +68,6 @@
     Reset,
     Checkmark,
     Warning,
-    Error,
   } from "carbon-icons-svelte";
 
   // Storacha authentication state
@@ -143,6 +142,14 @@ let showProgress = false;
 
   // Create and setup bridge with progress tracking
   function createStorachaBridge(credentials) {
+    if (!credentials) {
+      throw new Error("Storacha credentials are required but not provided");
+    }
+    
+    if (!credentials.method) {
+      throw new Error("Storacha credentials must have a method property");
+    }
+    
     const bridgeOptions = {};
     
     if (credentials.method === "credentials") {
@@ -166,33 +173,41 @@ let showProgress = false;
     // Set up progress event listeners
     bridge.on('uploadProgress', (progress) => {
       console.log('📤 Upload Progress:', progress);
-      uploadProgress = progress;
-      showProgress = true;
-      
-      // Update Alice step for upload progress
-      if (progress.status === 'starting') {
-        aliceStep = `Starting backup: ${progress.total} blocks to upload`;
-      } else if (progress.status === 'uploading') {
-        aliceStep = `Uploading: ${progress.current}/${progress.total} blocks (${progress.percentage}%)`;
-      } else if (progress.status === 'completed') {
-        aliceStep = `Upload completed: ${progress.summary?.successful || 0} successful, ${progress.summary?.failed || 0} failed`;
-        showProgress = false;
+      if (progress && typeof progress === 'object') {
+        uploadProgress = progress;
+        showProgress = true;
+        
+        // Update Alice step for upload progress
+        if (progress.status === 'starting') {
+          aliceStep = `Starting backup: ${progress.total} blocks to upload`;
+        } else if (progress.status === 'uploading') {
+          aliceStep = `Uploading: ${progress.current}/${progress.total} blocks (${progress.percentage}%)`;
+        } else if (progress.status === 'completed') {
+          aliceStep = `Upload completed: ${progress.summary?.successful || 0} successful, ${progress.summary?.failed || 0} failed`;
+          showProgress = false;
+        }
+      } else {
+        console.warn('Invalid upload progress data:', progress);
       }
     });
     
     bridge.on('downloadProgress', (progress) => {
       console.log('📥 Download Progress:', progress);
-      downloadProgress = progress;
-      showProgress = true;
-      
-      // Update Bob step for download progress
-      if (progress.status === 'starting') {
-        bobStep = `Starting restore: ${progress.total} files to download`;
-      } else if (progress.status === 'downloading') {
-        bobStep = `Downloading: ${progress.current}/${progress.total} files (${progress.percentage}%)`;
-      } else if (progress.status === 'completed') {
-        bobStep = `Download completed: ${progress.summary?.downloaded || 0} downloaded, ${progress.summary?.failed || 0} failed`;
-        showProgress = false;
+      if (progress && typeof progress === 'object') {
+        downloadProgress = progress;
+        showProgress = true;
+        
+        // Update Bob step for download progress
+        if (progress.status === 'starting') {
+          bobStep = `Starting restore: ${progress.total} files to download`;
+        } else if (progress.status === 'downloading') {
+          bobStep = `Downloading: ${progress.current}/${progress.total} files (${progress.percentage}%)`;
+        } else if (progress.status === 'completed') {
+          bobStep = `Download completed: ${progress.summary?.downloaded || 0} downloaded, ${progress.summary?.failed || 0} failed`;
+          showProgress = false;
+        }
+      } else {
+        console.warn('Invalid download progress data:', progress);
       }
     });
     
@@ -693,7 +708,7 @@ let showProgress = false;
     if (aliceRunning || !aliceDatabase) return;
 
     // Check Storacha authentication
-    if (!storachaAuthenticated || !storachaClient) {
+    if (!storachaAuthenticated || !storachaClient || !storachaCredentials) {
       addResult(
         "alice",
         "Error",
