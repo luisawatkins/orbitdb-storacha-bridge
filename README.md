@@ -106,6 +106,12 @@ Get Storacha credentials from [web3.storage](https://web3.storage) and set up yo
 
 - `node` [`scripts/svelte-backup-restore.js`] - A script creating an example Svelte app in a subdirectory which adds and demonstrates StorachaAuth.svelte and StorachaTest.svelte
 
+## Video Demo
+
+**Storacha Backup via Storacha Credentials Setup Demo**
+[📹 Watch the demonstration video](docs/media/orbitdb-storacha-bridge-key-proof-credtials.mov)
+
+
 ## How It Works
 
 1. **Extract Blocks** - Separates OrbitDB database into individual components (log entries, manifest, identities, access controls)
@@ -133,3 +139,5 @@ The `car-storage.test.js` suite provides comprehensive validation of the CAR (Co
 ## License
 
 MIT License
+
+
