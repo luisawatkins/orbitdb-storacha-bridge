@@ -162,6 +162,23 @@ let showProgress = false;
       } else {
         throw new Error("Storacha credentials not found in storage");
       }
+    } else if (credentials.method === "ucan" || credentials.method === "seed") {
+      // UCAN authentication support
+      if (!storachaClient) {
+        throw new Error("UCAN client is required but not available");
+      }
+      
+      bridgeOptions.ucanClient = storachaClient;
+      
+      // Get current space DID if available
+      try {
+        const currentSpace = storachaClient.currentSpace();
+        if (currentSpace) {
+          bridgeOptions.spaceDID = currentSpace.did();
+        }
+      } catch (error) {
+        console.warn('Could not get current space DID:', error.message);
+      }
     } else {
       throw new Error(
         `Bridge with ${credentials.method} authentication not yet implemented`,
