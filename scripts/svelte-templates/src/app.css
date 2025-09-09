@@ -1,224 +1,161 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Import Carbon Design System styles in correct order */
+@import "carbon-components-svelte/css/white.css";
+@import "carbon-components-svelte/css/g100.css";
+@import "carbon-components-svelte/css/all.css";
 
-@layer base {
-	html {
-		font-family: 'Inter', system-ui, sans-serif;
-	}
-	
-	body {
-		background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-		background-attachment: fixed;
-		min-height: 100vh;
-	}
+/* Base styles */
+html {
+  font-family: "IBM Plex Sans", "Inter", system-ui, sans-serif;
+  background-color: var(--cds-background);
+  color: var(--cds-text-primary);
 }
 
-@layer components {
-	/* Orbital animation for the logo */
-	.orbit-animation {
-		animation: orbit 20s linear infinite;
-	}
-	
-	@keyframes orbit {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
-	
-	/* Gradient text effects matching the logo */
-	.gradient-text-purple {
-		background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		background-clip: text;
-	}
-	
-	.gradient-text-cyan {
-		background: linear-gradient(135deg, #06B6D4 0%, #0891B2 100%);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		background-clip: text;
-	}
-	
-	/* Card styling with orbital theme */
-	.orbital-card {
-		background: rgba(15, 23, 42, 0.8);
-		backdrop-filter: blur(10px);
-		border: 1px solid rgba(79, 70, 229, 0.2);
-		box-shadow: 
-			0 0 20px rgba(79, 70, 229, 0.1),
-			0 0 40px rgba(6, 182, 212, 0.05);
-		transition: all 0.3s ease;
-	}
-	
-	.orbital-card:hover {
-		border-color: rgba(79, 70, 229, 0.4);
-		box-shadow: 
-			0 0 30px rgba(79, 70, 229, 0.2),
-			0 0 60px rgba(6, 182, 212, 0.1);
-		transform: translateY(-2px);
-	}
-	
-	/* Button styles matching the theme */
-	.orbital-button {
-		background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
-		border: none;
-		color: white;
-		transition: all 0.3s ease;
-		position: relative;
-		overflow: hidden;
-	}
-	
-	.orbital-button::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: -100%;
-		width: 100%;
-		height: 100%;
-		background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-		transition: left 0.5s;
-	}
-	
-	.orbital-button:hover::before {
-		left: 100%;
-	}
-	
-	.orbital-button:hover {
-		box-shadow: 0 0 20px rgba(79, 70, 229, 0.5);
-		transform: translateY(-1px);
-	}
-	
-	.orbital-button-secondary {
-		background: linear-gradient(135deg, #06B6D4 0%, #0891B2 100%);
-		border: none;
-		color: white;
-		transition: all 0.3s ease;
-	}
-	
-	.orbital-button-secondary:hover {
-		box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
-		transform: translateY(-1px);
-	}
-	
-	/* Input fields with orbital styling */
-	.orbital-input {
-		background: rgba(15, 23, 42, 0.6);
-		border: 1px solid rgba(79, 70, 229, 0.3);
-		color: #e2e8f0;
-		transition: all 0.3s ease;
-	}
-	
-	.orbital-input:focus {
-		border-color: rgba(79, 70, 229, 0.6);
-		box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-		outline: none;
-	}
-	
-	/* Status indicators */
-	.status-success {
-		color: #10b981;
-		text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
-	}
-	
-	.status-error {
-		color: #ef4444;
-		text-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
-	}
-	
-	.status-warning {
-		color: #f59e0b;
-		text-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
-	}
-	
-	/* Floating particles effect */
-	.particles {
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		pointer-events: none;
-		z-index: -1;
-	}
-	
-	.particle {
-		position: absolute;
-		width: 2px;
-		height: 2px;
-		background: rgba(79, 70, 229, 0.3);
-		border-radius: 50%;
-		animation: float 15s infinite linear;
-	}
-	
-	.particle:nth-child(2n) {
-		background: rgba(6, 182, 212, 0.3);
-		animation-duration: 20s;
-	}
-	
-	.particle:nth-child(3n) {
-		background: rgba(124, 58, 237, 0.3);
-		animation-duration: 25s;
-	}
-	
-	@keyframes float {
-		0% {
-			transform: translateY(100vh) rotate(0deg);
-			opacity: 0;
-		}
-		10% {
-			opacity: 1;
-		}
-		90% {
-			opacity: 1;
-		}
-		100% {
-			transform: translateY(-100px) rotate(360deg);
-			opacity: 0;
-		}
-	}
-	
-	/* Scrollbar styling */
-	::-webkit-scrollbar {
-		width: 8px;
-	}
-	
-	::-webkit-scrollbar-track {
-		background: rgba(15, 23, 42, 0.5);
-	}
-	
-	::-webkit-scrollbar-thumb {
-		background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
-		border-radius: 4px;
-	}
-	
-	::-webkit-scrollbar-thumb:hover {
-		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-	}
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: var(--cds-background);
+  color: var(--cds-text-primary);
 }
 
-/* Dark mode enhancements */
-@media (prefers-color-scheme: dark) {
-	html {
-		color-scheme: dark;
-	}
-	
-	body {
-		color: #e2e8f0;
-	}
+/* App layout */
+.app {
+  min-height: 100vh;
+  background-color: var(--cds-background);
+  color: var(--cds-text-primary);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+/* Ensure theme inheritance for all elements */
+* {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+/* Force Carbon theme variables to be available everywhere */
+:root,
+:root[theme="white"],
+:root[theme="g100"],
+body {
+  background-color: var(--cds-background) !important;
+  color: var(--cds-text-primary) !important;
+}
+
+/* Orbital animation for the logo */
+.orbit-animation {
+  animation: orbit 20s linear infinite;
+}
+
+@keyframes orbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Gradient text effects matching the logo */
+.gradient-text-purple {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-cyan {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Card styling with orbital theme */
+.orbital-card {
+  background: var(--cds-layer);
+  border: 1px solid var(--cds-border-subtle);
+  box-shadow: 0 2px 6px var(--cds-shadow);
+  border-radius: var(--cds-border-radius);
+  transition: all 0.3s ease;
+}
+
+.orbital-card:hover {
+  border-color: var(--cds-focus);
+  box-shadow: 0 4px 12px var(--cds-shadow);
+  transform: translateY(-2px);
+}
+
+/* Status indicators */
+.status-success {
+  color: var(--cds-support-success);
+}
+
+.status-error {
+  color: var(--cds-support-error);
+}
+
+.status-warning {
+  color: var(--cds-support-warning);
+}
+
+/* Floating particles effect */
+.particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: rgba(79, 70, 229, 0.3);
+  border-radius: 50%;
+  animation: float 15s infinite linear;
+}
+
+.particle:nth-child(2n) {
+  background: rgba(6, 182, 212, 0.3);
+  animation-duration: 20s;
+}
+
+.particle:nth-child(3n) {
+  background: rgba(124, 58, 237, 0.3);
+  animation-duration: 25s;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg);
+    opacity: 0;
+  }
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-	.orbital-card {
-		margin: 1rem;
-	}
-	
-	.particle {
-		display: none; /* Hide particles on mobile for performance */
-	}
+  .orbital-card {
+    margin: 1rem;
+  }
+
+  .particle {
+    display: none; /* Hide particles on mobile for performance */
+  }
 }

@@ -1,7 +1,13 @@
 <script>
-	import '../app.css';
+  import "../app.css";
+  import { theme } from "$lib/theme.js";
+  import { onMount } from "svelte";
+
+  onMount(() => {
+    theme.init();
+  });
 </script>
 
-<div class="min-h-screen bg-white dark:bg-gray-900">
-	<slot />
+<div class="app">
+  <slot />
 </div>
