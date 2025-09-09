@@ -24,11 +24,11 @@ class StorachaTestAutomator {
 			['lib/orbitdb-storacha-bridge.js', 'src/lib/orbitdb-storacha-bridge.js'],
 			['lib/utils.js', 'src/lib/utils.js'],
 			
-			// Svelte component
-
+			// Svelte components and related files
 			['src/components/StorachaTest.svelte', 'src/lib/StorachaTest.svelte'],
 			['src/components/storacha-backup.js', 'src/lib/storacha-backup.js'],
-			['src/components/StorachaAuth.svelte', 'src/lib/StorachaAuth.svelte']
+			['src/components/StorachaAuth.svelte', 'src/lib/StorachaAuth.svelte'],
+			['src/components/theme.js', 'src/lib/theme.js']
 		]);
 
 		// Define template files to copy from the templates directory
@@ -39,7 +39,17 @@ class StorachaTestAutomator {
 			['src/routes/+layout.svelte', 'src/routes/+layout.svelte'],
 			['src/app.css', 'src/app.css'],
 			['src/app.html', 'src/app.html'],
-			['static/favicon.svg', 'static/favicon.svg']
+			// Static assets
+			['static/favicon.svg', 'static/favicon.svg'],
+			['static/robots.txt', 'static/robots.txt'],
+			// Technology logos
+			['static/orbitdb.png', 'static/orbitdb.png'],
+			['static/storacha-logo.jpeg', 'static/storacha-logo.jpeg'],
+			['static/helia.svg', 'static/helia.svg'],
+			['static/ipfs.png', 'static/ipfs.png'],
+			['static/libp2p.png', 'static/libp2p.png'],
+			['static/filecoin.svg', 'static/filecoin.svg'],
+			['static/protocol-labs.png', 'static/protocol-labs.png']
 		]);
 	}
 
@@ -164,9 +174,6 @@ class StorachaTestAutomator {
 				"@sveltejs/adapter-static": "^3.0.9",
 				"@sveltejs/kit": "^2.37.0",
 				"@sveltejs/vite-plugin-svelte": "^6.1.4",
-				"@tailwindcss/forms": "^0.5.10",
-				"@tailwindcss/typography": "^0.5.16",
-				"@tailwindcss/vite": "^4.1.13",
 				"@vitest/browser": "^3.2.4",
 				"eslint": "^9.35.0",
 				"eslint-config-prettier": "^10.1.8",
@@ -175,10 +182,8 @@ class StorachaTestAutomator {
 				"playwright": "^1.55.0",
 				"prettier": "^3.6.2",
 				"prettier-plugin-svelte": "^3.4.0",
-				"prettier-plugin-tailwindcss": "^0.6.14",
 				"svelte": "^5.38.7",
 				"svelte-check": "^4.3.1",
-				"tailwindcss": "^4.1.13",
 				"typescript": "^5.9.2",
 				"vite": "^7.1.4",
 				"vite-plugin-pwa": "^1.0.3",
@@ -221,7 +226,9 @@ class StorachaTestAutomator {
 				"lucide-svelte": "^0.539.0",
 				"multiformats": "^13.4.0",
 				"uint8arrays": "^5.1.0",
-				"vite-plugin-node-polyfills": "^0.24.0"
+				"vite-plugin-node-polyfills": "^0.24.0",
+				"carbon-components-svelte": "^0.89.7",
+				"carbon-icons-svelte": "^12.17.0"
 			}
 		};
 
@@ -252,11 +259,20 @@ class StorachaTestAutomator {
 			// Ensure destination directory exists
 			await this.ensureDirectory(path.dirname(destPath));
 
-			// Read the template file content
-			const content = await fs.readFile(fullTemplatePath, 'utf-8');
+			// Check if this is a binary file based on extension
+			const ext = path.extname(templatePath).toLowerCase();
+			const binaryExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.ico', '.webp', '.svg', '.woff', '.woff2', '.ttf', '.eot'];
+			const isBinary = binaryExtensions.includes(ext);
 
-			// Write the content to destination
-			await fs.writeFile(destPath, content);
+			if (isBinary) {
+				// Copy binary files without encoding
+				const content = await fs.readFile(fullTemplatePath);
+				await fs.writeFile(destPath, content);
+			} else {
+				// Read text files as UTF-8
+				const content = await fs.readFile(fullTemplatePath, 'utf-8');
+				await fs.writeFile(destPath, content);
+			}
 
 			console.log(`✅ Copied template: ${templatePath} → ${destPath}`);
 			return true;
@@ -281,7 +297,7 @@ class StorachaTestAutomator {
 			// Read the file content
 			let content = await fs.readFile(fullSourcePath, 'utf-8');
 
-			// Fix import paths for StorachaTest.svelte
+			// Fix import paths for components
 			if (sourcePath === 'src/components/StorachaTest.svelte') {
 				console.log('🔧 Fixing import paths in StorachaTest.svelte...');
 				// Change ../../lib/orbitdb-storacha-bridge to ./orbitdb-storacha-bridge
@@ -289,7 +305,22 @@ class StorachaTestAutomator {
 					"from '../../lib/orbitdb-storacha-bridge'",
 					"from './orbitdb-storacha-bridge'"
 				);
-				console.log('✅ Updated import path: ../../lib/orbitdb-storacha-bridge → ./orbitdb-storacha-bridge');
+				// Fix other potential import paths
+				content = content.replace(
+					"from './orbitdb-storacha-bridge'",
+					"from './orbitdb-storacha-bridge'"
+				);
+				console.log('✅ Updated import paths in StorachaTest.svelte');
+			}
+			
+			if (sourcePath === 'src/components/StorachaAuth.svelte') {
+				console.log('🔧 Fixing import paths in StorachaAuth.svelte...');
+				// Fix any import paths if needed
+				content = content.replace(
+					"from '../../lib/",
+					"from './"
+				);
+				console.log('✅ Updated import paths in StorachaAuth.svelte');
 			}
 
 			// Write the (potentially modified) content

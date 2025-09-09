@@ -11,8 +11,8 @@
 
 ## Table of Contents
 
-- [What we want to accomplish](#what-we-want-to-accomplish)
-- [What This Does](#what-this-does)
+- [Objective](#Objective)
+- [Functionality](#functionality)
 - [RoadMap](#roadmap)
 - [Installation](#installation)
 - [Environment Setup](#environment-setup)
@@ -23,50 +23,74 @@
 - [License](#license)
 
 
-## What we want to accomplish
+### **Objective** 
 
-If Alice & Bob are working with the same OrbitDB:
+Enable OrbitDB users to reliably back up and restore databases to and from Storacha/Filecoin in scenarios where:
 
-- without 24/7 internet connection between their browsers and also
-- without a signalling or relay node (or network) which is live pinning their OrbitDB changes (e.g. via OrbitDB-Voyager or other custom OrbitDB node instance)
+* Continuous peer-to-peer connectivity between browsers is unavailable, and
+* No dedicated relay or pinning infrastructure (e.g., OrbitDB-Voyager or custom nodes) is present.
 
-... so both can backup and restore their work to a Storacha space via
+The system provides two recovery mechanisms:
 
-- a complete Storacha backup / restore or
-- an OrbitDB CustomStorage (for the entries, index and identities - no Manifest here so far) 
+1. **Full Storacha backup/restore** – stores all database components for complete recovery.
+2. **Custom OrbitDB storage** – selectively persists entries, index, and identities (manifest handling in progress).
 
-In theory and a perfect world Alice & Bob don't need to restore anything if they are connected directly via peer-to-peer and attached 24/7 OrbitDB pinning nodes. If Alice looses her data, Bob would still have them and Alice could anytime resync from Bob (that is current state of technologie of OrbitDB)
+This ensures data availability in cases of device loss, network restrictions (e.g., blocked WebRTC/WebSocket protocols), or simultaneous peer data loss. While native OrbitDB replication is sufficient under constant connectivity and peer availability, Storacha integration extends resilience to disconnected or failure scenarios.
 
-Storacha full backup and restore is only for certain emergencies e.g. when both Alice & Bob lose their data or devices. Then a new Alice or Bob or even Peter can restore their work from Storacha. It is happing that networks block IP's, ports and protocols e.g. to WebRTC or Websocket gateways etc. in such case it would be desirable to have a possibility to restore an OrbitDB directly from IPFS and push/upload back to it via Storacha/Filecoin.
+---
 
-## What This Does
+### **Functionality** 
 
-Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with or without full hash and identity preservation (both valid approaches). Works in both Node.js and browser environments (in browsers at this time only without the full hash identity preservation by restoring db entries only [Issue #4](../../issues/4))
+Provides bidirectional backup and restoration between **OrbitDB databases** and **Storacha/Filecoin**, with two supported modes:
 
-Furthermore, a [`StorachaTest.svelte`](src/components/StorachaTest.svelte) and a [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte) which demonstrate a typical basic OrbitDB Todo example workflow between two OrbitDB instances (with two separate libp2p, IPFS nodes running in the browser - Alice & Bob)
+* **Hash- and identity-preserving** backups (Node.js only, full database fidelity).
+* **Entry-only restores** (browser environments, due to current limitations; see [Issue #4](../../issues/4)).
 
-The [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) script is setting up a complete example Svelte App with StorachaTest.svelte and StorachaAuth.svelte - which is already uploaded here: [https://w3s.link/ipfs/bafybeieltifitd5juvn7i7msm3nqjaf3ssygia4j6zckctx4jojhfzgio4](https://w3s.link/ipfs/bafybeieltifitd5juvn7i7msm3nqjaf3ssygia4j6zckctx4jojhfzgio4)
+The project includes Svelte components and scripts to demonstrate integration:
 
-Additionally exists a [`StorachaIntegration.svelte`](src/components/StorachaIntegration.svelte) which authenticates with Storacha, creates backups and restores for any OrbitDB Svelte app. (but has the above stated 'issue'). Since this isn't always an issue, StorachaTest.svelte is demonstrating a different approach when dealing with the entries in the oplog only and recreating/restoring the OrbitDB by adding a dbconfig object separately. This way the exact same db can be restored.
+* `StorachaTest.svelte` – Example OrbitDB workflow (Alice & Bob) showing entry-only backup/restore.
+* `StorachaAuth.svelte` – Authentication with Storacha (via credentials, UCAN, or email).
+* `StorachaIntegration.svelte` – Generalized backup/restore integration (identity-preserving mode pending).
+* `svelte-backup-restore.js` – Complete demo app bundling the above components.
 
-Implemented but untested: 
-  - UCAN authentication (instead of Storacha key and proof credentials) and 
-  - StorachaStorage (a OrbitDB CustomStorage) where it will be possible to reactively store an orbitdb live on Storacha as a permanent backup while other peers are replicating as normal.
+Additionally, experimental support exists for:
 
-## RoadMap
+* UCAN-based authentication, and
+* Continuous OrbitDB persistence via `StorachaStorage` (OrbitDB `CustomStorage` adapter).
 
-- [x] backup/restore between OrbitDB and Storacha in NodeJS via Storacha key and proof credential (hash and identity preserving)
-- [ ] backup/restore between OrbitDB and Storacha in browser (StorachaIntegration.svelte) (hash and identity preserving) - [Issue #4](../../issues/4)
-- [x] backup/restore between OrbitDB and Storacha in browser ([`StorachaTest.svelte`](src/components/StorachaTest.svelte)) (entries only - without manifest and identity preservation into new OrbitDB)
-  - [x] using Storacha Credentials by [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte)
-  - [ ] using UCAN + privatekey (implemented but untested)
-  - [ ] by creating a new account via an email confirmation (implemented but untested)
-- [x] OrbitDB CAR file storage (OrbitDB CustomStorage)
-- [ ] backup/restore between OrbitDB and Storacha in NodeJS via UCAN and privatekey (hash and identity preserving)
-- [ ] OrbitDB Storacha storage (OrbitDB CustomStorage) in NodeJS - storage ok - but OrbitDB CustomStore doesn't store the Manifest. Initial-sync therefore difficult but manageable by a standard restore of the orbitdb-storacha-bridge function!
-- [ ] OrbitDB Storacha storage (OrbitDB CustomStorage) in NodeJS (entries only - initial sync)
+Perfect 👍 Here’s the **Roadmap** section rewritten with clean checkbox formatting, engineering-spec style:
 
-> **Note:** Currently, each Storacha space contains one full backup. For multiple backups, use separate spaces.
+---
+
+### **Roadmap**
+
+* [x] **Node.js backup/restore with Storacha credentials**
+  * Full database fidelity (manifest, identities, access controllers, entries).
+
+* [ ] **Browser backup/restore (StorachaIntegration.svelte)**
+  * Identity- and hash-preserving mode Blocked by [Issue #4](../../issues/4).
+
+* [x] **Browser backup/restore (StorachaTest.svelte)**
+  * Entry-only backups and restore (no manifest, identity not preserved).
+  * Includes authentication via `StorachaAuth.svelte`:
+    * [x] using credentials (key + proof).
+    * [ ] UCAN + private key (implemented, untested).
+    * [ ] Email-based account creation (implemented, untested).
+
+* [ ] **Node.js backup/restore with UCAN + private key**
+  * Full fidelity (hash and identity preserved).
+
+* [x] **OrbitDB CAR file storage**
+  * Persistent content-addressable storage of database components.
+
+* [ ] **OrbitDB Storacha `CustomStorage` adapter (Node.js)**
+  * Storage functional.
+  * Current limitation: manifests not persisted → initial sync requires standard restore.
+
+* [ ] **OrbitDB Storacha `CustomStorage` adapter (Node.js, entry-only mode)**
+  * Initial sync supported through entries-only storage.
+
+> **Note:** Each Storacha space currently holds a single full backup. Multiple independent backups require separate Storacha spaces
 
 Read more: [Bridging OrbitDB with Storacha: Decentralized Database Backups](https://medium.com/@akashjana663/bridging-orbitdb-with-storacha-decentralized-database-backups-44c7bee5c395)
 
