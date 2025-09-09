@@ -92,14 +92,23 @@ async function createProperUCAN() {
     console.log(`   📏 Delegation size: ${delegationToken.length} characters`)
     console.log(`   📋 Delegation preview: ${delegationToken.substring(0, 100)}...`)
     
-    // Save to file
-    await fs.writeFile('ucan-delegation.car', archive.ok)
-    console.log('   💾 Saved to: ucan-delegation.car')
+    // Print full base64 token in parallel
+    console.log('\n🔗 FULL BASE64 DELEGATION TOKEN:')
+    console.log('=' .repeat(80))
+    console.log(delegationToken)
+    console.log('=' .repeat(80))
     
-    // Save recipient private key  
+    // Also save the base64 token to a separate file for easy copying
     const recipientKey = recipientPrincipal.toArchive()
-    await fs.writeFile('recipient-key.txt', JSON.stringify(recipientKey, null, 2))
+    await Promise.all([
+      fs.writeFile('ucan-delegation.car', archive.ok),
+      fs.writeFile('recipient-key.txt', JSON.stringify(recipientKey, null, 2)),
+      fs.writeFile('delegation-token.txt', delegationToken)
+    ])
+    
+    console.log('   💾 Saved to: ucan-delegation.car')
     console.log('   🔑 Recipient key saved to: recipient-key.txt')
+    console.log('   📋 Base64 token saved to: delegation-token.txt')
     
     console.log('\\n🧪 Step 5: Test authentication with ONLY the UCAN...')
     
