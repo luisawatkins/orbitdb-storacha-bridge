@@ -1112,6 +1112,8 @@ let showProgress = false;
           autoLogin={true}
           showTitle={true}
           compact={false}
+          enableSeedAuth={false}
+          enableEmailAuth={false}
         />
 
         {#if !storachaAuthenticated}

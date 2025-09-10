@@ -40,6 +40,8 @@
   export let autoLogin = true;
   export let showTitle = true;
   export let compact = false;
+  export let enableSeedAuth = true;
+  export let enableEmailAuth = true;
 
   // Authentication state
   let isAuthenticated = false;
@@ -397,6 +399,14 @@
     newSpaceName = "";
   }
 
+  // Helper function to get correct tab index based on enabled auth methods
+  function getTabIndex(method) {
+    const tabs = ['credentials', 'ucan'];
+    if (enableSeedAuth) tabs.push('seed');
+    if (enableEmailAuth) tabs.push('email');
+    return tabs.indexOf(method);
+  }
+
   // Utility functions
   function generateNewSeedPhrase() {
     seedPhrase = generateSeedPhrase();
@@ -412,25 +422,37 @@
 
     console.log(`🔄 Auto-login with ${stored.method}...`);
 
+    // Check if the stored method is enabled
+    const tabIndex = getTabIndex(stored.method);
+    if (tabIndex === -1) {
+      console.warn(`Stored auth method '${stored.method}' is disabled`);
+      clearStoredCredentials();
+      return;
+    }
+
     // Set form values
     switch (stored.method) {
       case "credentials":
         storachaKey = stored.key;
         storachaProof = stored.proof;
-        activeTab = 0;
+        activeTab = tabIndex;
         await authenticateWithCredentials();
         break;
       case "ucan":
         ucanToken = stored.ucanToken;
         recipientKey = stored.recipientKey;
-        activeTab = 1;
+        activeTab = tabIndex;
         await authenticateWithUCAN();
         break;
       case "seed":
+        if (!enableSeedAuth) {
+          console.warn("Seed auth is disabled");
+          return;
+        }
         seedPhrase = stored.seedPhrase;
         seedPassword = stored.seedPassword;
         delegationToken = stored.delegationToken || "";
-        activeTab = 2;
+        activeTab = tabIndex;
         await authenticateWithSeed();
         break;
     }
@@ -493,18 +515,22 @@
       <Tab>
         <div style="display:flex;align-items:center;gap:0.25rem;">🎫 UCAN</div>
       </Tab>
-      <Tab>
-        <div style="display:flex;align-items:center;gap:0.25rem;">
-          <Shuffle size={16} />
-          Seed
-        </div>
-      </Tab>
-      <Tab>
-        <div style="display:flex;align-items:center;gap:0.25rem;">
-          <Email size={16} />
-          Email
-        </div>
-      </Tab>
+      {#if enableSeedAuth}
+        <Tab>
+          <div style="display:flex;align-items:center;gap:0.25rem;">
+            <Shuffle size={16} />
+            Seed
+          </div>
+        </Tab>
+      {/if}
+      {#if enableEmailAuth}
+        <Tab>
+          <div style="display:flex;align-items:center;gap:0.25rem;">
+            <Email size={16} />
+            Email
+          </div>
+        </Tab>
+      {/if}
 
       <svelte:fragment slot="content">
         <TabContent>
@@ -575,96 +601,100 @@
           </div>
         </TabContent>
 
-        <TabContent>
-          <!-- Seed Tab -->
-          <div style="margin-top:1rem;">
-            <h4 style="font-weight:500;margin-bottom:1rem;">Seed Phrase</h4>
-            <div style="display:flex;flex-direction:column;gap:1rem;">
-              <div style="display:flex;flex-direction:column;gap:0.5rem;">
-                <div
-                  style="display:flex;justify-content:space-between;align-items:center;"
-                >
-                  <span style="font-size:0.875rem;font-weight:500;"
-                    >Seed Phrase (12-24 words)</span
+        {#if enableSeedAuth}
+          <TabContent>
+            <!-- Seed Tab -->
+            <div style="margin-top:1rem;">
+              <h4 style="font-weight:500;margin-bottom:1rem;">Seed Phrase</h4>
+              <div style="display:flex;flex-direction:column;gap:1rem;">
+                <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                  <div
+                    style="display:flex;justify-content:space-between;align-items:center;"
                   >
-                  <Button
-                    kind="ghost"
-                    size="sm"
-                    icon={Reset}
-                    on:click={generateNewSeedPhrase}
+                    <span style="font-size:0.875rem;font-weight:500;"
+                      >Seed Phrase (12-24 words)</span
+                    >
+                    <Button
+                      kind="ghost"
+                      size="sm"
+                      icon={Reset}
+                      on:click={generateNewSeedPhrase}
+                      disabled={isLoading}
+                    >
+                      Generate
+                    </Button>
+                  </div>
+                  <TextArea
+                    placeholder="abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art"
+                    rows={2}
+                    bind:value={seedPhrase}
                     disabled={isLoading}
-                  >
-                    Generate
-                  </Button>
+                  />
                 </div>
-                <TextArea
-                  placeholder="abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art"
-                  rows={2}
-                  bind:value={seedPhrase}
+                <PasswordInput
+                  labelText="Password (optional)"
+                  placeholder="password"
+                  bind:value={seedPassword}
                   disabled={isLoading}
                 />
+                <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                  <TextArea
+                    labelText="Delegation Token (optional)"
+                    placeholder="eyJh...base64-encoded-delegation-token"
+                    rows={2}
+                    bind:value={delegationToken}
+                    disabled={isLoading}
+                  />
+                  <p
+                    style="font-size:0.75rem;color:var(--cds-text-secondary);margin:0;"
+                  >
+                    Without delegation, you can only create identities but not
+                    upload to Storacha
+                  </p>
+                </div>
+                <Button
+                  kind="tertiary"
+                  on:click={authenticateWithSeed}
+                  disabled={isLoading || !seedPhrase.trim()}
+                  style="width:100%;"
+                >
+                  {isLoading ? "Authenticating..." : "Login with Seed"}
+                </Button>
               </div>
-              <PasswordInput
-                labelText="Password (optional)"
-                placeholder="password"
-                bind:value={seedPassword}
-                disabled={isLoading}
-              />
-              <div style="display:flex;flex-direction:column;gap:0.5rem;">
-                <TextArea
-                  labelText="Delegation Token (optional)"
-                  placeholder="eyJh...base64-encoded-delegation-token"
-                  rows={2}
-                  bind:value={delegationToken}
+            </div>
+          </TabContent>
+        {/if}
+
+        {#if enableEmailAuth}
+          <TabContent>
+            <!-- Email Tab -->
+            <div style="margin-top:1rem;">
+              <h4 style="font-weight:500;margin-bottom:1rem;">Create Account</h4>
+              <div style="display:flex;flex-direction:column;gap:1rem;">
+                <TextInput
+                  labelText="Email Address"
+                  placeholder="Enter your email address"
+                  bind:value={email}
                   disabled={isLoading}
                 />
+                <Button
+                  kind="primary"
+                  on:click={createAccount}
+                  disabled={isLoading || !email.trim()}
+                  style="width:100%;"
+                >
+                  {isLoading ? "Creating..." : "Create Account"}
+                </Button>
                 <p
                   style="font-size:0.75rem;color:var(--cds-text-secondary);margin:0;"
                 >
-                  Without delegation, you can only create identities but not
-                  upload to Storacha
+                  This will guide you through manual account creation at
+                  web3.storage
                 </p>
               </div>
-              <Button
-                kind="tertiary"
-                on:click={authenticateWithSeed}
-                disabled={isLoading || !seedPhrase.trim()}
-                style="width:100%;"
-              >
-                {isLoading ? "Authenticating..." : "Login with Seed"}
-              </Button>
             </div>
-          </div>
-        </TabContent>
-
-        <TabContent>
-          <!-- Email Tab -->
-          <div style="margin-top:1rem;">
-            <h4 style="font-weight:500;margin-bottom:1rem;">Create Account</h4>
-            <div style="display:flex;flex-direction:column;gap:1rem;">
-              <TextInput
-                labelText="Email Address"
-                placeholder="Enter your email address"
-                bind:value={email}
-                disabled={isLoading}
-              />
-              <Button
-                kind="primary"
-                on:click={createAccount}
-                disabled={isLoading || !email.trim()}
-                style="width:100%;"
-              >
-                {isLoading ? "Creating..." : "Create Account"}
-              </Button>
-              <p
-                style="font-size:0.75rem;color:var(--cds-text-secondary);margin:0;"
-              >
-                This will guide you through manual account creation at
-                web3.storage
-              </p>
-            </div>
-          </div>
-        </TabContent>
+          </TabContent>
+        {/if}
       </svelte:fragment>
     </Tabs>
   {:else}
