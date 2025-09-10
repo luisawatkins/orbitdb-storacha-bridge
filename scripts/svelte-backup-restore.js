@@ -32,13 +32,14 @@ class StorachaTestAutomator {
 		]);
 
 		// Define template files to copy from the templates directory
-		this.templateFiles = new Map([
-			['vite.config.js', 'vite.config.js'],
-			['src/routes/+layout.js', 'src/routes/+layout.js'],
-			['src/routes/+page.svelte', 'src/routes/+page.svelte'],
-			['src/routes/+layout.svelte', 'src/routes/+layout.svelte'],
-			['src/app.css', 'src/app.css'],
-			['src/app.html', 'src/app.html'],
+			this.templateFiles = new Map([
+				['vite.config.js', 'vite.config.js'],
+				['src/routes/+layout.js', 'src/routes/+layout.js'],
+				['src/routes/+page.svelte', 'src/routes/+page.svelte'],
+				['src/routes/+layout.svelte', 'src/routes/+layout.svelte'],
+				['src/app.css', 'src/app.css'],
+				['src/app.html', 'src/app.html'],
+				['src/fonts.css', 'src/fonts.css'],
 			// Static assets
 			['static/favicon.svg', 'static/favicon.svg'],
 			['static/robots.txt', 'static/robots.txt'],
@@ -203,6 +204,7 @@ class StorachaTestAutomator {
 				"@chainsafe/libp2p-gossipsub": "^14.1.1",
 				"@chainsafe/libp2p-noise": "^16.1.4",
 				"@chainsafe/libp2p-yamux": "^7.0.4",
+				"@ibm/plex": "^6.4.1",
 				"@ipld/dag-cbor": "^9.2.5",
 				"@libp2p/autonat": "^2.0.38",
 				"@libp2p/bootstrap": "^11.0.47",
@@ -214,21 +216,21 @@ class StorachaTestAutomator {
 				"@libp2p/webrtc": "^5.2.24",
 				"@libp2p/websockets": "^9.2.19",
 				"@orbitdb/core": "^3.0.2",
+				"@storacha/capabilities": "^1.8.0",
+				"@storacha/client": "^1.7.10",
 				"@ucanto/core": "^10.4.0",
 				"@ucanto/principal": "^9.0.2",
-				"@web3-storage/capabilities": "^18.1.0",
-				"@web3-storage/w3up-client": "^17.3.0",
 				"blockstore-level": "^2.0.5",
 				"buffer": "^6.0.3",
+				"carbon-components-svelte": "^0.89.7",
+				"carbon-icons-svelte": "^12.17.0",
 				"datastore-level": "^11.0.4",
 				"helia": "^5.5.1",
 				"libp2p": "^2.10.0",
 				"lucide-svelte": "^0.539.0",
 				"multiformats": "^13.4.0",
 				"uint8arrays": "^5.1.0",
-				"vite-plugin-node-polyfills": "^0.24.0",
-				"carbon-components-svelte": "^0.89.7",
-				"carbon-icons-svelte": "^12.17.0"
+				"vite-plugin-node-polyfills": "^0.24.0"
 			}
 		};
 
@@ -349,6 +351,90 @@ class StorachaTestAutomator {
 		return copiedCount;
 	}
 
+	async copyFontsAndCreateCSS() {
+		console.log('\n🔤 Setting up IBM Plex fonts locally...');
+		
+		try {
+			// Ensure fonts directory exists
+			const fontsDir = 'static/fonts';
+			await this.ensureDirectory(fontsDir);
+			
+			// Path to @ibm/plex fonts in node_modules
+			const plexPath = path.join('node_modules', '@ibm', 'plex');
+			
+			// Check if @ibm/plex is installed
+			try {
+				await fs.access(plexPath);
+			} catch {
+				console.log('⚠️  @ibm/plex not found, installing it first...');
+				try {
+					execSync('npm install @ibm/plex --no-save', { stdio: 'inherit' });
+				} catch (error) {
+					console.error('❌ Failed to install @ibm/plex:', error.message);
+					return false;
+				}
+			}
+			
+			// Copy key IBM Plex Sans and Mono woff2 files
+			const fontFiles = [
+				// IBM Plex Sans variants
+				'IBM-Plex-Sans/fonts/split/woff2/IBMPlexSans-Regular-Latin1.woff2',
+				'IBM-Plex-Sans/fonts/split/woff2/IBMPlexSans-Medium-Latin1.woff2',
+				'IBM-Plex-Sans/fonts/split/woff2/IBMPlexSans-SemiBold-Latin1.woff2',
+				'IBM-Plex-Sans/fonts/split/woff2/IBMPlexSans-Bold-Latin1.woff2',
+				'IBM-Plex-Sans/fonts/split/woff2/IBMPlexSans-Light-Latin1.woff2',
+				'IBM-Plex-Sans/fonts/split/woff2/IBMPlexSans-Italic-Latin1.woff2',
+				'IBM-Plex-Sans/fonts/split/woff2/IBMPlexSans-MediumItalic-Latin1.woff2',
+				'IBM-Plex-Sans/fonts/split/woff2/IBMPlexSans-SemiBoldItalic-Latin1.woff2',
+				'IBM-Plex-Sans/fonts/split/woff2/IBMPlexSans-BoldItalic-Latin1.woff2',
+				// IBM Plex Mono variants
+				'IBM-Plex-Mono/fonts/split/woff2/IBMPlexMono-Regular-Latin1.woff2',
+				'IBM-Plex-Mono/fonts/split/woff2/IBMPlexMono-Medium-Latin1.woff2',
+				'IBM-Plex-Mono/fonts/split/woff2/IBMPlexMono-SemiBold-Latin1.woff2',
+				'IBM-Plex-Mono/fonts/split/woff2/IBMPlexMono-Bold-Latin1.woff2',
+				'IBM-Plex-Mono/fonts/split/woff2/IBMPlexMono-Light-Latin1.woff2',
+				'IBM-Plex-Mono/fonts/split/woff2/IBMPlexMono-Italic-Latin1.woff2',
+				'IBM-Plex-Mono/fonts/split/woff2/IBMPlexMono-MediumItalic-Latin1.woff2',
+				'IBM-Plex-Mono/fonts/split/woff2/IBMPlexMono-SemiBoldItalic-Latin1.woff2',
+				'IBM-Plex-Mono/fonts/split/woff2/IBMPlexMono-BoldItalic-Latin1.woff2'
+			];
+			
+			let copiedFonts = 0;
+			for (const fontFile of fontFiles) {
+				const sourcePath = path.join(plexPath, fontFile);
+				const fileName = path.basename(fontFile);
+				// Simplify filename for local use
+				const destFileName = fileName.replace('-Latin1', '');
+				const destPath = path.join(fontsDir, destFileName);
+				
+				try {
+					await fs.access(sourcePath);
+					const fontContent = await fs.readFile(sourcePath);
+					await fs.writeFile(destPath, fontContent);
+					copiedFonts++;
+				} catch (error) {
+					console.log(`⚠️  Failed to copy ${fontFile}: ${error.message}`);
+				}
+			}
+			
+			// Copy license file
+			try {
+				const licensePath = path.join(plexPath, 'LICENSE.txt');
+				const licenseContent = await fs.readFile(licensePath, 'utf-8');
+				await fs.writeFile(path.join(fontsDir, 'license.txt'), licenseContent);
+			} catch {
+				// License file is optional
+			}
+			
+			console.log(`✅ Copied ${copiedFonts} font files to ${fontsDir}`);
+			return copiedFonts > 0;
+			
+		} catch (error) {
+			console.error('❌ Failed to setup fonts:', error.message);
+			return false;
+		}
+	}
+
 	async ensureDirectory(dirPath) {
 		if (dirPath && dirPath !== '.' && dirPath !== '') {
 			await fs.mkdir(dirPath, { recursive: true });
@@ -422,6 +508,13 @@ class StorachaTestAutomator {
 			} catch {
 				console.error('❌ Failed to install dependencies');
 				console.log('💡 Try running "npm install" manually in the project directory');
+			}
+
+			// Step 6: Copy fonts and create local font CSS
+			console.log('\n' + '='.repeat(50));
+			const fontsSetup = await this.copyFontsAndCreateCSS();
+			if (!fontsSetup) {
+				console.log('⚠️  Font setup failed, but continuing...');
 			}
 
 			// Success!

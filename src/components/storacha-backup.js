@@ -8,10 +8,10 @@
  * - Seed phrase derived identities
  */
 
-import * as Client from "@web3-storage/w3up-client";
-import { StoreMemory } from "@web3-storage/w3up-client/stores/memory";
-import { Signer } from "@web3-storage/w3up-client/principal/ed25519";
-import * as Proof from "@web3-storage/w3up-client/proof";
+import * as Client from "@storacha/client";
+import { StoreMemory } from "@storacha/client/stores/memory";
+import { Signer } from "@storacha/client/principal/ed25519";
+import * as Proof from "@storacha/client/proof";
 import * as Delegation from "@ucanto/core/delegation";
 import * as ed25519 from "@ucanto/principal/ed25519";
 import { generateMnemonic, mnemonicToSeedSync } from "@scure/bip39";
