@@ -25,7 +25,7 @@
 
 ## What we want to accomplish
 
-If Alice & Bob are working with the same OrbitDB:
+If Alice & Bob are working with the same OrbitDB in a local-first peer-to-peer web or mobile application:
 
 - without 24/7 internet connection between their browsers and also
 - without a signalling or relay node (or network) which is live pinning their OrbitDB changes (e.g. via OrbitDB-Voyager or other custom OrbitDB node instance)
@@ -45,7 +45,7 @@ Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with 
 
 Furthermore, a [`StorachaTest.svelte`](src/components/StorachaTest.svelte) and a [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte) which demonstrate a typical basic OrbitDB Todo example workflow between two OrbitDB instances (with two separate libp2p, IPFS nodes running in the browser - Alice & Bob)
 
-The [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) script is setting up a complete example Svelte App with StorachaTest.svelte and StorachaAuth.svelte - which is already uploaded here: [https://w3s.link/ipfs/bafybeie4oba7njnmhaljszu5smh2rkxviduabuoxuql7rzr3xnfptcydka](https://w3s.link/ipfs/bafybeie4oba7njnmhaljszu5smh2rkxviduabuoxuql7rzr3xnfptcydka)
+The [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) script is setting up a complete example Svelte App with StorachaTest.svelte and StorachaAuth.svelte - which is already uploaded here: [https://w3s.link/ipfs/bafybeic7xjxp6acm5hsj2eybtan3bomlkxzw74giicrm2aglh224rrjpkm](https://w3s.link/ipfs/bafybeic7xjxp6acm5hsj2eybtan3bomlkxzw74giicrm2aglh224rrjpkm)
 
 Additionally exists a [`StorachaIntegration.svelte`](src/components/StorachaIntegration.svelte) which authenticates with Storacha, creates backups and restores for any OrbitDB Svelte app. (but has the above stated 'issue'). Since this isn't always an issue, StorachaTest.svelte is demonstrating a different approach when dealing with the entries in the oplog only and recreating/restoring the OrbitDB by adding a dbconfig object separately. This way the exact same db can be restored.
 
