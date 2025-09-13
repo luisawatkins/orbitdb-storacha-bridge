@@ -2,13 +2,15 @@
 /**
  * Create a proper UCAN delegation from Storacha credentials
  * Then test authentication with ONLY the UCAN (no private key/proof needed)
+ * 
+ * UPDATED: Now uses @storacha/client instead of @web3-storage/w3up-client
  */
 
 import 'dotenv/config'
-import * as Client from '@web3-storage/w3up-client'
-import { StoreMemory } from '@web3-storage/w3up-client/stores/memory'
-import { Signer } from '@web3-storage/w3up-client/principal/ed25519'
-import * as Proof from '@web3-storage/w3up-client/proof'
+import * as Client from '@storacha/client'
+import { StoreMemory } from '@storacha/client/stores/memory'
+import { Signer } from '@storacha/client/principal/ed25519'
+import * as Proof from '@storacha/client/proof'
 import * as Delegation from '@ucanto/core/delegation'
 import { promises as fs } from 'fs'
 
