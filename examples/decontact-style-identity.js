@@ -3,6 +3,8 @@
 /**
  * deContact-Style Identity Generation for Storacha
  * 
+ * UPDATED: Now uses @storacha/client instead of @web3-storage/w3up-client
+ * 
  * This example demonstrates how to use deContact's approach:
  * 1. Generate mnemonic seed phrase (BIP39)
  * 2. Create master seed from mnemonic
@@ -23,11 +25,11 @@ import 'dotenv/config'
 import { generateMnemonic, mnemonicToSeedSync } from '@scure/bip39'
 import { wordlist as english } from '@scure/bip39/wordlists/english'
 import { createHash } from 'crypto'
-import { Signer } from '@web3-storage/w3up-client/principal/ed25519'
+import { Signer } from '@storacha/client/principal/ed25519'
 import * as ed25519 from '@ucanto/principal/ed25519'
-import * as Client from '@web3-storage/w3up-client'
-import { StoreMemory } from '@web3-storage/w3up-client/stores/memory'
-import * as Proof from '@web3-storage/w3up-client/proof'
+import * as Client from '@storacha/client'
+import { StoreMemory } from '@storacha/client/stores/memory'
+import * as Proof from '@storacha/client/proof'
 import { Ed25519Provider } from 'key-did-provider-ed25519'
 import * as KeyDIDResolver from 'key-did-resolver'
 import * as Delegation from '@ucanto/core/delegation'
