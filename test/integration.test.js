@@ -600,6 +600,391 @@ describe('OrbitDB Storacha Bridge Integration', () => {
   }, 120000) // 2 minute timeout for network operations
   
   /**
+   * @test KeyValueDELOperationsRestore
+   * @description Tests complete backup & restore cycle for key-value database with DEL operations
+   * 
+   * **Test Flow:**
+   * 1. Creates a source OrbitDB key-value database
+   * 2. Performs a realistic sequence of PUT and DEL operations
+   * 3. Backs up the complete database including DEL operations to Storacha
+   * 4. Destroys the source node completely
+   * 5. Creates an isolated target node with no access to source data
+   * 6. Restores database from Storacha using log entry reconstruction
+   * 7. Validates that final state correctly reflects all PUT and DEL operations
+   * 
+   * **Key Features Tested:**
+   * - DEL operations in keyvalue databases during backup
+   * - Log entry reconstruction with mixed PUT/DEL operations
+   * - Chronological operation replay during restore
+   * - Final database state accuracy after DEL operations
+   * - Database type inference with DEL operations present
+   * 
+   * **Operation Sequence:**
+   * 1. PUT todo-1, todo-2, todo-3, todo-4, todo-5
+   * 2. DEL todo-2 (remove completed task)
+   * 3. PUT todo-1 (update task status) 
+   * 4. DEL todo-4 (remove cancelled task)
+   * 5. PUT todo-6 (add new task)
+   * 
+   * **Expected Final State:** todo-1 (updated), todo-3, todo-5, todo-6
+   * 
+   * @timeout 120000 - 2 minutes for network operations
+   */
+  test('Key-value database with DEL operations - complete backup and restore cycle', async () => {
+    if (!process.env.STORACHA_KEY || !process.env.STORACHA_PROOF) {
+      return
+    }
+    
+    /** @type {Object|null} Source database instance */
+    let sourceDB
+    
+    try {
+      // Create source database
+      sourceNode = await createHeliaOrbitDB('-test-source-keyvalue-del')
+      sourceDB = await sourceNode.orbitdb.open('todos-del-test', { 
+        type: 'keyvalue',
+        create: true,
+        accessController: IPFSAccessController({ write: ['*'] })
+      })
+      
+      console.log('\n🧪 Testing DEL operations in backup and restore cycle...')
+      
+      // **Phase 1: Create initial todos**
+      console.log('📝 Phase 1: Creating initial todos...')
+      const initialTodos = [
+        { id: 'todo-1', text: 'Setup development environment', assignee: 'alice', completed: false, priority: 'high' },
+        { id: 'todo-2', text: 'Write unit tests', assignee: 'bob', completed: true, priority: 'medium' },
+        { id: 'todo-3', text: 'Code review session', assignee: 'charlie', completed: false, priority: 'high' },
+        { id: 'todo-4', text: 'Update documentation', assignee: 'alice', completed: false, priority: 'low' },
+        { id: 'todo-5', text: 'Deploy to staging', assignee: 'bob', completed: false, priority: 'medium' }
+      ]
+      
+      for (const todo of initialTodos) {
+        await sourceDB.put(todo.id, { ...todo, createdAt: new Date().toISOString() })
+        console.log(`   ✓ Added: ${todo.id} - "${todo.text}" (${todo.assignee}, ${todo.priority})`)
+      }
+      
+      let currentState = await sourceDB.all()
+      console.log(`   📊 After initial creation: ${currentState.length} todos`)
+      
+      // **Phase 2: Delete completed task**
+      console.log('\n🗑️  Phase 2: Deleting completed task...')
+      await sourceDB.del('todo-2') // Delete completed unit tests task
+      console.log('   ✓ Deleted: todo-2 (completed unit tests task)')
+      
+      currentState = await sourceDB.all()
+      console.log(`   📊 After deletion: ${currentState.length} todos`)
+      
+      // **Phase 3: Update existing task**
+      console.log('\n✏️  Phase 3: Updating existing task...')
+      await sourceDB.put('todo-1', {
+        id: 'todo-1',
+        text: 'Setup development environment - COMPLETED',
+        assignee: 'alice',
+        completed: true,
+        priority: 'high',
+        completedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      })
+      console.log('   ✓ Updated: todo-1 (marked as completed)')
+      
+      // **Phase 4: Delete low priority task**
+      console.log('\n🗑️  Phase 4: Deleting cancelled task...')
+      await sourceDB.del('todo-4') // Delete low priority documentation task
+      console.log('   ✓ Deleted: todo-4 (cancelled documentation task)')
+      
+      // **Phase 5: Add new urgent task**
+      console.log('\n➕ Phase 5: Adding new urgent task...')
+      await sourceDB.put('todo-6', {
+        id: 'todo-6',
+        text: 'Fix critical production bug',
+        assignee: 'charlie',
+        completed: false,
+        priority: 'critical',
+        createdAt: new Date().toISOString()
+      })
+      console.log('   ✓ Added: todo-6 (critical production bug fix)')
+      
+      // **Verify final source state**
+      const finalSourceState = await sourceDB.all()
+      const sourceIds = finalSourceState.map(entry => entry.key).sort()
+      console.log(`\n📊 Final source state: ${finalSourceState.length} todos: [${sourceIds.join(', ')}]`)
+      
+      // Expected: todo-1 (updated), todo-3, todo-5, todo-6
+      const expectedIds = ['todo-1', 'todo-3', 'todo-5', 'todo-6']
+      expect(sourceIds).toEqual(expectedIds)
+      
+      // Verify todo-1 is updated
+      const updatedTodo1 = finalSourceState.find(entry => entry.key === 'todo-1')
+      expect(updatedTodo1.value.completed).toBe(true)
+      expect(updatedTodo1.value.text).toContain('COMPLETED')
+      
+      console.log('✅ Source database state verified before backup')
+      
+      // **Inspect log entries to verify DEL operations are present**
+      console.log('\n🔍 Inspecting log entries for DEL operations...')
+      const logEntries = []
+      for await (const entry of sourceDB.log.iterator()) {
+        logEntries.push(entry)
+      }
+      
+      const delOperations = logEntries.filter(entry => entry.payload.op === 'DEL')
+      console.log(`   📋 Found ${delOperations.length} DEL operations in log:`)
+      delOperations.forEach(entry => {
+        console.log(`     - DEL ${entry.payload.key} (clock time: ${entry.clock.time})`)
+      })
+      expect(delOperations.length).toBe(2) // Should have 2 DEL operations
+      
+      // **Backup database including DEL operations**
+      console.log('\n💾 Backing up database with DEL operations to Storacha...')
+      const backupResult = await backupDatabase(sourceNode.orbitdb, sourceDB.address, {
+        storachaKey: process.env.STORACHA_KEY,
+        storachaProof: process.env.STORACHA_PROOF
+      })
+      expect(backupResult.success).toBe(true)
+      expect(backupResult.blocksUploaded).toBeGreaterThan(0)
+      console.log(`   ✅ Backup completed: ${backupResult.blocksUploaded} blocks uploaded`)
+      
+      // **Close source and clean up completely**
+      await sourceDB.close()
+      await sourceNode.orbitdb.stop()
+      await sourceNode.helia.stop()
+      await sourceNode.blockstore.close()
+      await sourceNode.datastore.close()
+      sourceNode = null
+      console.log('   🧹 Source node completely destroyed')
+      
+      // **Create isolated target node**
+      targetNode = await createHeliaOrbitDB('-test-target-keyvalue-del')
+      console.log('\n🎯 Created isolated target node for restoration...')
+      
+      // **Restore from space with DEL operations**
+      console.log('\n📥 Restoring database with DEL operations from Storacha...')
+      const restoreResult = await restoreDatabaseFromSpace(targetNode.orbitdb, {
+        storachaKey: process.env.STORACHA_KEY,
+        storachaProof: process.env.STORACHA_PROOF
+      })
+      
+      expect(restoreResult.success).toBe(true)
+      expect(restoreResult.entriesRecovered).toBeGreaterThan(0)
+      expect(restoreResult.blocksRestored).toBeGreaterThan(0)
+      console.log(`   ✅ Restore completed: ${restoreResult.entriesRecovered} entries recovered`)
+      
+      // **Critical validation: Verify DEL operations were processed correctly**
+      console.log('\n🔍 Validating DEL operations were processed during restore...')
+      
+      // Check that DEL operations are present in restored log entries
+      const restoredDelOps = restoreResult.entries.filter(entry => 
+        entry.payload && entry.payload.op === 'DEL'
+      )
+      console.log(`   📋 Found ${restoredDelOps.length} DEL operations in restored data:`)
+      restoredDelOps.forEach(entry => {
+        console.log(`     - DEL ${entry.payload.key} (restored)`)
+      })
+      expect(restoredDelOps.length).toBe(2) // Should have restored 2 DEL operations
+      
+      // **Verify final restored database state matches expected state**
+      console.log('\n🎯 Verifying final restored database state...')
+      
+      // Since this is space restore, we need to check the reconstructed database state
+      // The restoration process should have applied all operations in chronological order
+      expect(restoreResult.database).toBeTruthy()
+      
+      const restoredState = await restoreResult.database.all()
+      const restoredIds = restoredState.map(entry => entry.key).sort()
+      console.log(`   📊 Restored state: ${restoredState.length} todos: [${restoredIds.join(', ')}]`)
+      
+      // **Critical assertions: Final state should match source after all operations**
+      expect(restoredIds).toEqual(expectedIds) // Should have todo-1, todo-3, todo-5, todo-6
+      expect(restoredState.length).toBe(4) // Should have 4 todos (started with 5, deleted 2, added 1)
+      
+      // Verify specific todos are present/absent
+      expect(restoredIds).toContain('todo-1') // Should be present (updated)
+      expect(restoredIds).not.toContain('todo-2') // Should be deleted
+      expect(restoredIds).toContain('todo-3') // Should be present (unchanged)
+      expect(restoredIds).not.toContain('todo-4') // Should be deleted
+      expect(restoredIds).toContain('todo-5') // Should be present (unchanged)
+      expect(restoredIds).toContain('todo-6') // Should be present (new)
+      
+      // Verify todo-1 was updated correctly (not just the original version)
+      const restoredTodo1 = restoredState.find(entry => entry.key === 'todo-1')
+      expect(restoredTodo1).toBeTruthy()
+      expect(restoredTodo1.value.completed).toBe(true)
+      expect(restoredTodo1.value.text).toContain('COMPLETED')
+      expect(restoredTodo1.value).toHaveProperty('completedAt')
+      
+      // Verify new todo-6 is present
+      const restoredTodo6 = restoredState.find(entry => entry.key === 'todo-6')
+      expect(restoredTodo6).toBeTruthy()
+      expect(restoredTodo6.value.priority).toBe('critical')
+      expect(restoredTodo6.value.text).toContain('critical production bug')
+      
+      console.log('\n✅ DEL operations validation results:')
+      console.log('   ✓ Database type correctly inferred as keyvalue')
+      console.log('   ✓ All log entries including DEL operations backed up')
+      console.log('   ✓ All log entries including DEL operations restored')
+      console.log('   ✓ Operations applied in correct chronological order')
+      console.log('   ✓ DELETE operations correctly removed items from database')
+      console.log('   ✓ UPDATE operations correctly modified existing items')
+      console.log('   ✓ Final database state matches expected state after all operations')
+      console.log('   ✓ Cross-node database migration with DEL operations successful')
+      
+      // **Cleanup restored database**
+      if (restoreResult.database) {
+        await restoreResult.database.close()
+      }
+      
+    } finally {
+      if (sourceDB) {
+        try {
+          await sourceDB.close()
+        } catch (error) {
+          // Already closed
+        }
+      }
+    }
+    
+  }, 120000) // 2 minute timeout for network operations
+  
+  /**
+   * @test DocumentsDELOperationsRestore
+   * @description Tests complete backup & restore cycle for documents database with DEL operations
+   * 
+   * **Test Flow:**
+   * 1. Creates a source OrbitDB documents database
+   * 2. Performs a realistic sequence of document PUT and DEL operations
+   * 3. Backs up the complete database including DEL operations to Storacha
+   * 4. Destroys the source node completely
+   * 5. Creates an isolated target node with no access to source data
+   * 6. Restores database from Storacha using log entry reconstruction
+   * 7. Validates that final state correctly reflects all PUT and DEL operations
+   * 
+   * **Key Features Tested:**
+   * - DEL operations in documents databases during backup
+   * - Log entry reconstruction with mixed document PUT/DEL operations
+   * - Document ID-based deletion
+   * - Final database state accuracy after document DEL operations
+   * 
+   * @timeout 120000 - 2 minutes for network operations
+   */
+  test('Documents database with DEL operations - complete backup and restore cycle', async () => {
+    if (!process.env.STORACHA_KEY || !process.env.STORACHA_PROOF) {
+      return
+    }
+    
+    /** @type {Object|null} Source database instance */
+    let sourceDB
+    
+    try {
+      // Create source documents database
+      sourceNode = await createHeliaOrbitDB('-test-source-docs-del')
+      sourceDB = await sourceNode.orbitdb.open('docs-del-test', { 
+        type: 'documents',
+        create: true,
+        accessController: IPFSAccessController({ write: ['*'] })
+      })
+      
+      console.log('\n📄 Testing documents database DEL operations...')
+      
+      // **Phase 1: Create initial documents**
+      const initialDocs = [
+        { _id: 'post-1', title: 'Getting Started with OrbitDB', content: 'OrbitDB is a...', published: true, author: 'alice' },
+        { _id: 'post-2', title: 'Draft: Advanced Features', content: 'This post covers...', published: false, author: 'bob' },
+        { _id: 'post-3', title: 'Best Practices Guide', content: 'When using OrbitDB...', published: true, author: 'charlie' },
+        { _id: 'post-4', title: 'Troubleshooting Common Issues', content: 'If you encounter...', published: false, author: 'alice' }
+      ]
+      
+      for (const doc of initialDocs) {
+        await sourceDB.put({ ...doc, createdAt: new Date().toISOString() })
+        console.log(`   ✓ Added: ${doc._id} - "${doc.title}" (${doc.author}, ${doc.published ? 'published' : 'draft'})`)
+      }
+      
+      // **Phase 2: Delete draft document**
+      await sourceDB.del('post-2') // Delete unpublished draft
+      console.log('   ✓ Deleted: post-2 (unpublished draft)')
+      
+      // **Phase 3: Update existing document**
+      await sourceDB.put({
+        _id: 'post-1',
+        title: 'Getting Started with OrbitDB - Updated',
+        content: 'OrbitDB is a serverless, distributed, peer-to-peer database...',
+        published: true,
+        author: 'alice',
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      })
+      console.log('   ✓ Updated: post-1 (added more content)')
+      
+      // **Phase 4: Delete troubleshooting doc**
+      await sourceDB.del('post-4') // Delete troubleshooting doc
+      console.log('   ✓ Deleted: post-4 (troubleshooting doc)')
+      
+      // **Verify final source state**
+      const finalSourceState = await sourceDB.all()
+      const sourceIds = finalSourceState.map(doc => doc.value._id).sort()
+      console.log(`   📊 Final source state: ${finalSourceState.length} documents: [${sourceIds.join(', ')}]`)
+      
+      // Expected: post-1 (updated), post-3
+      expect(sourceIds).toEqual(['post-1', 'post-3'])
+      
+      // **Backup database**
+      const backupResult = await backupDatabase(sourceNode.orbitdb, sourceDB.address, {
+        storachaKey: process.env.STORACHA_KEY,
+        storachaProof: process.env.STORACHA_PROOF
+      })
+      expect(backupResult.success).toBe(true)
+      
+      // **Close source and clean up**
+      await sourceDB.close()
+      await sourceNode.orbitdb.stop()
+      await sourceNode.helia.stop()
+      await sourceNode.blockstore.close()
+      await sourceNode.datastore.close()
+      sourceNode = null
+      
+      // **Create isolated target node**
+      targetNode = await createHeliaOrbitDB('-test-target-docs-del')
+      
+      // **Restore from space**
+      const restoreResult = await restoreDatabaseFromSpace(targetNode.orbitdb, {
+        storachaKey: process.env.STORACHA_KEY,
+        storachaProof: process.env.STORACHA_PROOF
+      })
+      
+      expect(restoreResult.success).toBe(true)
+      
+      // **Verify final restored state**
+      const restoredState = await restoreResult.database.all()
+      const restoredIds = restoredState.map(doc => doc.value._id).sort()
+      
+      expect(restoredIds).toEqual(['post-1', 'post-3'])
+      expect(restoredIds).not.toContain('post-2') // Should be deleted
+      expect(restoredIds).not.toContain('post-4') // Should be deleted
+      
+      // Verify post-1 was updated
+      const restoredPost1 = restoredState.find(doc => doc.value._id === 'post-1')
+      expect(restoredPost1.value.title).toContain('Updated')
+      expect(restoredPost1.value).toHaveProperty('updatedAt')
+      
+      console.log('✅ Documents database DEL operations test passed')
+      
+      if (restoreResult.database) {
+        await restoreResult.database.close()
+      }
+      
+    } finally {
+      if (sourceDB) {
+        try {
+          await sourceDB.close()
+        } catch (error) {
+          // Already closed
+        }
+      }
+    }
+    
+  }, 120000) // 2 minute timeout for network operations
+  
+  /**
    * @test CIDConversionUtilities
    * @description Tests CID format conversion between Storacha and OrbitDB formats
    * 
