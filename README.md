@@ -29,9 +29,9 @@ Alice & Bob are working with the same OrbitDB in a local-first peer-to-peer web 
 
 In theory and a perfect world Alice & Bob don't need an additional decentralized storage on Filecoin since their data is already distributed between a number of peers.
 
-If Alice looses her data, Bob would still have them and Alice could anytime resync from Bob (that is current state of technologie of OrbitDB). Additionally, relay nodes are running a Helia & OrbitDB instance pinning data of Alice & Bob.
+If Alice looses her data, Bob would still have them and Alice could anytime resync from Bob (that is current state of technologie of OrbitDB). Additionally, relay nodes can optionally run a Helia & OrbitDB instance pinning data of Alice & Bob.
 
-Storacha full backup and restore is for emergency cases e.g. when both Alice & Bob lose their data or devices. Then a new Alice or Bob or even Peter can restore their work from Storacha. 
+Storacha full backup and restore is for emergency cases e.g. when both Alice & Bob lose their data or devices. Then a new Alice or Bob or even Peter can restore their work from Storacha. We support UCAN delegation here, so Alice can delegate access to the same Storacha backup space when ever shew wants.
 
 It is also happing that countries, corporate networks, hotels, block IP's, ports and protocols e.g. to WebRTC or Websocket gateways - you name it. In such case it would be desirable to have a possibility to restore an OrbitDB directly from IPFS and push/upload back to it via Storacha/Filecoin if peer-to-peer connectivity isn't available.
 
@@ -41,7 +41,7 @@ Please notice: Storacha backup & restore works via a so far centralized gateway 
 
 Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with or without full hash and identity preservation (both valid approaches). Works in both Node.js and browser environments (in browsers at this time only without the full hash identity preservation by restoring db entries only [Issue #4](../../issues/4))
 
-Furthermore, a [`StorachaTest.svelte`](src/components/StorachaTest.svelte) and a [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte) which demonstrate a typical basic OrbitDB Todo example workflow between two OrbitDB instances (with two separate libp2p, IPFS nodes running in the browser - Alice & Bob)
+Furthermore, a [`StorachaTest.svelte`](src/components/StorachaTest.svelte) and a [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte) which demonstrate a typical basic OrbitDB Todo example workflow between two OrbitDB instances (with two separate libp2p, IPFS nodes running in the browser - Alice & Bob) in this basic scenario their nodes aren't connected, they exchange data simply to and from the Storacha gateway to Filecoin decentralized storage.
 
 The [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) script is setting up a complete example Svelte App with StorachaTest.svelte and StorachaAuth.svelte - which is already uploaded here: [https://w3s.link/ipfs/bafybeic7xjxp6acm5hsj2eybtan3bomlkxzw74giicrm2aglh224rrjpkm](https://w3s.link/ipfs/bafybeic7xjxp6acm5hsj2eybtan3bomlkxzw74giicrm2aglh224rrjpkm)
 
