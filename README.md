@@ -71,7 +71,7 @@ Install the package via npm.
 
 ## Environment Setup
 
-Get Storacha credentials from [web3.storage](https://web3.storage) and set up your environment variables for STORACHA_KEY and STORACHA_PROOF.
+Get Storacha credentials from [storacha.network quickstart](https://docs.storacha.network/quickstart/), install w3 for the console, get storacha key and proof then set up your environment variables (.env) for STORACHA_KEY and STORACHA_PROOF.
 
 ## Demo
 
