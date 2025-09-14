@@ -25,17 +25,14 @@
 
 ## What we want to accomplish
 
-Alice & Bob are working with the same OrbitDB in a local-first peer-to-peer web / mobile application:
+Alice and Bob are working with the same OrbitDB in a local-first, peer-to-peer web or mobile application.
+In theory, in a perfect world, Alice and Bob would not need additional decentralized storage on Filecoin, since their data is already distributed among a number of peers. If Alice loses her data, Bob would still have a copy, and Alice could resync from Bob at any time (this reflects the current state of technology in OrbitDB). Additionally, relay nodes can optionally run Helia and OrbitDB instances for pinning the data of Alice and Bob in a decentralized way.
 
-In theory and a perfect world Alice & Bob don't need an additional decentralized storage on Filecoin since their data is already distributed between a number of peers.
+Storacha backup and restore (via the orbitdb-storacha-bridge) is intended for archiving large OrbitDBs, which take a long time to replicate. It is also useful for emergency cases, for example, when both Alice and Bob lose their data or devices. In that case, a new Alice, Bob, or even Peter can restore the work from Storacha. We support UCAN delegation here, so Alice can delegate access to the same Storacha backup space whoever she wants.
 
-If Alice looses her data, Bob would still have them and Alice could anytime resync from Bob (that is current state of tech in OrbitDB). Additionally, relay nodes can optionally run a Helia & OrbitDB instances for pinning data of Alice & Bob in a decentralized way.
+It has happened in the past that countries, mobile networks, internet providers, corporate networks, or hotels block IP addresses, ports, and protocols — for example, WebRTC or WebSocket/WebTransport gateways. Although libp2p supports many different transport options as backups and such cases are becoming rarer, it would still be desirable to have an additional option to restore an OrbitDB directly from IPFS, and to push or upload database states back to it via Storacha/Filecoin after every change if peer-to-peer connectivity cannot be established where internet is broken.
 
-Storacha backup and restore (via the orbitdb-storacha-bridge) is for archiving big OrbitDB's which take a long time to replicate and also for emergency cases e.g. when both Alice & Bob lose their data or devices. Then a new Alice or Bob or even Peter can restore their work from Storacha. We support UCAN delegation here, so Alice can delegate access to the same Storacha backup space when ever shew wants.
-
-It was seen happing in the past that countries, mobile networks, internet providers, corporate networks, hotels block IP's, ports and protocols e.g. to WebRTC or Websocket/Webtransport gateways. Although libp2p supports many different transport options as backup and those cases getting rarer, it would be desirable to have an additional possibility to restore an OrbitDB directly from IPFS and push or upload db's states back to it via Storacha/Filecoin after every change if peer-to-peer connectivity isn't connecting.
-
-Please notice: Storacha backup & restore works so far via a centralized gateway to Filecoins decentralized storage.
+Please note: Storacha backup and restore currently works via a centralized gateway to Filecoin’s decentralized storage.
 
 ## What This Does
 
