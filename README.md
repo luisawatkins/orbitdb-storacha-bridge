@@ -54,11 +54,10 @@ Implemented but untested:
 - [ ] backup/restore between OrbitDB and Storacha in browser (StorachaIntegration.svelte) (hash and identity preserving) - [Issue #4](../../issues/4)
 - [x] backup/restore between OrbitDB and Storacha in browser ([`StorachaTest.svelte`](src/components/StorachaTest.svelte)) (entries only - without manifest and identity preservation into new OrbitDB)
   - [x] using Storacha Credentials by [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte)
-  - [ ] using UCAN + privatekey (implemented but untested)
-  - [ ] by creating a new account via an email confirmation (implemented but untested)
+  - [x] using UCAN + privatekey 
 - [x] OrbitDB CAR file storage (OrbitDB CustomStorage)
-- [ ] backup/restore between OrbitDB and Storacha in NodeJS via UCAN and privatekey (hash and identity preserving)
-- [ ] OrbitDB Storacha storage (OrbitDB CustomStorage) in NodeJS - storage ok - but OrbitDB CustomStore doesn't store the Manifest. Initial-sync therefore difficult but manageable by a standard restore of the orbitdb-storacha-bridge function!
+- [?] backup/restore between OrbitDB and Storacha in NodeJS via UCAN and privatekey (hash and identity preserving)
+- [ ] CustomStorage - implement OrbitDB StorachaStorage (OrbitDB CustomStorage) in NodeJS - storage ok - but OrbitDB CustomStore doesn't support accessing the Manifest. Initial-sync therefore difficult but manageable by a standard restore of the orbitdb-storacha-bridge function!
 - [ ] OrbitDB Storacha storage (OrbitDB CustomStorage) in NodeJS (entries only - initial sync)
 
 > **Note:** Currently, each Storacha space contains one full backup. For multiple backups, use separate spaces.
