@@ -9,37 +9,35 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.dirname(__dirname);
-const templatesDir = path.join(__dirname, 'svelte-templates');
+const templatesDir = path.join(__dirname, 'svelte-templates-02');
 
 const rl = readline.createInterface({
 	input: process.stdin,
 	output: process.stdout
 });
 
-class StorachaTestAutomator {
+class StorachaTestWithReplicationAutomator {
 	constructor() {
-		// Define the files we need from the current orbitdb-storacha-bridge project
+		// Note: All files are now pre-copied to the svelte-templates-02/src/lib/ directory
+		// This includes the cleaned-up StorachaTestWithReplication component with:
+		// - Shared identities system for proper access control
+		// - Cleaned up logging (professional but informative)
+		// - Original IPFSAccessController (no debug wrapper needed)
+		// - P2P replication with libp2p connectivity
 		this.sourceFiles = new Map([
-			// Core library files
-			['lib/orbitdb-storacha-bridge.js', 'src/lib/orbitdb-storacha-bridge.js'],
-			['lib/utils.js', 'src/lib/utils.js'],
-			
-			// Svelte components and related files
-			['src/components/StorachaTest.svelte', 'src/lib/StorachaTest.svelte'],
-			['src/components/storacha-backup.js', 'src/lib/storacha-backup.js'],
-			['src/components/StorachaAuth.svelte', 'src/lib/StorachaAuth.svelte'],
-			['src/components/theme.js', 'src/lib/theme.js']
+			// All files are already in the template - no copying needed
+			// Just keeping this for validation purposes
 		]);
 
 		// Define template files to copy from the templates directory
-			this.templateFiles = new Map([
-				['package.json', 'package.json'],
-				['vite.config.js', 'vite.config.js'],
-				['src/routes/+layout.js', 'src/routes/+layout.js'],
-				['src/routes/+page.svelte', 'src/routes/+page.svelte'],
-				['src/routes/+layout.svelte', 'src/routes/+layout.svelte'],
-				['src/app.css', 'src/app.css'],
-				['src/app.html', 'src/app.html'],
+		this.templateFiles = new Map([
+			['package.json', 'package.json'],
+			['vite.config.js', 'vite.config.js'],
+			['src/routes/+layout.js', 'src/routes/+layout.js'],
+			['src/routes/+page.svelte', 'src/routes/+page.svelte'],
+			['src/routes/+layout.svelte', 'src/routes/+layout.svelte'],
+			['src/app.css', 'src/app.css'],
+			['src/app.html', 'src/app.html'],
 			// Static assets
 			['static/favicon.svg', 'static/favicon.svg'],
 			['static/robots.txt', 'static/robots.txt'],
@@ -55,32 +53,35 @@ class StorachaTestAutomator {
 	}
 
 	async checkSourceFiles() {
-		console.log('📋 Checking source files...');
-		const missingFiles = [];
-		const foundFiles = [];
-
-		for (const [sourcePath] of this.sourceFiles) {
-			const fullPath = path.join(projectRoot, sourcePath);
+		console.log('📋 Checking template library files...');
+		
+		// Check that our pre-copied library files exist in the template
+		const libraryFiles = [
+			'src/lib/StorachaTestWithReplication.svelte',
+			'src/lib/StorachaAuth.svelte', 
+			'src/lib/orbitdb-storacha-bridge.js',
+			'src/lib/utils.js',
+			'src/lib/theme.js'
+		];
+		
+		let foundCount = 0;
+		for (const filePath of libraryFiles) {
+			const fullPath = path.join(templatesDir, filePath);
 			try {
 				await fs.access(fullPath);
-				console.log(`✅ Found: ${sourcePath}`);
-				foundFiles.push(sourcePath);
+				console.log(`✅ Found: ${filePath}`);
+				foundCount++;
 			} catch {
-				console.log(`⚠️  Missing: ${sourcePath}`);
-				missingFiles.push(sourcePath);
+				console.log(`⚠️  Missing: ${filePath}`);
 			}
 		}
-
-		if (foundFiles.length === 0) {
-			console.error('\n❌ No source files found. Cannot continue.');
+		
+		if (foundCount === 0) {
+			console.error('\n❌ No library files found in template. Cannot continue.');
 			return false;
 		}
 
-		console.log(`\n✅ Found ${foundFiles.length} source files!`);
-		if (missingFiles.length > 0) {
-			console.log(`⚠️  ${missingFiles.length} files missing (will be created or skipped)`);
-		}
-
+		console.log(`\n✅ Found ${foundCount} library files in template!`);
 		return true;
 	}
 
@@ -104,7 +105,7 @@ class StorachaTestAutomator {
 		if (missingTemplates.length > 0) {
 			console.error('\n❌ Missing template files:');
 			missingTemplates.forEach(file => console.error(`   - ${file}`));
-			console.error('\n💡 Please ensure the svelte-templates directory exists with all required files.');
+			console.error('\n💡 Please ensure the svelte-templates-02 directory exists with all required files.');
 			return false;
 		}
 
@@ -209,8 +210,8 @@ class StorachaTestAutomator {
 			let content = await fs.readFile(fullSourcePath, 'utf-8');
 
 			// Fix import paths for components
-			if (sourcePath === 'src/components/StorachaTest.svelte') {
-				console.log('🔧 Fixing import paths in StorachaTest.svelte...');
+			if (sourcePath === 'src/components/StorachaTestWithReplication.svelte') {
+				console.log('🔧 Fixing import paths in StorachaTestWithReplication.svelte...');
 				// Change ../../lib/orbitdb-storacha-bridge to ./orbitdb-storacha-bridge
 				content = content.replace(
 					"from '../../lib/orbitdb-storacha-bridge'",
@@ -221,7 +222,7 @@ class StorachaTestAutomator {
 					"from './orbitdb-storacha-bridge'",
 					"from './orbitdb-storacha-bridge'"
 				);
-				console.log('✅ Updated import paths in StorachaTest.svelte');
+				console.log('✅ Updated import paths in StorachaTestWithReplication.svelte');
 			}
 			
 			if (sourcePath === 'src/components/StorachaAuth.svelte') {
@@ -248,15 +249,25 @@ class StorachaTestAutomator {
 	}
 
 	async copyLibraryFiles() {
-		console.log('\n📚 Copying OrbitDB-Storacha library files...');
+		console.log('\n📚 Copying library files from template...');
+		
+		// Define the library files that need to be copied
+		const libraryFiles = [
+			'src/lib/StorachaTestWithReplication.svelte',
+			'src/lib/StorachaAuth.svelte', 
+			'src/lib/orbitdb-storacha-bridge.js',
+			'src/lib/utils.js',
+			'src/lib/theme.js',
+			'src/lib/storacha-backup.js'
+		];
 		
 		let copiedCount = 0;
-		for (const [sourcePath, destPath] of this.sourceFiles) {
-			const result = await this.copyFile(sourcePath, destPath);
+		for (const filePath of libraryFiles) {
+			const result = await this.copyTemplateFile(filePath, filePath);
 			if (result) copiedCount++;
 		}
-
-		console.log(`✅ Copied ${copiedCount}/${this.sourceFiles.size} library files`);
+		
+		console.log(`✅ Copied ${copiedCount}/${libraryFiles.length} library files`);
 		return copiedCount;
 	}
 
@@ -273,8 +284,8 @@ class StorachaTestAutomator {
 	}
 
 	async run() {
-		console.log('🎯 OrbitDB Storacha Bridge - Svelte Demo Project Generator');
-		console.log('================================================\n');
+		console.log('🎯 OrbitDB Storacha Bridge - Svelte Replication Demo Generator');
+		console.log('================================================================\n');
 
 		try {
 			// Check source files
@@ -293,7 +304,7 @@ class StorachaTestAutomator {
 
 			// Get project name from user
 			const projectName =
-				(await this.askUser('📝 Enter project name (default: orbitdb-storacha-svelte-backup-restore-demo): ')) || 'orbitdb-storacha-svelte-backup-restore-demo';
+				(await this.askUser('📝 Enter project name (default: orbitdb-storacha-svelte-replication-demo): ')) || 'orbitdb-storacha-svelte-replication-demo';
 
 			// Step 1: Create SvelteKit project
 			console.log('\n' + '='.repeat(50));
@@ -333,25 +344,27 @@ class StorachaTestAutomator {
 
 			// Success!
 			console.log('\n' + '='.repeat(50));
-			console.log('🎉 STORACHA TEST DEMO COMPLETE! 🎉');
+			console.log('🎉 STORACHA REPLICATION TEST DEMO COMPLETE! 🎉');
 			console.log('='.repeat(50));
 
-			console.log('\n📋 Your OrbitDB Storacha Test Demo is ready!');
+			console.log('\n📋 Your OrbitDB Storacha Replication Test Demo is ready!');
 			console.log('\n🚀 Next steps:');
 			console.log('   1. Run: npm run dev');
 			console.log('   2. Open http://localhost:5173 in your browser');
-			console.log('   3. The StorachaTest component will be displayed');
-			console.log('   4. You can test backup/restore functionality with Storacha');
+			console.log('   3. The StorachaTestWithReplication component will be displayed');
+			console.log('   4. You can test backup/restore functionality with P2P replication');
 
-			console.log('\n💡 Requirements:');
-			console.log('   • You\'ll need Storacha credentials to run tests');
-			console.log('   • The test will create, backup, and restore OrbitDB data');
+			console.log('\n💡 Features:');
+			console.log('   • Alice & Bob connect via libp2p for real-time replication');
+			console.log('   • Shared database address ensures proper data sync');
+			console.log('   • Storacha backup/restore preserves replication ability');
+			console.log('   • Circuit relay configuration for peer discovery');
 
 			const startServer = await this.askUser('\n🌐 Start the development server now? (y/n): ');
 
 			if (startServer.toLowerCase() === 'y' || startServer.toLowerCase() === 'yes') {
 				console.log('\n🚀 Starting development server...');
-				console.log('💡 Open http://localhost:5173 to see the StorachaTest component!\n');
+				console.log('💡 Open http://localhost:5173 to see the StorachaTestWithReplication component!\n');
 
 				try {
 					execSync('npm run dev', { stdio: 'inherit' });
@@ -359,7 +372,7 @@ class StorachaTestAutomator {
 					console.log('\n✅ Development server stopped.');
 				}
 			} else {
-				console.log("\n✨ Run `npm run dev` when you're ready to test the demo!");
+				console.log("\n✨ Run `npm run dev` when you're ready to test the replication demo!");
 			}
 		} catch (error) {
 			console.error('\n❌ Demo creation failed:', error.message);
@@ -371,7 +384,7 @@ class StorachaTestAutomator {
 }
 
 // Execute the automation
-const automator = new StorachaTestAutomator();
+const automator = new StorachaTestWithReplicationAutomator();
 automator.run().catch((error) => {
 	console.error('Fatal error:', error);
 	process.exit(1);
