@@ -38,11 +38,7 @@ Please note: Storacha backup and restore currently works via a centralized gatew
 
 Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with or without full hash and identity preservation (both valid approaches). Works in both Node.js and browser environments (in browsers at this time only without the full hash identity preservation by restoring db entries only [Issue #4](../../issues/4))
 
-Furthermore, a [`StorachaTest.svelte`](src/components/StorachaTest.svelte) and a [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte) which demonstrate a typical basic OrbitDB Todo example workflow between two OrbitDB instances (with two separate libp2p, IPFS nodes running in the browser - Alice & Bob) in this basic scenario their nodes aren't connected, they exchange data simply to and from the Storacha gateway to Filecoin decentralized storage.
-
-The [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) script is setting up a complete example Svelte App with StorachaTest.svelte and StorachaAuth.svelte - which is already uploaded here: [https://w3s.link/ipfs/bafybeic7xjxp6acm5hsj2eybtan3bomlkxzw74giicrm2aglh224rrjpkm](https://w3s.link/ipfs/bafybeic7xjxp6acm5hsj2eybtan3bomlkxzw74giicrm2aglh224rrjpkm)
-
-Additionally exists a [`StorachaIntegration.svelte`](src/components/StorachaIntegration.svelte) which authenticates with Storacha, creates backups and restores for any OrbitDB Svelte app. (but has the above stated 'issue'). Since this isn't always an issue, StorachaTest.svelte is demonstrating a different approach when dealing with the entries in the oplog only and recreating/restoring the OrbitDB by adding a dbconfig object separately. This way the exact same db can be restored.
+The project includes comprehensive **Svelte components** for browser-based demos and integration (see [Storacha Svelte Components](#storacha-svelte-components) section for details).
 
 Implemented but untested: 
   - UCAN authentication (instead of Storacha key and proof credentials) and 
@@ -82,23 +78,62 @@ Get Storacha credentials from [storacha.network quickstart](https://docs.storach
 
 ### Storacha Svelte Components
 
-- [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte) 
-    Use this component when authenticating against Storacha with three different authentication methods: 
-    1. Storacha credentials (Storacha-Key and Storacha Proof)
-    2. UCAN (a UCAN which was delegated from another Storacha DID) + a corresponding private key
-    3. Email (create a new Storacha account and space by email confirmation)
+Comprehensive set of Svelte components for OrbitDB-Storacha integration in browser environments:
 
-- [`StorachaTest.svelte`](src/components/StorachaTest.svelte)
-    Use this component to demonstrate a collaboration between Alice & Bob both working with independent OrbitDB todo db's.
-    Alice creates an OrbitDB and a DID from a generated mnemonic seed, creates todo items and creates a backup to Storacha by extracting the entries from IPFS storage and uploading them to Storacha.
-    Bob creates another OrbitDB with the same or a new seed, connects to the same Storacha space as Alice and restores the Todo Items in his own OrbitDB.
+#### **[`StorachaAuth.svelte`](src/components/StorachaAuth.svelte)**
+Authentication component supporting multiple Storacha authentication methods:
+- **Storacha credentials** (Storacha-Key and Storacha Proof)
+- **UCAN delegation** (delegated UCAN + corresponding private key) 
+- **Email registration** (create new Storacha account via email confirmation)
 
-    Remark: Alice & Bob's OrbitDB's in this scenario are independent db's with two different OrbitDB addresses and therefore cannot replicate records peer-to-peer! 
-    If you want to achieve peer-to-peer replication between both db's (no restore would be required), in such case you'd need to open the db on Bob's side with Alice's /orbitdb/address 
+#### **[`StorachaTest.svelte`](src/components/StorachaTest.svelte)** 
+**Basic backup/restore demo** - Alice & Bob with independent OrbitDB instances:
+- Creates **separate OrbitDB databases** with different addresses
+- **No P2P replication** - data exchange via Storacha backup/restore only
+- Demonstrates entry-only backup approach (recreates database from entries + config)
+- Uses mnemonic seed generation and DID-based identity management
+- **Use case**: Basic backup/restore workflow without peer connectivity requirements
+
+#### **[`StorachaTestWithReplication.svelte`](src/components/StorachaTestWithReplication.svelte)**
+**Advanced replication demo** - Alice & Bob with shared database and P2P connectivity:
+- Creates **shared OrbitDB database** with same address for both peers
+- **Full P2P replication** via libp2p with circuit relay support  
+- Backup/restore **preserves replication capabilities**
+- Professional logging and shared identity management
+- Real-time peer discovery and connection status
+- **Uses Carbon Design System components** for enhanced UI
+- **Use case**: Production-like scenario with P2P replication + Storacha archival backup
+
+#### **[`StorachaIntegration.svelte`](src/components/StorachaIntegration.svelte)**
+**Full integration component** for existing OrbitDB Svelte applications:
+- **Hash and identity preserving** backup/restore (full database reconstruction)
+- Progress tracking with real-time upload/download indicators
+- LocalStorage credential management with auto-login
+- Space management (create, list, select Storacha spaces)
+- **Note**: Currently has browser limitations for full hash preservation ([Issue #4](../../issues/4))
+- **Use case**: Drop-in component for adding Storacha backup to existing OrbitDB apps
 
 ### Svelte App Demonstrations & Components
 
-- `node` [`scripts/svelte-backup-restore.js`] - A script creating an example Svelte app in a subdirectory which adds and demonstrates StorachaAuth.svelte and StorachaTest.svelte
+- `node` [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) - Creates complete SvelteKit demo app with [StorachaAuth](#storachaauthsvelte) and [StorachaTest](#storachatestsvelte) components for basic backup/restore workflow (deployed: https://w3s.link/ipfs/bafybeic7xjxp6acm5hsj2eybtan3bomlkxzw74giicrm2aglh224rrjpkm)
+- `node` [`scripts/svelte-backup-restore-02.js`](scripts/svelte-backup-restore-02.js) - Enhanced demo with [StorachaTestWithReplication](#storachatestwithreplcationsvelte) component for P2P replication + backup (deployed: https://w3s.link/ipfs/bafybeiev7577wwtxfztdui5gjj7siffw6mknnclx5lkpm7e3dldzafrdxq)
+
+#### Differences Between Backup-Restore Scripts
+
+**`svelte-backup-restore.js`** (Basic Demo):
+- Uses `StorachaTest.svelte` component
+- Creates **independent OrbitDB instances** for Alice & Bob with different addresses
+- **No P2P replication** - data exchange happens only via Storacha backup/restore
+- Demonstrates basic backup/restore workflow without peer connectivity
+- Uses `svelte-templates/` directory for project scaffolding
+
+**`svelte-backup-restore-02.js`** (Replication Demo):
+- Uses `StorachaTestWithReplication.svelte` component  
+- Creates **shared OrbitDB database** with same address for both Alice & Bob
+- **Full P2P replication** via libp2p connectivity with circuit relay support
+- Demonstrates backup/restore **with preserved replication capabilities**
+- Uses `svelte-templates-02/` directory with pre-configured replication setup
+- Features professional logging and shared identity management for proper access control
 
 ## Video Demo
 
