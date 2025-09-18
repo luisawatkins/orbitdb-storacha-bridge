@@ -104,6 +104,26 @@ Authentication component supporting multiple Storacha authentication methods:
 - **Uses Carbon Design System components** for enhanced UI
 - **Use case**: Production-like scenario with P2P replication + Storacha archival backup
 
+#### **[`StorachaTestWithWebAuthn.svelte`](src/components/StorachaTestWithWebAuthn.svelte)**
+**WebAuthn biometric authentication demo** - Hardware-secured DID identities:
+- **WebAuthn biometric authentication** (Face ID, Touch ID, Windows Hello, PIN)
+- **Hardware-secured DID creation** using WebAuthn credentials
+- **Professional cryptographic integration** with CBOR public key parsing
+- Backup/restore with **biometric-secured identities**
+- **Real WebAuthn API integration** (no simulation - actual biometric auth)
+- Identity verification logging and comprehensive error handling
+- **Use case**: Production-ready biometric authentication for OrbitDB applications
+
+#### **[`WebAuthnDIDProvider.js`](src/components/WebAuthnDIDProvider.js)**
+**WebAuthn DID Provider for OrbitDB** - Complete identity provider implementation:
+- **Professional WebAuthn integration** with OrbitDB's identity system
+- **Real public key extraction** from WebAuthn credentials via CBOR parsing
+- **DID specification compliance** (`did:webauthn:...` format)
+- Hardware-secured private keys that **never leave the secure element**
+- **Biometric authentication** for every signing operation
+- Full OrbitDB compatibility with proper static verification
+- **Use case**: Drop-in WebAuthn identity provider for any OrbitDB application
+
 #### **[`StorachaIntegration.svelte`](src/components/StorachaIntegration.svelte)**
 **Full integration component** for existing OrbitDB Svelte applications:
 - **Hash and identity preserving** backup/restore (full database reconstruction)
