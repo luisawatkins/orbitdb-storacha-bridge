@@ -26,17 +26,25 @@
 ## What we want to accomplish
 
 Alice and Bob are working with the same OrbitDB in a local-first, peer-to-peer web or mobile application.
-In theory, in a perfect world, Alice and Bob would not need additional decentralized storage on Filecoin, since their data is already distributed among a number of peers. If Alice loses her data, Bob would still have a copy, and Alice could resync from Bob at any time (this reflects the current state of technology in OrbitDB). Additionally, relay nodes can optionally run Helia and OrbitDB instances for pinning the data of Alice and Bob in a decentralized way.
+In a perfect world, Alice and Bob wouldn't need any additional decentralized storage, since their data is already distributed among a number of peers depending o the use case. If Alice loses her data, Bob would still have a copy, and Alice could resync from Bob or others at any time (this reflects the current state of technology in OrbitDB). 
 
-Storacha backup and restore (via the orbitdb-storacha-bridge) is intended for archiving large OrbitDBs, which take a long time to replicate. It is also useful for emergency cases, for example, when both Alice and Bob lose their data or devices. In that case, a new Alice, Bob, or even Peter can restore the work from Storacha. We support UCAN delegation here, so Alice can delegate access to the same Storacha backup space whoever she wants.
+Additionally, relay nodes or networks optionally run Helia and OrbitDB instances for pinning the data of Alice and Bob in a decentralized way.
 
-It has happened in the past that countries, mobile networks, internet providers, corporate networks, or hotels block IP addresses, ports, and protocols — for example, WebRTC or WebSocket/WebTransport gateways. Although libp2p supports many different transport options as backups and such cases are becoming rarer, it would still be desirable to have an additional option. This would allow users to restore an OrbitDB directly from IPFS and to push or upload database states back to it via Storacha/Filecoin after every change. This backup option becomes particularly valuable when peer-to-peer connectivity cannot be established due to network restrictions or when internet standards are broken.
+OrbitDB-Storacha-Bridge is intended for archiving large OrbitDBs on additional decentralized Storacha/Filecoin Storage, which would otherwise take a long time to replicate. Since data modelling in OrbitDB is different from traditional relational databases, it must be thought the other way around. Not all users of a local-first peer-to-peer app would ever share the same identical database. However e.g. a blog db with posts would tend to blow up over time and at some point the whole blog history must archived and split into many separate db's in order to keep the time for replication quick to node make blog loading an affordable experience.
+
+In first instance each user hosts his own data on his own device and decides with whom whe needs or wants to replicate the data. This depends strongly on the use case. Each users definitely doesn't want to replicate with everybody. 
+
+OrbitDB-Storacha-Bridge is also useful for emergency cases, for example, when both Alice and Bob lose their data or devices. In that case, a new Alice, Bob, or even Peter can restore the work from Storacha with the same identity or without. We support UCAN authentication and delegation here, so Alice can delegate access to the same Storacha backup space whoever she wants for some time.
+
+It has happened in the past that countries, mobile networks, internet providers, corporate networks, or hotels block IP addresses, ports, and protocols — for example, WebRTC or WebSocket/WebTransport gateways. Sometimes some apps just don't work everywhere. Although libp2p supports many different transport options and such cases are becoming rarer because of this, it would still be desirable to have an additional option - just to be safe. This would allow users to restore an OrbitDB directly from IPFS and to push or upload database states back to it via Storacha/Filecoin after every change. This backup option becomes particularly valuable when peer-to-peer connectivity cannot be established due to network restrictions or when internet standards are broken.
 
 Please note: Storacha backup and restore currently works via a centralized gateway to Filecoin’s decentralized storage.
 
 ## What This Does
 
 Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with or without full hash and identity preservation (both valid approaches). Works in both Node.js and browser environments (in browsers at this time only without the full hash identity preservation by restoring db entries only [Issue #4](../../issues/4))
+
+**WebAuthn DID Provider**: Hardware-secured biometric authentication (Face ID, Touch ID, Windows Hello) for OrbitDB identities. Eliminates seed phrase management while providing cryptographically secure identity management with private keys that never leave secure hardware.
 
 The project includes comprehensive **Svelte components** for browser-based demos and integration (see [Storacha Svelte Components](#storacha-svelte-components) section for details).
 
@@ -50,7 +58,13 @@ Implemented but untested:
 - [ ] backup/restore between OrbitDB and Storacha in browser (StorachaIntegration.svelte) (hash and identity preserving) - [Issue #4](../../issues/4)
 - [x] backup/restore between OrbitDB and Storacha in browser ([`StorachaTest.svelte`](src/components/StorachaTest.svelte)) (entries only - without manifest and identity preservation into new OrbitDB)
   - [x] using Storacha Credentials by [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte)
-  - [x] using UCAN + privatekey 
+  - [x] using UCAN + privatekey
+- [x] **WebAuthn DID Identity Provider** ([`WebAuthnDIDProvider.js`](src/components/WebAuthnDIDProvider.js) + [`StorachaTestWithWebAuthn.svelte`](src/components/StorachaTestWithWebAuthn.svelte))
+  - [x] Hardware-secured biometric authentication (Face ID, Touch ID, Windows Hello)
+  - [x] DID-compliant identity creation (`did:webauthn:...` format) 
+  - [x] CBOR public key parsing from WebAuthn attestation objects
+  - [x] OrbitDB identity provider integration with proper verification
+  - [x] Production-ready implementation with comprehensive error handling
 - [x] OrbitDB CAR file storage (OrbitDB CustomStorage)
 - [?] backup/restore between OrbitDB and Storacha in NodeJS via UCAN and privatekey (hash and identity preserving)
 - [ ] CustomStorage - implement OrbitDB StorachaStorage (OrbitDB CustomStorage) in NodeJS - storage ok - but OrbitDB CustomStore doesn't support accessing the Manifest. Initial-sync therefore difficult but manageable by a standard restore of the orbitdb-storacha-bridge function!
@@ -137,6 +151,7 @@ Authentication component supporting multiple Storacha authentication methods:
 
 - `node` [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) - Creates complete SvelteKit demo app with [StorachaAuth](#storachaauthsvelte) and [StorachaTest](#storachatestsvelte) components for basic backup/restore workflow (deployed: https://w3s.link/ipfs/bafybeic7xjxp6acm5hsj2eybtan3bomlkxzw74giicrm2aglh224rrjpkm)
 - `node` [`scripts/svelte-backup-restore-02.js`](scripts/svelte-backup-restore-02.js) - Enhanced demo with [StorachaTestWithReplication](#storachatestwithreplcationsvelte) component for P2P replication + backup (deployed: https://w3s.link/ipfs/bafybeiev7577wwtxfztdui5gjj7siffw6mknnclx5lkpm7e3dldzafrdxq)
+- **WebAuthn Demo**: Use [`orbitdb-storacha-svelte-backup-restore-demo`](orbitdb-storacha-svelte-backup-restore-demo/) with [StorachaTestWithWebAuthn](#storachatestwithauthsvelte) for biometric authentication testing
 
 ## How It Works
 

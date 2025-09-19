@@ -26,6 +26,8 @@ class StorachaTestAutomator {
 			
 			// Svelte components and related files
 			['src/components/StorachaTest.svelte', 'src/lib/StorachaTest.svelte'],
+			['src/components/StorachaTestWithWebAuthn.svelte', 'src/lib/StorachaTestWithWebAuthn.svelte'],
+			['src/components/WebAuthnDIDProvider.js', 'src/lib/WebAuthnDIDProvider.js'],
 			['src/components/storacha-backup.js', 'src/lib/storacha-backup.js'],
 			['src/components/StorachaAuth.svelte', 'src/lib/StorachaAuth.svelte'],
 			['src/components/theme.js', 'src/lib/theme.js']
@@ -222,6 +224,16 @@ class StorachaTestAutomator {
 					"from './orbitdb-storacha-bridge'"
 				);
 				console.log('✅ Updated import paths in StorachaTest.svelte');
+			}
+			
+			if (sourcePath === 'src/components/StorachaTestWithWebAuthn.svelte') {
+				console.log('🔧 Fixing import paths in StorachaTestWithWebAuthn.svelte...');
+				// Change ../../lib/ to ./
+				content = content.replace(
+					/from ['"]\.\.?\/\.\.?\/lib\//g,
+					"from './"
+				);
+				console.log('✅ Updated import paths in StorachaTestWithWebAuthn.svelte');
 			}
 			
 			if (sourcePath === 'src/components/StorachaAuth.svelte') {
