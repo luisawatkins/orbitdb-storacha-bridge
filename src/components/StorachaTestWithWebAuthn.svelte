@@ -778,8 +778,19 @@
 
       for (let i = 0; i < originalTodos.length; i++) {
         const todo = originalTodos[i];
+        
+        console.log(`\n📝 About to add todo ${i + 1} - this should trigger WebAuthn signing:`);
+        console.log(`   Todo: ${todo.text}`);
+        console.log(`   Time: ${new Date().toISOString()}`);
+        console.log(`   Identity method: ${identityMethod}`);
+        console.log(`   Using WebAuthn: ${identityMethod === 'webauthn' ? 'YES' : 'NO'}`);
+        
+        const putStartTime = Date.now();
         const hash = await aliceDatabase.put(todo.id, todo);
-        console.log(`✅ Alice added todo ${i + 1}:`, todo);
+        const putEndTime = Date.now();
+        const putDuration = putEndTime - putStartTime;
+        
+        console.log(`✅ Alice added todo ${i + 1} (${putDuration}ms):`, todo);
         
         // Verify the identity of the newly added entry
         const entry = await aliceDatabase.log.get(hash);

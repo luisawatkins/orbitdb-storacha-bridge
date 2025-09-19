@@ -1,5 +1,6 @@
 <script>
   import StorachaTest from "$lib/StorachaTest.svelte";
+  import StorachaTestWithWebAuthn from "$lib/StorachaTestWithWebAuthn.svelte"
   import { theme } from "$lib/theme.js";
   import {
     Content,
@@ -196,7 +197,7 @@
     class="orbital-card"
     style="border-radius:1rem;padding:1rem;margin:0 auto;"
   >
-    <StorachaTest />
+    <StorachaTestWithWebAuthn />
   </div>
 
   <div style="text-align:center;margin:2rem 0;color:var(--cds-text-secondary);">

@@ -204,6 +204,13 @@ export class WebAuthnDIDProvider {
     }
 
     try {
+      console.log('🔐 WebAuthn signing started:', {
+        timestamp: new Date().toISOString(),
+        dataType: typeof data,
+        dataLength: data?.length || 0,
+        credentialId: this.credentialId
+      });
+
       // For OrbitDB compatibility, we need to create a signature that can be verified
       // against different data. Since WebAuthn private keys are hardware-secured,
       // we'll create a deterministic signature based on our credential and the data.
@@ -215,6 +222,9 @@ export class WebAuthnDIDProvider {
       combined.set(this.rawCredentialId, 0);
       combined.set(dataBytes, this.rawCredentialId.length);
       const challenge = await crypto.subtle.digest('SHA-256', combined);
+      
+      console.log('🚀 Requesting WebAuthn authentication - this should trigger biometric prompt!');
+      const authStartTime = Date.now();
       
       // Use WebAuthn to authenticate (this proves the user is present and verified)
       const assertion = await navigator.credentials.get({
@@ -229,9 +239,18 @@ export class WebAuthnDIDProvider {
         }
       });
 
+      const authEndTime = Date.now();
+      const authDuration = authEndTime - authStartTime;
+      
       if (!assertion) {
         throw new Error('WebAuthn authentication failed');
       }
+
+      console.log('✅ WebAuthn authentication completed:', {
+        authDuration: `${authDuration}ms`,
+        userPresent: assertion.response.authenticatorData ? true : false,
+        timestamp: new Date().toISOString()
+      });
 
       // Create a signature that includes the original data and credential proof
       // This allows verification without requiring WebAuthn again
@@ -242,6 +261,12 @@ export class WebAuthnDIDProvider {
         clientDataJSON: new TextDecoder().decode(assertion.response.clientDataJSON),
         timestamp: Date.now()
       };
+      
+      console.log('📝 WebAuthn proof created:', {
+        proofSize: JSON.stringify(webauthnProof).length,
+        hasAuthenticatorData: !!webauthnProof.authenticatorData,
+        hasClientData: !!webauthnProof.clientDataJSON
+      });
       
       // Return the proof as a base64url encoded string for OrbitDB
       return WebAuthnDIDProvider.arrayBufferToBase64url(new TextEncoder().encode(JSON.stringify(webauthnProof)));
@@ -361,7 +386,21 @@ export class OrbitDBWebAuthnIdentityProvider {
   }
 
   async signIdentity(data, options = {}) {
-    return await this.webauthnProvider.sign(data);
+    console.log('🆔 OrbitDB signIdentity called:', {
+      timestamp: new Date().toISOString(),
+      dataType: typeof data,
+      dataLength: data?.length || 0,
+      hasOptions: Object.keys(options || {}).length > 0
+    });
+    
+    const result = await this.webauthnProvider.sign(data);
+    
+    console.log('🆔 OrbitDB signIdentity completed:', {
+      resultType: typeof result,
+      resultLength: result?.length || 0
+    });
+    
+    return result;
   }
 
   async verifyIdentity(signature, data, publicKey) {
