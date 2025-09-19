@@ -72,6 +72,7 @@
     "blockstore-level": "^2.0.5",
     "buffer": "^6.0.3",
     "carbon-components-svelte": "^0.89.7",
+    "cbor-web": "^9.2.0",
     "carbon-icons-svelte": "^12.17.0",
     "datastore-level": "^11.0.4",
     "helia": "^5.5.1",
