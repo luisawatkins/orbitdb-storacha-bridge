@@ -92,8 +92,13 @@ export class WebAuthnDIDProvider {
         throw new Error('Failed to create WebAuthn credential');
       }
 
-      // Extract public key from credential
-      const publicKey = await this.extractPublicKey(credential);
+      console.log('✅ WebAuthn credential created successfully, extracting public key...');
+      
+      // Extract public key from credential with timeout
+      const publicKey = await Promise.race([
+        this.extractPublicKey(credential),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Public key extraction timeout')), 10000))
+      ]);
       
       return {
         credentialId: WebAuthnDIDProvider.arrayBufferToBase64url(credential.rawId),
@@ -126,8 +131,12 @@ export class WebAuthnDIDProvider {
    */
   static async extractPublicKey(credential) {
     try {
+      console.log('🔍 Starting public key extraction from WebAuthn credential...');
+      
       // Import CBOR decoder for parsing attestation object
+      console.log('📦 Importing cbor-web module...');
       const { decode } = await import('cbor-web');
+      console.log('✅ CBOR module imported successfully');
       
       const attestationObject = decode(new Uint8Array(credential.response.attestationObject));
       const authData = attestationObject.authData;
@@ -379,13 +388,13 @@ export class OrbitDBWebAuthnIdentityProvider {
     return 'webauthn';
   }
 
-  async getId() {
+  getId() {
     // Return the proper DID format - this is the identity identifier
     // OrbitDB will internally handle the hashing for log entries
     return WebAuthnDIDProvider.createDID(this.credential);
   }
 
-  async signIdentity(data, options = {}) {
+  signIdentity(data, options = {}) {
     console.log('🆔 OrbitDB signIdentity called:', {
       timestamp: new Date().toISOString(),
       dataType: typeof data,
@@ -393,18 +402,18 @@ export class OrbitDBWebAuthnIdentityProvider {
       hasOptions: Object.keys(options || {}).length > 0
     });
     
-    const result = await this.webauthnProvider.sign(data);
-    
-    console.log('🆔 OrbitDB signIdentity completed:', {
-      resultType: typeof result,
-      resultLength: result?.length || 0
+    // Return Promise directly to avoid async function issues
+    return this.webauthnProvider.sign(data).then(result => {
+      console.log('🆔 OrbitDB signIdentity completed:', {
+        resultType: typeof result,
+        resultLength: result?.length || 0
+      });
+      return result;
     });
-    
-    return result;
   }
 
-  async verifyIdentity(signature, data, publicKey) {
-    return await this.webauthnProvider.verify(signature, data, publicKey || this.credential.publicKey);
+  verifyIdentity(signature, data, publicKey) {
+    return this.webauthnProvider.verify(signature, data, publicKey || this.credential.publicKey);
   }
 
   /**
@@ -420,8 +429,24 @@ export class OrbitDBWebAuthnIdentityProvider {
       id,
       publicKey: webauthnCredential.publicKey,
       type: 'webauthn',
-      sign: (data) => provider.signIdentity(data),
-      verify: (signature, data) => provider.verifyIdentity(signature, data, webauthnCredential.publicKey)
+      // Make sure sign method is NOT async to avoid Promise serialization
+      sign: (identity, data) => {
+        console.log('📋 OrbitDB identity.sign method called:', { 
+          timestamp: new Date().toISOString(),
+          identity: identity?.id || identity, 
+          dataType: typeof data, 
+          dataLength: data?.length || 0,
+          dataPreview: typeof data === 'string' ? data.slice(0, 100) : 'Binary data'
+        });
+        console.trace('📋 Call stack for OrbitDB sign method');
+        // Return the Promise directly, don't await here
+        return provider.signIdentity(data);
+      },
+      // Make sure verify method is NOT async to avoid Promise serialization
+      verify: (signature, data) => {
+        // Return the Promise directly, don't await here
+        return provider.verifyIdentity(signature, data, webauthnCredential.publicKey);
+      }
     };
   }
 }

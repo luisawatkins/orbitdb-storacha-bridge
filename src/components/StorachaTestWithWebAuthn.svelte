@@ -390,15 +390,57 @@
     // Register the WebAuthn provider (like DID provider does)
     useIdentityProvider(OrbitDBWebAuthnIdentityProviderFunction);
 
-    // Create OrbitDB identities instance
+    // Create OrbitDB identities instance with default keystore
+    // The WebAuthn provider will handle signing internally
     const identities = await Identities();
 
-    // Create identity using WebAuthn (matching the DID pattern)
+    // FIXED: Use OrbitDB's built-in identity creation instead of plain object
+    // This ensures proper identity resolution and verification in access controller
+    
+    // Ensure the WebAuthn provider is registered with OrbitDB
+    console.log('🔧 Registering WebAuthn identity provider with OrbitDB...');
+    const registrationSuccess = registerWebAuthnProvider();
+    if (!registrationSuccess) {
+      throw new Error('Failed to register WebAuthn provider with OrbitDB');
+    }
+    
+    // Create the identity using OrbitDB's standard identity creation
+    // This ensures proper serialization, resolution via getIdentity(), and verification
+    console.log('🆔 Creating WebAuthn identity via OrbitDB identities.createIdentity...');
     const identity = await identities.createIdentity({
-      provider: OrbitDBWebAuthnIdentityProviderFunction({
-        webauthnCredential,
-      }),
+      provider: OrbitDBWebAuthnIdentityProviderFunction({ webauthnCredential })
     });
+    
+    console.log('✅ Created OrbitDB-compatible WebAuthn identity:', {
+      id: identity.id,
+      type: identity.type,
+      publicKey: identity.publicKey,
+      hasSign: typeof identity.sign === 'function',
+      hasVerify: typeof identity.verify === 'function',
+      hasHash: !!identity.hash
+    });
+    
+    // Verify the identity can be resolved by the identities system
+    console.log('🔍 Testing identity resolution...');
+    const resolvedIdentity = await identities.getIdentity(identity.id);
+    if (resolvedIdentity) {
+      console.log('✅ Identity resolution test passed - access controller should work');
+    } else {
+      console.warn('⚠️ Identity resolution test failed - this may cause access control issues');
+    }
+    
+    // Test identity verification
+    console.log('🔍 Testing identity verification...');
+    try {
+      const verificationResult = await identities.verifyIdentity(identity);
+      if (verificationResult) {
+        console.log('✅ Identity verification test passed');
+      } else {
+        console.warn('⚠️ Identity verification test failed');
+      }
+    } catch (verifyError) {
+      console.warn('⚠️ Identity verification test error:', verifyError.message);
+    }
 
     console.log(`✅ ${persona} WebAuthn identity created: ${identity.id}`);
     return { identity, identities, webauthnCredential };
@@ -459,37 +501,68 @@
     const helia = await createHelia({ libp2p });
     console.log("Helia created with memory storage");
 
-    // Create OrbitDB instance with unique ID and memory storage
+    // Create OrbitDB instance configuration
     const orbitdbConfig = {
       ipfs: helia,
-      id: `${persona}-${instanceId}-${Date.now()}-${Math.random()}`,
       directory: `./orbitdb-${persona}-${instanceId}`,
     };
 
-    // Choose identity based on persona and settings
+    // Choose identity based on persona and settings (CRITICAL: don't mix id with identity!)
     if (persona === "alice" && sharedIdentity && sharedIdentities) {
-      orbitdbConfig.identity = sharedIdentity;
+      // Use WebAuthn identity - pass identities instance and specific identity
       orbitdbConfig.identities = sharedIdentities;
+      orbitdbConfig.identity = sharedIdentity;
+      console.log(`🔑 Alice using WebAuthn identity: ${sharedIdentity.id}`);
     } else if (persona === "bob") {
       if (useSharedIdentity && sharedIdentity && sharedIdentities) {
-        orbitdbConfig.identity = sharedIdentity;
+        // Bob shares Alice's WebAuthn identity
         orbitdbConfig.identities = sharedIdentities;
-        console.log(
-          `🔗 Bob using Alice's shared identity: ${sharedIdentity.id}`,
-        );
+        orbitdbConfig.identity = sharedIdentity;
+        console.log(`🔗 Bob using Alice's shared WebAuthn identity: ${sharedIdentity.id}`);
       } else if (bobIdentity && bobIdentities) {
-        orbitdbConfig.identity = bobIdentity;
+        // Bob has his own identity
         orbitdbConfig.identities = bobIdentities;
+        orbitdbConfig.identity = bobIdentity;
         console.log(`🆔 Bob using his own identity: ${bobIdentity.id}`);
+      } else {
+        // Fallback: let OrbitDB create default identity with unique ID
+        orbitdbConfig.id = `${persona}-${instanceId}-${Date.now()}-${Math.random()}`;
+        console.log(`⚠️ ${persona} using default OrbitDB identity`);
       }
+    } else {
+      // Fallback: let OrbitDB create default identity with unique ID
+      orbitdbConfig.id = `${persona}-${instanceId}-${Date.now()}-${Math.random()}`;
+      console.log(`⚠️ ${persona} using default OrbitDB identity`);
     }
 
+    console.log('🔧 OrbitDB config about to be used:', {
+      hasIPFS: !!orbitdbConfig.ipfs,
+      hasIdentity: !!orbitdbConfig.identity,
+      hasIdentities: !!orbitdbConfig.identities,
+      hasId: !!orbitdbConfig.id,
+      identityId: orbitdbConfig.identity?.id,
+      identityType: orbitdbConfig.identity?.type,
+      directory: orbitdbConfig.directory
+    });
+    
     const orbitdb = await createOrbitDB(orbitdbConfig);
-    console.log("orbitdb", orbitdb);
+    
+    console.log('🆔 OrbitDB instance created:', {
+      orbitDBId: orbitdb.id,
+      actualIdentityId: orbitdb.identity?.id,
+      actualIdentityType: orbitdb.identity?.type,
+      actualIdentityHash: orbitdb.identity?.hash,
+      identityMatch: orbitdb.identity?.id === orbitdbConfig.identity?.id ? '✅ MATCH' : '❌ DIFFERENT',
+      hasSignMethod: typeof orbitdb.identity?.sign === 'function',
+      hasVerifyMethod: typeof orbitdb.identity?.verify === 'function',
+      signMethodString: orbitdb.identity?.sign?.toString().slice(0, 100) + '...'
+    });
+    
+    console.log("📂 OrbitDB instance created with WebAuthn identity");
 
-    // Create database with access controller (like working integration test)
+    // Create database with access controller
     const database = await orbitdb.open(databaseName, databaseConfig);
-    console.log("database", database);
+    console.log("📊 Database created:", database.name);
 
     // Set up event listeners for this database
     setupDatabaseEventListeners(database, persona);
@@ -725,12 +798,33 @@
         "Setting up Alice's OrbitDB instance...",
       );
 
+      // 🔐 ACCESS CONTROLLER CONFIGURATION
+      console.log('\n🔐 Configuring Access Controller for Alice:');
+      console.log('   🆔 WebAuthn Identity ID:', sharedIdentity.id);
+      console.log('   🏷️ Identity Type:', sharedIdentity.type);
+      console.log('   🔑 Identity Key (for access):', sharedIdentity.key?.slice(0, 32) + '...' || 'NO KEY');
+      
+      const writePermissions = [sharedIdentity.id];
+      console.log('   ✍️ Write Permissions Array:', writePermissions);
+      console.log('   🌟 Using Wildcard (*)?', writePermissions.includes('*') ? 'YES' : 'NO');
+      console.log('   🔒 Access Control Type: EXPLICIT IDENTITY-BASED');
+      
       const databaseConfig = {
         type: "keyvalue",
         create: true,
         sync: true,
-        accessController: IPFSAccessController({ write: ["*"] }),
+        // FIXED: Use explicit identity-based access control instead of wildcard
+        // This ensures the WebAuthn identity is properly validated
+        accessController: IPFSAccessController({ 
+          write: writePermissions // Use the actual WebAuthn identity ID
+        }),
       };
+      
+      console.log('   ⚙️ Final Database Config:', {
+        type: databaseConfig.type,
+        accessControllerType: 'IPFSAccessController',
+        writePermissions: writePermissions
+      });
 
       const instance = await createOrbitDBInstance(
         "alice",
@@ -779,39 +873,273 @@
       for (let i = 0; i < originalTodos.length; i++) {
         const todo = originalTodos[i];
         
-        console.log(`\n📝 About to add todo ${i + 1} - this should trigger WebAuthn signing:`);
-        console.log(`   Todo: ${todo.text}`);
-        console.log(`   Time: ${new Date().toISOString()}`);
-        console.log(`   Identity method: ${identityMethod}`);
-        console.log(`   Using WebAuthn: ${identityMethod === 'webauthn' ? 'YES' : 'NO'}`);
+        console.log(`📝 Adding todo ${i + 1}: ${todo.text}`);
         
-        const putStartTime = Date.now();
         const hash = await aliceDatabase.put(todo.id, todo);
-        const putEndTime = Date.now();
-        const putDuration = putEndTime - putStartTime;
         
-        console.log(`✅ Alice added todo ${i + 1} (${putDuration}ms):`, todo);
+        console.log(`✅ Todo ${i + 1} added with hash: ${hash.slice(0, 16)}...`);
         
         // Verify the identity of the newly added entry
         const entry = await aliceDatabase.log.get(hash);
         if (entry) {
-          console.log(`🔐 Entry ${i + 1} Identity Verification:`);
-          console.log(`   Entry Hash: ${hash}`);
-          console.log(`   Entry Identity: ${entry.identity}`);
-          console.log(`   Alice Identity: ${aliceOrbitDB.identity.id}`);
-          console.log(`   Identity Match: ${entry.identity === aliceOrbitDB.identity.id ? '✅ YES' : '❌ NO'}`);
-          console.log(`   Identity Type: ${sharedIdentity.type || identityMethod}`);
-          console.log(`   Signature Present: ${entry.sig ? '✅ YES' : '❌ NO'}`);
+          // Check both DID and hash matches (OrbitDB may convert DID to hash for oplog)
+          const didMatch = entry.identity === aliceOrbitDB.identity.id;
+          const hashMatch = entry.identity === aliceOrbitDB.identity.hash;
+          const isMatch = didMatch || hashMatch;
           
-          if (entry.sig) {
-            console.log(`   Signature Length: ${entry.sig.length} chars`);
-            console.log(`   Signature Preview: ${entry.sig.slice(0, 32)}...`);
-          }
+          console.log(`🔐 Entry ${i + 1}: ${entry.identity.slice(0, 32)}... vs ${aliceOrbitDB.identity.id.slice(0, 32)}... = ${isMatch ? '✅' : '❌'} | Sig: ${entry.sig ? '✅' : '❌'}`);
         }
       }
 
       // Get all todos to verify and display
       aliceTodos = await aliceDatabase.all();
+
+      // 🔍 ITERATE OVER THE ENTIRE OPLOG HISTORY
+      console.log('\n🗂️ =============== COMPLETE OPLOG HISTORY ===============');
+      console.log('📊 Database:', aliceDatabase.name);
+      console.log('📍 Address:', aliceDatabase.address);
+      console.log('🆔 Database Identity:', aliceDatabase.identity?.id);
+      console.log('📝 Total Todos Added:', aliceTodos.length);
+      
+      try {
+        console.log('\n🔄 Iterating through oplog entries...');
+        
+        // Get the oplog from the database
+        const oplog = aliceDatabase.log;
+        console.log('📋 Oplog basic info:', {
+          hasIterator: typeof oplog.iterator === 'function',
+          length: oplog.length || 'unknown'
+        });
+        
+        // Method 1: Use the correct OrbitDB API - log.iterator() 
+        let entryCount = 0;
+        if (typeof oplog.iterator === 'function') {
+          console.log('\n📖 Using log.iterator() to traverse ALL entries:');
+          
+          try {
+            for await (const entry of oplog.iterator()) {
+              entryCount++;
+              console.log(`\n📄 Entry #${entryCount}:`);
+              console.log('   🔗 Hash:', entry.hash?.toString() || entry.hash);
+              console.log('   🆔 Identity:', entry.identity);
+              console.log('   🔑 Key:', entry.key || entry.payload?.key);
+              console.log('   📋 Operation:', entry.payload?.op);
+              console.log('   💾 Value Preview:', JSON.stringify(entry.payload?.value || entry.value)?.slice(0, 100) + '...');
+              console.log('   🔐 Signature:', entry.sig ? `${entry.sig.slice(0, 32)}... (${entry.sig.length} chars)` : 'NO SIGNATURE');
+              console.log('   ⏰ Clock:', entry.clock ? `{id: ${entry.clock.id?.slice(0, 16)}..., time: ${entry.clock.time}}` : 'NO CLOCK');
+              
+              // Handle next and refs arrays safely
+              const nextRefs = Array.isArray(entry.next) ? entry.next.map(n => n.toString().slice(0, 16) + '...') : (entry.next ? [entry.next.toString().slice(0, 16) + '...'] : []);
+              const refs = Array.isArray(entry.refs) ? entry.refs.map(r => r.toString().slice(0, 16) + '...') : (entry.refs ? [entry.refs.toString().slice(0, 16) + '...'] : []);
+              
+              console.log('   🔗 Next:', nextRefs.length > 0 ? nextRefs : 'NO NEXT');
+              console.log('   📎 Refs:', refs.length > 0 ? refs : 'NO REFS');
+              
+              // Show full entry structure (collapsed)
+              console.log('   🏗️ Full Entry Structure:', {
+                version: entry.v,
+                id: entry.id,
+                key: entry.key,
+                identity: entry.identity?.slice ? entry.identity.slice(0, 32) + '...' : entry.identity,
+                signature: entry.sig ? entry.sig.slice(0, 32) + '...' : null,
+                payloadKeys: Object.keys(entry.payload || {}),
+                hasNext: !!entry.next,
+                hasRefs: !!entry.refs,
+                hasClock: !!entry.clock
+              });
+              
+              // Limit output to prevent console overflow
+              if (entryCount >= 10) {
+                console.log('   ⚠️ Limiting output to first 10 entries to prevent console overflow...');
+                break;
+              }
+            }
+          } catch (iteratorError) {
+            console.error('❌ Error using log.iterator():', iteratorError.message);
+            entryCount = 0; // Reset to try alternative methods
+          }
+        } else {
+          console.log('⚠️ log.iterator() not available, trying alternative methods...');
+        }
+        
+        // Method 2: Try using database.iterator() as fallback (for database entries)
+        if (entryCount === 0) {
+          console.log('\n📖 Trying database.iterator() as fallback:');
+          try {
+            for await (const record of aliceDatabase.iterator()) {
+              entryCount++;
+              console.log(`\n📄 Database Record #${entryCount}:`);
+              console.log('   🔑 Key:', record.key);
+              console.log('   💾 Value:', JSON.stringify(record.value)?.slice(0, 100) + '...');
+              console.log('   🔗 Hash:', record.hash?.toString() || 'NO HASH');
+              
+              // Try to get the actual oplog entry for this record
+              if (record.hash) {
+                try {
+                  const oplogEntry = await aliceDatabase.log.get(record.hash);
+                  if (oplogEntry) {
+                    console.log('   🔐 Signature:', oplogEntry.sig ? `${oplogEntry.sig.slice(0, 32)}... (${oplogEntry.sig.length} chars)` : 'NO SIGNATURE');
+                    console.log('   🆔 Entry Identity:', oplogEntry.identity);
+                  }
+                } catch (getError) {
+                  console.log('   ⚠️ Could not get oplog entry for record:', getError.message);
+                }
+              }
+              
+              // Limit output
+              if (entryCount >= 10) {
+                console.log('   ⚠️ Limiting output to first 10 records...');
+                break;
+              }
+            }
+          } catch (dbIteratorError) {
+            console.error('❌ Error using database.iterator():', dbIteratorError.message);
+          }
+        }
+        
+        // Summary
+        console.log(`\n📊 OPLOG SUMMARY:`);
+        console.log(`   📝 Total Entries Found: ${entryCount}`);
+        console.log(`   🗄️ Database Todos: ${aliceTodos.length}`);
+        console.log(`   🔍 Match: ${entryCount >= aliceTodos.length ? '✅ YES' : '❌ NO - Missing entries'}`);
+        
+        // Check if all entries have signatures (WebAuthn should sign everything)
+        console.log(`   🔐 WebAuthn Signature Check: All entries should be signed with WebAuthn`);
+        
+        // Additional oplog info
+        console.log(`\n🔧 Oplog Technical Details:`);
+        console.log(`   📊 Oplog Length:`, oplog.length || 'unknown');
+        console.log(`   🆔 Oplog Type:`, typeof oplog);
+        console.log(`   📋 Available Methods:`, Object.getOwnPropertyNames(oplog).filter(prop => typeof oplog[prop] === 'function'));
+        
+      } catch (error) {
+        console.error('❌ Error iterating oplog:', error);
+        console.error('   Error details:', error.message);
+        console.error('   Error stack:', error.stack?.slice(0, 500) + '...');
+      }
+      
+      console.log('🗂️ =============== END OPLOG HISTORY ===============\n');
+
+      // 🔒 ACCESS CONTROLLER INSPECTION
+      console.log('\n🔒 =============== ACCESS CONTROLLER ANALYSIS ===============');
+      try {
+        const database = aliceDatabase;
+        console.log('🎯 Database Access Controller Details:');
+        console.log('   📊 Database Name:', database.name);
+        console.log('   🆔 Database Identity:', database.identity?.id);
+        console.log('   📍 Database Address:', database.address);
+        
+        // Check if access controller exists
+        if (database.access) {
+          console.log('\n🔐 Access Controller Found:');
+          console.log('   🏷️ Type:', database.access.type || typeof database.access);
+          console.log('   📋 Available Methods:', Object.getOwnPropertyNames(database.access).filter(prop => typeof database.access[prop] === 'function'));
+          
+          // Check for write permissions
+          if (database.access.write) {
+            console.log('\n✍️ Write Permissions:');
+            if (Array.isArray(database.access.write)) {
+              console.log('   📝 Write Array:', database.access.write);
+              console.log('   📊 Total Writers:', database.access.write.length);
+              
+              // Check if wildcard is present
+              if (database.access.write.includes('*')) {
+                console.log('   🌟 WILDCARD ACCESS: * found - ALL identities can write');
+                console.log('   ⚠️ WARNING: Using wildcard access - this was the old configuration!');
+              } else {
+                console.log('   🔒 RESTRICTED ACCESS: Only specific identities can write');
+                console.log('   ✅ GOOD: Using identity-based access control as intended');
+              }
+              
+              // Additional security analysis
+              const hasWildcard = database.access.write.includes('*');
+              const hasSpecificIdentities = database.access.write.some(id => id !== '*');
+              
+              if (hasWildcard && hasSpecificIdentities) {
+                console.log('   ⚠️ MIXED ACCESS: Both wildcard (*) AND specific identities present');
+                console.log('   📝 This means the wildcard makes specific identities redundant');
+              } else if (hasWildcard) {
+                console.log('   🌍 OPEN ACCESS: Only wildcard present - any identity can write');
+              } else {
+                console.log('   🔐 SECURE ACCESS: Only specific identities can write (recommended)');
+              }
+              
+              // Check if our WebAuthn identity is in the list
+              const ourIdentityId = database.identity?.id;
+              if (ourIdentityId && database.access.write.includes(ourIdentityId)) {
+                console.log('   ✅ OUR IDENTITY ALLOWED:', ourIdentityId.slice(0, 32) + '...');
+              } else if (ourIdentityId) {
+                console.log('   ❌ OUR IDENTITY NOT IN LIST:', ourIdentityId.slice(0, 32) + '...');
+                console.log('   ⚠️ This might cause write failures!');
+              }
+              
+              // Show each allowed identity
+              database.access.write.forEach((identity, index) => {
+                if (identity === '*') {
+                  console.log(`   ${index + 1}. 🌟 WILDCARD: * (allows all identities)`);
+                } else {
+                  const isOurs = identity === ourIdentityId;
+                  console.log(`   ${index + 1}. ${isOurs ? '👤 OUR IDENTITY' : '👥 OTHER IDENTITY'}: ${identity.slice(0, 32)}...`);
+                }
+              });
+            } else {
+              console.log('   📝 Write Property (not array):', database.access.write);
+            }
+          } else {
+            console.log('   ⚠️ No write property found on access controller');
+          }
+          
+          // Test access controller methods
+          if (typeof database.access.canAppend === 'function') {
+            console.log('\n🧪 Testing Access Controller canAppend method:');
+            
+            // Create a mock entry to test access
+            const mockEntry = {
+              identity: database.identity?.id,
+              payload: { op: 'PUT', key: 'test', value: 'test' },
+              v: 2,
+              clock: { id: database.identity?.id, time: 1 }
+            };
+            
+            try {
+              const canAppend = await database.access.canAppend(mockEntry);
+              console.log('   🧪 Mock Entry Test Result:', canAppend ? '✅ ALLOWED' : '❌ DENIED');
+              
+              if (!canAppend) {
+                console.log('   ⚠️ WARNING: Mock entry would be denied - this explains write failures!');
+              }
+            } catch (canAppendError) {
+              console.log('   ❌ Error testing canAppend:', canAppendError.message);
+            }
+          } else {
+            console.log('   ⚠️ No canAppend method found on access controller');
+          }
+          
+        } else {
+          console.log('\n❌ No access controller found on database');
+          console.log('   ⚠️ This might indicate a configuration issue');
+        }
+        
+        // Check the original database configuration
+        console.log('\n📋 Database Configuration Analysis:');
+        console.log('   🏗️ Database Type:', database.type || 'unknown');
+        console.log('   📊 Database Options Keys:', Object.keys(database.options || {}));
+        
+        if (database.options?.AccessController) {
+          console.log('   🔐 AccessController in options:', typeof database.options.AccessController);
+        }
+        
+        // Show the actual access controller constructor/function
+        if (database.access && database.access.constructor) {
+          console.log('   🏗️ Access Controller Constructor:', database.access.constructor.name);
+        }
+        
+      } catch (accessError) {
+        console.error('❌ Error inspecting access controller:', accessError);
+        console.error('   Error details:', accessError.message);
+      }
+      
+      console.log('🔒 =============== END ACCESS CONTROLLER ANALYSIS ===============\n');
 
       updateLastResult(
         "alice",
@@ -861,7 +1189,9 @@
         type: "keyvalue",
         create: true,
         sync: true,
-        accessController: IPFSAccessController({ write: ["*"] }),
+        accessController: IPFSAccessController({ 
+          write: [sharedIdentity.id] // Use the actual WebAuthn identity ID
+        }),
       };
 
       // Create bridge with progress tracking
@@ -969,11 +1299,16 @@
         `Setting up Bob's OrbitDB instance with ${bobUseSameIdentity ? "shared" : "own"} identity...`,
       );
 
+      // Determine which identity to use for access control
+      const identityForAccess = bobUseSameIdentity ? sharedIdentity : bobIdentity;
+      
       const databaseConfig = {
         type: "keyvalue",
         create: true,
         sync: true,
-        accessController: IPFSAccessController({ write: ["*"] }),
+        accessController: IPFSAccessController({ 
+          write: [identityForAccess.id] // Use the appropriate identity ID
+        }),
       };
 
       const instance = await createOrbitDBInstance(
@@ -1044,11 +1379,16 @@
         `Restoring database from Storacha backup using ${identityInfo}...`,
       );
 
+      // Use the same identity that Bob is using for restore
+      const identityForAccess = bobUseSameIdentity ? sharedIdentity : bobIdentity;
+      
       const databaseConfig = {
         type: "keyvalue",
         create: true,
         sync: true,
-        accessController: IPFSAccessController({ write: ["*"] }),
+        accessController: IPFSAccessController({ 
+          write: [identityForAccess.id] // Use the appropriate identity ID
+        }),
       };
 
       // Create bridge with progress tracking
