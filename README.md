@@ -70,6 +70,7 @@ Implemented but untested:
 - [?] backup/restore between OrbitDB and Storacha in NodeJS via UCAN and privatekey (hash and identity preserving)
 - [ ] CustomStorage - implement OrbitDB StorachaStorage (OrbitDB CustomStorage) in NodeJS - storage ok - but OrbitDB CustomStore doesn't support accessing the Manifest. Initial-sync therefore difficult but manageable by a standard restore of the orbitdb-storacha-bridge function!
 - [ ] OrbitDB Storacha storage (OrbitDB CustomStorage) in NodeJS (entries only - initial sync)
+- [ ] Alice when authenticated via a UCAN or Storacha Credentials should be able to delegate her access rights to Bob (with custom/default capabilities) via Storacha API.
 
 > **Note:** Currently, each Storacha space contains one full backup. For multiple backups, use separate spaces.
 
@@ -93,66 +94,56 @@ Get Storacha credentials from [storacha.network quickstart](https://docs.storach
 
 ### Storacha Svelte Components
 
-Comprehensive set of Svelte components for OrbitDB-Storacha integration in browser environments:
+Svelte components for OrbitDB-Storacha integration in browser environments:
 
-#### **[`StorachaAuth.svelte`](src/components/StorachaAuth.svelte)**
+#### [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte)
 Authentication component supporting multiple Storacha authentication methods:
-- **Storacha credentials** (Storacha-Key and Storacha Proof)
-- **UCAN delegation** (delegated UCAN + corresponding private key) 
-- **Email registration** (create new Storacha account via email confirmation)
+- Storacha credentials (Storacha-Key and Storacha Proof)
+- UCAN delegation (delegated UCAN + corresponding private key) 
+- Email registration (create new Storacha account via email confirmation)
 
-#### **[`StorachaTest.svelte`](src/components/StorachaTest.svelte)** 
-**Basic backup/restore demo** - Alice & Bob with independent OrbitDB instances:
-- Creates **separate OrbitDB databases** with different addresses
-- **No P2P replication** - data exchange via Storacha backup/restore only
+#### [`StorachaTest.svelte`](src/components/StorachaTest.svelte)
+Basic backup/restore demo with Alice & Bob using independent OrbitDB instances:
+- Creates separate OrbitDB databases with different addresses
+- No P2P replication - data exchange via Storacha backup/restore only
 - Demonstrates entry-only backup approach (recreates database from entries + config)
 - Uses mnemonic seed generation and DID-based identity management
-- **Use case**: Basic backup/restore workflow without peer connectivity requirements
 
-#### **[`StorachaTestWithReplication.svelte`](src/components/StorachaTestWithReplication.svelte)**
-**Advanced replication demo** - Alice & Bob with shared database and P2P connectivity:
-- Creates **shared OrbitDB database** with same address for both peers
-- **Full P2P replication** via libp2p with circuit relay support  
-- Backup/restore **preserves replication capabilities**
-- Professional logging and shared identity management
-- Real-time peer discovery and connection status
-- **Uses Carbon Design System components** for enhanced UI
-- **Use case**: Production-like scenario with P2P replication + Storacha archival backup
+#### [`StorachaTestWithReplication.svelte`](src/components/StorachaTestWithReplication.svelte)
+Advanced replication demo with Alice & Bob using shared database and P2P connectivity:
+- Creates shared OrbitDB database with same address for both peers
+- Full P2P replication via libp2p with circuit relay support  
+- Backup/restore preserves replication capabilities
+- Uses Carbon Design System components for enhanced UI
 
-#### **[`StorachaTestWithWebAuthn.svelte`](src/components/StorachaTestWithWebAuthn.svelte)**
-**WebAuthn biometric authentication demo** - Hardware-secured DID identities:
-- **WebAuthn biometric authentication** (Face ID, Touch ID, Windows Hello, PIN)
-- **Hardware-secured DID creation** using WebAuthn credentials
-- **Professional cryptographic integration** with CBOR public key parsing
-- Backup/restore with **biometric-secured identities**
-- **Real WebAuthn API integration** (no simulation - actual biometric auth)
-- Identity verification logging and comprehensive error handling
-- **Use case**: Production-ready biometric authentication for OrbitDB applications
+#### [`StorachaTestWithWebAuthn.svelte`](src/components/StorachaTestWithWebAuthn.svelte)
+WebAuthn biometric authentication demo with hardware-secured DID identities:
+- WebAuthn biometric authentication (Face ID, Touch ID, Windows Hello, PIN)
+- Hardware-secured DID creation using WebAuthn credentials
+- CBOR public key parsing from WebAuthn attestation objects
+- Backup/restore with biometric-secured identities
 
-#### **[`WebAuthnDIDProvider.js`](src/components/WebAuthnDIDProvider.js)**
-**WebAuthn DID Provider for OrbitDB** - Complete identity provider implementation:
-- **Professional WebAuthn integration** with OrbitDB's identity system
-- **Real public key extraction** from WebAuthn credentials via CBOR parsing
-- **DID specification compliance** (`did:webauthn:...` format)
-- Hardware-secured private keys that **never leave the secure element**
-- **Biometric authentication** for every signing operation
-- Full OrbitDB compatibility with proper static verification
-- **Use case**: Drop-in WebAuthn identity provider for any OrbitDB application
+#### [`WebAuthnDIDProvider.js`](src/components/WebAuthnDIDProvider.js)
+WebAuthn DID Provider for OrbitDB - Complete identity provider implementation:
+- WebAuthn integration with OrbitDB's identity system
+- Public key extraction from WebAuthn credentials via CBOR parsing
+- DID specification compliance (`did:webauthn:...` format)
+- Hardware-secured private keys that never leave the secure element
+- Biometric authentication for every signing operation
 
-#### **[`StorachaIntegration.svelte`](src/components/StorachaIntegration.svelte)**
-**Full integration component** for existing OrbitDB Svelte applications:
-- **Hash and identity preserving** backup/restore (full database reconstruction)
+#### [`StorachaIntegration.svelte`](src/components/StorachaIntegration.svelte)
+Full integration component for existing OrbitDB Svelte applications:
+- Hash and identity preserving backup/restore (full database reconstruction)
 - Progress tracking with real-time upload/download indicators
 - LocalStorage credential management with auto-login
 - Space management (create, list, select Storacha spaces)
-- **Note**: Currently has browser limitations for full hash preservation ([Issue #4](../../issues/4))
-- **Use case**: Drop-in component for adding Storacha backup to existing OrbitDB apps
+- Note: Currently has browser limitations for full hash preservation ([Issue #4](../../issues/4))
 
-### Svelte App Demonstrations & Components
+### Svelte App Demonstrations
 
-- `node` [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) - Creates complete SvelteKit demo app with [StorachaAuth](#storachaauthsvelte) and [StorachaTest](#storachatestsvelte) components for basic backup/restore workflow (deployed: https://w3s.link/ipfs/bafybeic7xjxp6acm5hsj2eybtan3bomlkxzw74giicrm2aglh224rrjpkm)
-- `node` [`scripts/svelte-backup-restore-02.js`](scripts/svelte-backup-restore-02.js) - Enhanced demo with [StorachaTestWithReplication](#storachatestwithreplcationsvelte) component for P2P replication + backup (deployed: https://w3s.link/ipfs/bafybeiev7577wwtxfztdui5gjj7siffw6mknnclx5lkpm7e3dldzafrdxq)
-- **WebAuthn Demo**: Use [`orbitdb-storacha-svelte-backup-restore-demo`](orbitdb-storacha-svelte-backup-restore-demo/) with [StorachaTestWithWebAuthn](#storachatestwithauthsvelte) for biometric authentication testing
+- `node` [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) - Creates SvelteKit demo app with StorachaAuth and StorachaTest components
+- `node` [`scripts/svelte-backup-restore-02.js`](scripts/svelte-backup-restore-02.js) - Enhanced demo with StorachaTestWithReplication component
+- WebAuthn Demo: Use [`orbitdb-storacha-svelte-backup-restore-demo`](orbitdb-storacha-svelte-backup-restore-demo/) with StorachaTestWithWebAuthn for biometric authentication testing
 
 ## How It Works
 
