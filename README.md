@@ -26,7 +26,7 @@
 ## What we want to accomplish
 
 Alice and Bob are working with the same OrbitDB in a local-first, peer-to-peer web or mobile application.
-In a perfect world, Alice and Bob wouldn't need any additional decentralized storage, since their data is already distributed among a number of peers depending o the use case. If Alice loses her data, Bob would still have a copy, and Alice could resync from Bob or others at any time (this reflects the current state of technology in OrbitDB). 
+In a perfect world, Alice and Bob wouldn't need any additional decentralized storage, since their data is already distributed among a number of peers depending on the use case. If Alice loses her data, Bob would still have a copy, and Alice could resync from Bob or others at any time (this reflects the current state of technology in OrbitDB). 
 
 Additionally, relay nodes or networks optionally run Helia and OrbitDB instances for pinning the data of Alice and Bob in a decentralized way.
 
