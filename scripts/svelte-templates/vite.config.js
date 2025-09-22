@@ -96,19 +96,6 @@ export default defineConfig({
       periodicSyncForUpdates: 20,
     }),
   ],
-  // build: {
-  // 	rollupOptions: {
-  // 		external: [
-  // 			// Externalize the problematic buffer shim import
-  // 			'vite-plugin-node-polyfills/shims/buffer'
-  // 		],
-  // 		output: {
-  // 			globals: {
-  // 				'vite-plugin-node-polyfills/shims/buffer': 'Buffer'
-  // 			}
-  // 		}
-  // 	}
-  // },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
     __BUILD_DATE__: JSON.stringify(buildDate),
