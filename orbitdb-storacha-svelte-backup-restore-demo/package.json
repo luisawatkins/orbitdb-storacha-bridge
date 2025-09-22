@@ -53,6 +53,7 @@
     "@chainsafe/libp2p-yamux": "^7.0.4",
     "@ibm/plex": "^6.4.1",
     "@ipld/dag-cbor": "^9.2.5",
+    "@le-space/orbitdb-identity-provider-webauthn-did": "^0.0.1",
     "@libp2p/autonat": "^2.0.38",
     "@libp2p/bootstrap": "^11.0.47",
     "@libp2p/circuit-relay-v2": "^3.2.24",

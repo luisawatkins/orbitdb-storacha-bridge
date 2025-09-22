@@ -43,14 +43,15 @@
   import { wordlist as english } from "@scure/bip39/wordlists/english";
   import { createHash } from "crypto";
 
-  // Import WebAuthn DID Provider
+  // Import WebAuthn DID Provider from published module
   import {
     WebAuthnDIDProvider,
-    OrbitDBWebAuthnIdentityProvider,
     OrbitDBWebAuthnIdentityProviderFunction,
     registerWebAuthnProvider,
     checkWebAuthnSupport,
-  } from "./WebAuthnDIDProvider.js";
+    storeWebAuthnCredential,
+    loadWebAuthnCredential
+  } from "@le-space/orbitdb-identity-provider-webauthn-did";
 
   // Import the new Storacha Auth component and Carbon components
   import StorachaAuth from "./StorachaAuth.svelte";
@@ -381,11 +382,20 @@
       throw new Error("WebAuthn is not supported in this browser");
     }
 
-    // Create WebAuthn credential
-    const webauthnCredential = await WebAuthnDIDProvider.createCredential({
-      userId: `${persona}@orbitdb.org`,
-      displayName: `OrbitDB ${persona} Identity`,
-    });
+    // Create or load WebAuthn credential (with improved storage from published module)
+    let webauthnCredential = loadWebAuthnCredential();
+    if (!webauthnCredential) {
+      // Create new WebAuthn credential
+      webauthnCredential = await WebAuthnDIDProvider.createCredential({
+        userId: `${persona}@orbitdb.org`,
+        displayName: `OrbitDB ${persona} Identity`,
+      });
+      // Store credential for future use
+      storeWebAuthnCredential(webauthnCredential);
+      console.log('🔐 New WebAuthn credential created and stored');
+    } else {
+      console.log('🔐 Existing WebAuthn credential loaded from storage');
+    }
 
     // Register the WebAuthn provider (like DID provider does)
     useIdentityProvider(OrbitDBWebAuthnIdentityProviderFunction);
@@ -399,10 +409,21 @@
     
     // Ensure the WebAuthn provider is registered with OrbitDB
     console.log('🔧 Registering WebAuthn identity provider with OrbitDB...');
+    
+    // Debug: Check if provider is already registered
+    console.log('🔍 Checking OrbitDB identity providers before registration...');
+    
     const registrationSuccess = registerWebAuthnProvider();
+    console.log('📋 Registration result:', registrationSuccess);
+    
     if (!registrationSuccess) {
       throw new Error('Failed to register WebAuthn provider with OrbitDB');
     }
+    
+    // Debug: Verify the provider function
+    console.log('🔍 WebAuthn Provider Function:', OrbitDBWebAuthnIdentityProviderFunction);
+    console.log('🔍 Provider Type:', OrbitDBWebAuthnIdentityProviderFunction.type);
+    console.log('🔍 Provider verifyIdentity:', typeof OrbitDBWebAuthnIdentityProviderFunction.verifyIdentity);
     
     // Create the identity using OrbitDB's standard identity creation
     // This ensures proper serialization, resolution via getIdentity(), and verification
@@ -419,6 +440,34 @@
       hasVerify: typeof identity.verify === 'function',
       hasHash: !!identity.hash
     });
+    
+    // 🔍 CRITICAL DEBUG: Test the signing function directly
+    console.log('🔍 Testing WebAuthn identity signing function directly...');
+    try {
+      const testData = 'test-signing-data';
+      console.log('🧪 Calling identity.sign() with test data - this should trigger WebAuthn!');
+      
+      const testSignature = await identity.sign(identity, testData);
+      console.log('✅ Direct signing test successful!');
+      console.log('   📏 Signature length:', testSignature?.length);
+      console.log('   🔤 Signature preview:', testSignature?.slice(0, 64) + '...');
+      
+      // Try to decode as WebAuthn proof
+      try {
+        const proofBytes = new Uint8Array(Array.from(atob(testSignature.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)));
+        const proofText = new TextDecoder().decode(proofBytes);
+        const webauthnProof = JSON.parse(proofText);
+        console.log('   🎉 SUCCESS: Direct signing produced WebAuthn proof format!');
+        console.log('   🆔 Credential ID in proof:', webauthnProof.credentialId?.slice(0, 16) + '...');
+      } catch (decodeError) {
+        console.log('   ⚠️ WARNING: Direct signing did NOT produce WebAuthn proof format');
+        console.log('   📝 Signature appears to be:', testSignature?.startsWith('30') ? 'DER-encoded ECDSA' : 'Unknown format');
+      }
+      
+    } catch (signError) {
+      console.log('❌ Direct signing test failed:', signError.message);
+      console.log('   ⚠️ This explains why OrbitDB falls back to default signing!');
+    }
     
     // Verify the identity can be resolved by the identities system
     console.log('🔍 Testing identity resolution...');
@@ -879,15 +928,72 @@
         
         console.log(`✅ Todo ${i + 1} added with hash: ${hash.slice(0, 16)}...`);
         
-        // Verify the identity of the newly added entry
+        // 🔍 DETAILED WEBAUTHN SIGNATURE VERIFICATION
         const entry = await aliceDatabase.log.get(hash);
         if (entry) {
+          console.log(`\n🔐 =============== TODO ${i + 1} SIGNATURE ANALYSIS ===============`);
+          console.log('📄 Entry Hash:', hash);
+          console.log('🆔 Entry Identity:', entry.identity);
+          console.log('🔑 Expected Identity (WebAuthn):', aliceOrbitDB.identity.id);
+          console.log('🔑 Expected Identity Hash:', aliceOrbitDB.identity.hash);
+          
           // Check both DID and hash matches (OrbitDB may convert DID to hash for oplog)
           const didMatch = entry.identity === aliceOrbitDB.identity.id;
           const hashMatch = entry.identity === aliceOrbitDB.identity.hash;
           const isMatch = didMatch || hashMatch;
           
-          console.log(`🔐 Entry ${i + 1}: ${entry.identity.slice(0, 32)}... vs ${aliceOrbitDB.identity.id.slice(0, 32)}... = ${isMatch ? '✅' : '❌'} | Sig: ${entry.sig ? '✅' : '❌'}`);
+          console.log('✅ Identity Match:', isMatch ? '✅ YES' : '❌ NO');
+          console.log('   📊 DID Match:', didMatch ? '✅ YES' : '❌ NO');
+          console.log('   📊 Hash Match:', hashMatch ? '✅ YES' : '❌ NO');
+          
+          // Signature Analysis
+          if (entry.sig) {
+            console.log('🔐 Signature Present: ✅ YES');
+            console.log('   📏 Signature Length:', entry.sig.length, 'characters');
+            console.log('   🔤 Signature Preview:', entry.sig.slice(0, 64) + '...');
+            console.log('   🔍 Signature Type: WebAuthn (base64url encoded)');
+            
+            // Try to decode and analyze the WebAuthn proof
+            try {
+              const proofBytes = new Uint8Array(Array.from(atob(entry.sig.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)));
+              const proofText = new TextDecoder().decode(proofBytes);
+              const webauthnProof = JSON.parse(proofText);
+              
+              console.log('   🧪 WebAuthn Proof Structure:');
+              console.log('      🆔 Credential ID:', webauthnProof.credentialId?.slice(0, 16) + '...' || 'MISSING');
+              console.log('      📊 Data Hash:', webauthnProof.dataHash?.slice(0, 16) + '...' || 'MISSING');
+              console.log('      🔐 Auth Data:', webauthnProof.authenticatorData ? 'PRESENT' : 'MISSING');
+              console.log('      📱 Client Data:', webauthnProof.clientDataJSON ? 'PRESENT' : 'MISSING');
+              console.log('      ⏰ Timestamp:', webauthnProof.timestamp ? new Date(webauthnProof.timestamp).toISOString() : 'MISSING');
+              
+              // Verify the credential ID matches our WebAuthn credential
+              if (sharedWebAuthnCredential && sharedWebAuthnCredential.credentialId) {
+                const credentialMatch = webauthnProof.credentialId === sharedWebAuthnCredential.credentialId;
+                console.log('      🔗 Credential Match:', credentialMatch ? '✅ YES' : '❌ NO');
+                if (!credentialMatch) {
+                  console.log('         Expected:', sharedWebAuthnCredential.credentialId?.slice(0, 16) + '...');
+                  console.log('         Got:', webauthnProof.credentialId?.slice(0, 16) + '...');
+                }
+              }
+              
+              console.log('   ✅ WebAuthn Proof Successfully Decoded and Analyzed!');
+            } catch (decodeError) {
+              console.log('   ⚠️ Could not decode WebAuthn proof:', decodeError.message);
+              console.log('   📄 Raw signature might not be WebAuthn format');
+            }
+          } else {
+            console.log('🔐 Signature Present: ❌ NO - This entry is NOT SIGNED!');
+            console.log('   ⚠️ WARNING: Missing signature indicates signing failure!');
+          }
+          
+          // Clock and Payload Analysis
+          console.log('⏰ Clock Info:', entry.clock ? `{id: ${entry.clock.id?.slice(0, 16)}..., time: ${entry.clock.time}}` : 'NO CLOCK');
+          console.log('📦 Payload Operation:', entry.payload?.op || 'NO OPERATION');
+          console.log('🔑 Payload Key:', entry.payload?.key || entry.key || 'NO KEY');
+          
+          console.log(`🔐 =============== END TODO ${i + 1} ANALYSIS ===============\n`);
+        } else {
+          console.log(`❌ Could not retrieve oplog entry for hash: ${hash}`);
         }
       }
 
@@ -1003,8 +1109,70 @@
         console.log(`   🗄️ Database Todos: ${aliceTodos.length}`);
         console.log(`   🔍 Match: ${entryCount >= aliceTodos.length ? '✅ YES' : '❌ NO - Missing entries'}`);
         
-        // Check if all entries have signatures (WebAuthn should sign everything)
-        console.log(`   🔐 WebAuthn Signature Check: All entries should be signed with WebAuthn`);
+        // 🔐 WEBAUTHN SIGNATURE VERIFICATION SUMMARY
+        console.log(`\n🔐 =============== WEBAUTHN SIGNATURE SUMMARY ===============`);
+        
+        // Analyze all entries for WebAuthn signatures
+        let signedEntries = 0;
+        let webauthnProofs = 0;
+        let identityMatches = 0;
+        let credentialMatches = 0;
+        
+        try {
+          for await (const entry of oplog.iterator()) {
+            if (entry.sig) {
+              signedEntries++;
+              
+              // Check identity match
+              const identityMatch = entry.identity === aliceOrbitDB.identity.id || entry.identity === aliceOrbitDB.identity.hash;
+              if (identityMatch) identityMatches++;
+              
+              // Try to decode WebAuthn proof
+              try {
+                const proofBytes = new Uint8Array(Array.from(atob(entry.sig.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)));
+                const proofText = new TextDecoder().decode(proofBytes);
+                const webauthnProof = JSON.parse(proofText);
+                
+                if (webauthnProof.credentialId && webauthnProof.authenticatorData) {
+                  webauthnProofs++;
+                  
+                  // Check credential match
+                  if (sharedWebAuthnCredential && webauthnProof.credentialId === sharedWebAuthnCredential.credentialId) {
+                    credentialMatches++;
+                  }
+                }
+              } catch (e) {
+                // Not a WebAuthn proof format
+              }
+            }
+          }
+        } catch (iterError) {
+          console.log('   ⚠️ Could not iterate for signature analysis:', iterError.message);
+        }
+        
+        console.log('📊 Signature Analysis Results:');
+        console.log(`   📝 Total Entries: ${entryCount}`);
+        console.log(`   ✍️ Signed Entries: ${signedEntries}/${entryCount} (${entryCount > 0 ? Math.round(signedEntries/entryCount*100) : 0}%)`);
+        console.log(`   🔐 WebAuthn Proofs: ${webauthnProofs}/${signedEntries} (${signedEntries > 0 ? Math.round(webauthnProofs/signedEntries*100) : 0}%)`);
+        console.log(`   🆔 Identity Matches: ${identityMatches}/${entryCount} (${entryCount > 0 ? Math.round(identityMatches/entryCount*100) : 0}%)`);
+        console.log(`   🔗 Credential Matches: ${credentialMatches}/${webauthnProofs} (${webauthnProofs > 0 ? Math.round(credentialMatches/webauthnProofs*100) : 0}%)`);
+        
+        // Overall assessment
+        const allSigned = signedEntries === entryCount && entryCount > 0;
+        const allWebAuthn = webauthnProofs === signedEntries && signedEntries > 0;
+        const allMatchingIdentity = identityMatches === entryCount && entryCount > 0;
+        const allMatchingCredential = credentialMatches === webauthnProofs && webauthnProofs > 0;
+        
+        console.log('\n🏆 Overall Assessment:');
+        console.log(`   📝 All entries signed: ${allSigned ? '✅ YES' : '❌ NO'}`);
+        console.log(`   🔐 All signatures are WebAuthn: ${allWebAuthn ? '✅ YES' : '❌ NO'}`);
+        console.log(`   🆔 All identities match: ${allMatchingIdentity ? '✅ YES' : '❌ NO'}`);
+        console.log(`   🔗 All credentials match: ${allMatchingCredential ? '✅ YES' : '❌ NO'}`);
+        
+        const perfect = allSigned && allWebAuthn && allMatchingIdentity && allMatchingCredential;
+        console.log(`   🎯 WebAuthn Integration: ${perfect ? '🎉 PERFECT!' : '⚠️ NEEDS ATTENTION'}`);
+        
+        console.log(`🔐 =============== END WEBAUTHN SUMMARY ===============`);
         
         // Additional oplog info
         console.log(`\n🔧 Oplog Technical Details:`);
