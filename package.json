@@ -10,6 +10,9 @@
       "types": "./lib/orbitdb-storacha-bridge.d.ts",
       "default": "./lib/orbitdb-storacha-bridge.js"
     },
+    "./enhanced-ucan-access-controller": {
+      "default": "./lib/enhanced-ucan-access-controller.js"
+    },
     "./StorachaIntegration.svelte": "./dist/components/StorachaIntegration.svelte",
     "./StorachaTest.svelte": "./dist/components/StorachaTest.svelte",
     "./StorachaAuth.svelte": "./dist/components/StorachaAuth.svelte",
@@ -20,6 +23,7 @@
     "test": "NODE_OPTIONS='--experimental-vm-modules --no-warnings' jest",
     "test:verbose": "npm test -- --verbose",
     "test:integration": "npm test -- test/integration.test.js",
+    "test:p256-ucan": "npm test -- test/p256-ucan-security.test.js",
     "test:space-download": "node --experimental-vm-modules test/test-space-download-approach.js",
     "test:w3-cli": "node --experimental-vm-modules test/test-w3-cli-integration.js",
     "clear-space": "node scripts/clear-space.js",
@@ -70,8 +74,8 @@
     "@scure/bip39": "^1.3.0",
     "@storacha/capabilities": "^1.8.0",
     "@storacha/client": "^1.7.10",
-    "@ucanto/core": "^10.4.0",
-    "@ucanto/principal": "^9.0.2",
+    "@ucanto/core": "file:../ucanto/packed/ucanto-core-10.4.0.tgz",
+    "@ucanto/principal": "file:../ucanto/packed/ucanto-principal-9.0.2.tgz",
     "blockstore-level": "^2.0.3",
     "cbor-web": "^10.0.11",
     "datastore-level": "^11.0.3",
