@@ -828,7 +828,7 @@
         console.log('🔐 Setting up database with write access for both peers');
         const multiAccessConfig = {
           ...databaseConfig,
-          AccessController: IPFSAccessController({ 
+          accessController: IPFSAccessController({ 
             write: [aliceIdentity.id, bobIdentity.id] 
           })
         };

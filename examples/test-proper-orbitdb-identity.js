@@ -65,7 +65,7 @@ async function testProperOrbitDBIdentity() {
             libp2p = await createLibp2p({
                 addresses: { listen: ['/ip4/0.0.0.0/tcp/0'] },
                 transports: [tcp()],
-                connectionEncryption: [noise()],
+                connectionEncrypters: [noise()],
                 streamMuxers: [yamux()]
             })
         }

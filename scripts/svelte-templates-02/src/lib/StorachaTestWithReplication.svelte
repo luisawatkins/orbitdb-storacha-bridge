@@ -798,19 +798,44 @@
 
     // Create OrbitDB instance with unique ID and persona-specific identity
     const personaIdentity = persona === "alice" ? aliceIdentity : bobIdentity;
-    const personaIdentities = persona === "alice" ? aliceIdentities : bobIdentities;
+    
+    // 🔑 KEY FIX: Create identities instance linked to this peer's IPFS
+    // This ensures identity resolution works across peers
+    console.log(`🔗 Creating IPFS-linked identities instance for ${persona}...`);
+    const linkedIdentities = await Identities({ ipfs: helia });
+    
+    // Cross-store both identities in this peer's IPFS for resolution
+    console.log(`📦 Cross-storing identities in ${persona}'s IPFS blockstore...`);
+    try {
+      await helia.blockstore.put(aliceIdentity.hash, aliceIdentity.bytes);
+      await helia.blockstore.put(bobIdentity.hash, bobIdentity.bytes);
+      console.log(`✅ Both identities stored in ${persona}'s IPFS`);
+    } catch (storageError) {
+      console.error(`❌ Failed to store identities in ${persona}'s IPFS:`, storageError);
+    }
+    
+    // Test identity resolution immediately
+    console.log(`🧪 Testing identity resolution for ${persona}:`);
+    const aliceResolvable = await linkedIdentities.getIdentity(aliceIdentity.hash);
+    const bobResolvable = await linkedIdentities.getIdentity(bobIdentity.hash);
+    console.log(`   Alice resolvable: ${aliceResolvable ? '✅' : '❌'}`);
+    console.log(`   Bob resolvable: ${bobResolvable ? '✅' : '❌'}`);
     
     console.log(`🔍 ${persona} identity verification:`);
     console.log(`   Identity ID: ${personaIdentity.id}`);
     console.log(`   Alice ID: ${aliceIdentity.id}`);
     console.log(`   Bob ID: ${bobIdentity.id}`);
+    console.log(`   Alice's identities instance: ${!!aliceIdentities}`);
+    console.log(`   Bob's identities instance: ${!!bobIdentities}`);
+    console.log(`   Alice cannot resolve Bob's identity from IPFS: ${!aliceResolvable}`);
+    console.log(`   Bob cannot resolve Alice's identity from IPFS: ${!bobResolvable}`);
     
     const orbitdbConfig = {
       ipfs: helia,
       id: `${persona}-${instanceId}-${Date.now()}-${Math.random()}`,
       directory: `./orbitdb-replication-${persona}-${instanceId}`,
       identity: personaIdentity,
-      identities: personaIdentities,
+      identities: linkedIdentities, // ← Use the IPFS-linked identities instead of shared
     };
 
     const orbitdb = await createOrbitDB(orbitdbConfig);
@@ -828,7 +853,7 @@
         console.log('🔐 Setting up database with write access for both peers');
         const multiAccessConfig = {
           ...databaseConfig,
-          AccessController: IPFSAccessController({ 
+          accessController: IPFSAccessController({ 
             write: [aliceIdentity.id, bobIdentity.id] 
           })
         };
