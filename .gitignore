@@ -8,8 +8,10 @@ orbitdb/
 # orbitdb-storacha-svelte-backup-restore-demo*/
 recipient-key.txt 
 delegation-token.txt
-ucan-* 
 orbitdb-ucan.car
+ucan-delegation.car
+*.car
+relay-datastore/
 demo-test*
 cid-bridge-test*
 ucan-bridge-test*

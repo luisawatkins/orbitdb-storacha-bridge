@@ -28,7 +28,6 @@
     "test:w3-cli": "node --experimental-vm-modules test/test-w3-cli-integration.js",
     "clear-space": "node scripts/clear-space.js",
     "ucan-demo": "node examples/ucan-demo.js",
-    "decontact-identity": "node examples/decontact-style-identity.js",
     "seed-backup-demo": "node examples/seed-to-orbitdb-backup.js",
     "monitor-propagation": "node monitor-propagation.js",
     "lint": "eslint lib/ examples/ test/",
