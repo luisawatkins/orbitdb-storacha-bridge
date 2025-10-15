@@ -36,6 +36,7 @@ When OrbitDB tried to resolve identities during access control checks, it would 
 The fix was minimal and targeted - just one key change in the `createOrbitDBInstance` function:
 
 ### Before (Broken):
+
 ```javascript
 // Used the shared identities system (not linked to this peer's IPFS)
 const personaIdentities = persona === "alice" ? aliceIdentities : bobIdentities;
@@ -48,6 +49,7 @@ const orbitdbConfig = {
 ```
 
 ### After (Fixed):
+
 ```javascript
 // 🔑 KEY FIX: Create identities instance linked to this peer's IPFS
 const linkedIdentities = await Identities({ ipfs: helia });
@@ -91,12 +93,13 @@ node test-identity-fix.js
 ```
 
 Expected output:
+
 ```
 ❌ Test 1: OLD WAY (shared identities - should fail)
    ❌ Alice resolves Bob: ❌ (expected fail)
    ❌ Bob resolves Alice: ❌ (expected fail)
 
-✅ Test 2: NEW WAY (IPFS-linked identities - should work)  
+✅ Test 2: NEW WAY (IPFS-linked identities - should work)
    ✅ Alice resolves Bob: ✅ (should work now!)
    ✅ Bob resolves Alice: ✅ (should work now!)
 
@@ -108,28 +111,30 @@ Cross-peer identity resolution: ✅ FIXED!
 
 The fix is already applied to:
 
-1. ✅ **StorachaTestWithReplication.svelte** - Lines 805-838 
+1. ✅ **StorachaTestWithReplication.svelte** - Lines 805-838
 2. ✅ **UCANOrbitDBAccessController.js** - Enhanced debugging added
 
 After this fix:
+
 - Alice and Bob should be able to replicate data successfully
-- Access control errors should disappear  
+- Access control errors should disappear
 - Your UCAN delegation system should work end-to-end
 - OrbitDB replication with cross-peer write access should function properly
 
 ## Verification Steps
 
 1. Start your Svelte application
-2. Initialize Alice (should succeed)  
+2. Initialize Alice (should succeed)
 3. Add todos in Alice (should succeed)
 4. Initialize Bob (should succeed - no more access control failures)
 5. Add todos in Bob (should replicate to Alice)
 6. Verify both peers can see each other's data
 
 The identity resolution debugging logs will now show:
+
 ```
 ✅ Alice resolves Alice: ✅
-✅ Alice resolves Bob: ✅ 
+✅ Alice resolves Bob: ✅
 ✅ Bob resolves Alice: ✅
 ✅ Bob resolves Bob: ✅
 ```

@@ -401,9 +401,9 @@
 
   // Helper function to get correct tab index based on enabled auth methods
   function getTabIndex(method) {
-    const tabs = ["credentials", "ucan"];
-    if (enableSeedAuth) tabs.push("seed");
-    if (enableEmailAuth) tabs.push("email");
+    const tabs = ['credentials', 'ucan'];
+    if (enableSeedAuth) tabs.push('seed');
+    if (enableEmailAuth) tabs.push('email');
     return tabs.indexOf(method);
   }
 
@@ -669,9 +669,7 @@
           <TabContent>
             <!-- Email Tab -->
             <div style="margin-top:1rem;">
-              <h4 style="font-weight:500;margin-bottom:1rem;">
-                Create Account
-              </h4>
+              <h4 style="font-weight:500;margin-bottom:1rem;">Create Account</h4>
               <div style="display:flex;flex-direction:column;gap:1rem;">
                 <TextInput
                   labelText="Email Address"

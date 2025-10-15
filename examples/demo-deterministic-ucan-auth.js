@@ -31,15 +31,15 @@ async function demonstrateDeterministicUCANAuth() {
     return
   }
   
-  let storachaClient
+  let storachaClient, writerClient, space
   try {
     const principal = Signer.parse(storachaKey)
     const store = new StoreMemory()
     storachaClient = await Client.create({ principal, store })
     
     const proof = await Proof.parse(storachaProof)
-    const space = await storachaClient.addSpace(proof)
-    await storachaClient.setCurrentSpace(space.did())
+    const initSpace = await storachaClient.addSpace(proof)
+    await storachaClient.setCurrentSpace(initSpace.did())
     
     console.log('✅ Storacha client initialized')
   } catch (error) {
@@ -119,7 +119,7 @@ async function demonstrateDeterministicUCANAuth() {
   try {
     // Create new client using the recipient principal
     const writerStore = new StoreMemory()
-    const writerClient = await Client.create({ 
+    writerClient = await Client.create({ 
       principal: authInfo.recipientPrincipal, 
       store: writerStore 
     })
@@ -138,7 +138,7 @@ async function demonstrateDeterministicUCANAuth() {
     console.log(`   📋 Capabilities: ${delegation.ok.capabilities.length}`)
     
     // Add the delegation as a space
-    const space = await writerClient.addSpace(delegation.ok)
+    space = await writerClient.addSpace(delegation.ok)
     await writerClient.setCurrentSpace(space.did())
     
     console.log(`   ✅ Space connected via UCAN: ${space.did()}`)
@@ -177,6 +177,11 @@ Uploaded at: ${new Date().toISOString()}`
   
   // Step 6: Test OrbitDB backup and restore with UCAN authentication
   console.log('\n🔄 Step 6: Testing OrbitDB backup and restore with UCAN authentication')
+  
+  if (!writerClient || !space) {
+    console.log('   ⚠️ Skipping OrbitDB backup/restore test - UCAN authentication failed in Step 4')
+    return
+  }
   
   try {
     // Import required modules for OrbitDB operations

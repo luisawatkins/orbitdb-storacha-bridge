@@ -15,3 +15,7 @@ relay-datastore/
 demo-test*
 cid-bridge-test*
 ucan-bridge-test*
+
+# Build directories
+examples/svelte/*/build/
+examples/svelte/*/dist/

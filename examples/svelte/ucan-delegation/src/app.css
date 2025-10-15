@@ -1,5 +1,5 @@
 /* Instead of local font files, import directly from the package */
-@import '@ibm/plex/css/ibm-plex.css';
+@import "@ibm/plex/css/ibm-plex.css";
 
 /* Import Carbon Design System styles in correct order */
 @import "carbon-components-svelte/css/white.css";

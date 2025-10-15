@@ -17,6 +17,14 @@ const buildDate =
   new Date().toLocaleTimeString(); // YYYY-MM-DD HH:MM:SS format
 
 export default defineConfig({
+  test: {
+    include: ['src/**/*.spec.{js,ts}'],
+    environment: 'happy-dom',
+    // Disable browser instance creation for tests
+    browser: {
+      enabled: false,
+    }
+  },
   plugins: [
     sveltekit(),
     nodePolyfills({

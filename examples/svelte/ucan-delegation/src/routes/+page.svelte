@@ -1,6 +1,6 @@
 <script>
-  import StorachaTest from "$lib/StorachaTest.svelte";
-  import StorachaTestWithWebAuthn from "$lib/StorachaTestWithWebAuthn.svelte"
+  // import StorachaTest from "$lib/StorachaTest.svelte";
+  import StorachaTestWithWebAuthn from "$lib/StorachaTestWithWebAuthn.svelte";
   import { theme } from "$lib/theme.js";
   import {
     Content,
@@ -158,36 +158,115 @@
         Decentralized Filecoin Storage for Local-First Peer-To-Peer Web & Mobile
         Apps
       </p>
-      
+
       <!-- Technology Stack Logos Row -->
-      <div style="display:flex;align-items:center;justify-content:center;gap:1.5rem;margin-top:1.5rem;flex-wrap:wrap;">
-        <a href="https://orbitdb.org/" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:0.25rem;text-decoration:none;color:inherit;">
-          <img src="/orbitdb.png" alt="OrbitDB" style="width:20px;height:20px;object-fit:contain;" />
-          <span style="font-size:0.75rem;color:var(--cds-text-secondary);">OrbitDB</span>
+      <div
+        style="display:flex;align-items:center;justify-content:center;gap:1.5rem;margin-top:1.5rem;flex-wrap:wrap;"
+      >
+        <a
+          href="https://orbitdb.org/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style="display:flex;align-items:center;gap:0.25rem;text-decoration:none;color:inherit;"
+        >
+          <img
+            src="/orbitdb.png"
+            alt="OrbitDB"
+            style="width:20px;height:20px;object-fit:contain;"
+          />
+          <span style="font-size:0.75rem;color:var(--cds-text-secondary);"
+            >OrbitDB</span
+          >
         </a>
-        <a href="https://docs.storacha.network/" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:0.25rem;text-decoration:none;color:inherit;">
-          <img src="/storacha-logo.jpeg" alt="Storacha" style="width:20px;height:20px;object-fit:contain;border-radius:4px;" />
-          <span style="font-size:0.75rem;color:var(--cds-text-secondary);">Storacha</span>
+        <a
+          href="https://docs.storacha.network/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style="display:flex;align-items:center;gap:0.25rem;text-decoration:none;color:inherit;"
+        >
+          <img
+            src="/storacha-logo.jpeg"
+            alt="Storacha"
+            style="width:20px;height:20px;object-fit:contain;border-radius:4px;"
+          />
+          <span style="font-size:0.75rem;color:var(--cds-text-secondary);"
+            >Storacha</span
+          >
         </a>
-        <a href="https://helia.io/" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:0.25rem;text-decoration:none;color:inherit;">
-          <img src="/helia.svg" alt="Helia" style="width:20px;height:20px;object-fit:contain;" />
-          <span style="font-size:0.75rem;color:var(--cds-text-secondary);">Helia</span>
+        <a
+          href="https://helia.io/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style="display:flex;align-items:center;gap:0.25rem;text-decoration:none;color:inherit;"
+        >
+          <img
+            src="/helia.svg"
+            alt="Helia"
+            style="width:20px;height:20px;object-fit:contain;"
+          />
+          <span style="font-size:0.75rem;color:var(--cds-text-secondary);"
+            >Helia</span
+          >
         </a>
-        <a href="https://docs.ipfs.tech/" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:0.25rem;text-decoration:none;color:inherit;">
-          <img src="/ipfs.png" alt="IPFS" style="width:20px;height:20px;object-fit:contain;" />
-          <span style="font-size:0.75rem;color:var(--cds-text-secondary);">IPFS</span>
+        <a
+          href="https://docs.ipfs.tech/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style="display:flex;align-items:center;gap:0.25rem;text-decoration:none;color:inherit;"
+        >
+          <img
+            src="/ipfs.png"
+            alt="IPFS"
+            style="width:20px;height:20px;object-fit:contain;"
+          />
+          <span style="font-size:0.75rem;color:var(--cds-text-secondary);"
+            >IPFS</span
+          >
         </a>
-        <a href="https://docs.libp2p.io/" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:0.25rem;text-decoration:none;color:inherit;">
-          <img src="/libp2p.png" alt="libp2p" style="width:20px;height:20px;object-fit:contain;" />
-          <span style="font-size:0.75rem;color:var(--cds-text-secondary);">libp2p</span>
+        <a
+          href="https://docs.libp2p.io/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style="display:flex;align-items:center;gap:0.25rem;text-decoration:none;color:inherit;"
+        >
+          <img
+            src="/libp2p.png"
+            alt="libp2p"
+            style="width:20px;height:20px;object-fit:contain;"
+          />
+          <span style="font-size:0.75rem;color:var(--cds-text-secondary);"
+            >libp2p</span
+          >
         </a>
-        <a href="https://docs.filecoin.io/" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:0.25rem;text-decoration:none;color:inherit;">
-          <img src="/filecoin.svg" alt="Filecoin" style="width:20px;height:20px;object-fit:contain;" />
-          <span style="font-size:0.75rem;color:var(--cds-text-secondary);">Filecoin</span>
+        <a
+          href="https://docs.filecoin.io/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style="display:flex;align-items:center;gap:0.25rem;text-decoration:none;color:inherit;"
+        >
+          <img
+            src="/filecoin.svg"
+            alt="Filecoin"
+            style="width:20px;height:20px;object-fit:contain;"
+          />
+          <span style="font-size:0.75rem;color:var(--cds-text-secondary);"
+            >Filecoin</span
+          >
         </a>
-        <a href="https://protocol.ai/" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:0.25rem;text-decoration:none;color:inherit;">
-          <img src="/protocol-labs.png" alt="Protocol Labs" style="width:20px;height:20px;object-fit:contain;" />
-          <span style="font-size:0.75rem;color:var(--cds-text-secondary);">Protocol Labs</span>
+        <a
+          href="https://protocol.ai/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style="display:flex;align-items:center;gap:0.25rem;text-decoration:none;color:inherit;"
+        >
+          <img
+            src="/protocol-labs.png"
+            alt="Protocol Labs"
+            style="width:20px;height:20px;object-fit:contain;"
+          />
+          <span style="font-size:0.75rem;color:var(--cds-text-secondary);"
+            >Protocol Labs</span
+          >
         </a>
       </div>
     </div>
