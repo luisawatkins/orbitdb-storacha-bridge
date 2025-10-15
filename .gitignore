@@ -1,7 +1,6 @@
 .env
 .DS_Store
 node_modules/
-pnpm-lock.yaml
 orbitdb/
 
 # orbitdb-storacha-svelte-backup-restore-demo/
