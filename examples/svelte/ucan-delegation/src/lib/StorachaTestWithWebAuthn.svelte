@@ -13,12 +13,16 @@
     Key,
   } from "lucide-svelte";
   // LibP2P and Helia imports - now using dedicated p2p module
-  import { 
-    createLibp2pNode, 
+  import {
+    createLibp2pNode,
     createHeliaNode,
     isUsingLocalRelay,
   } from "./p2p.js";
-  import { createOrbitDB, IPFSAccessController, useAccessController } from "@orbitdb/core";
+  import {
+    createOrbitDB,
+    IPFSAccessController,
+    useAccessController,
+  } from "@orbitdb/core";
   import UCANOrbitDBAccessController from "./UCANOrbitDBAccessController.js";
   import {
     backupDatabase,
@@ -75,12 +79,12 @@
     supported: false,
     platformAvailable: false,
     message: "",
-    checking: true
+    checking: true,
   };
 
   // Identity creation method
   let identityMethod = "webauthn"; // "mnemonic" or "webauthn"
-  
+
   // UCAN delegation method
   let useBridgeDelegation = true; // true = P-256 bridge, false = direct EdDSA
 
@@ -116,7 +120,7 @@
   let bobConnectedPeers = [];
   let bobMultiaddrs = [];
   let bobAddressReady = false;
-  
+
   // UCAN delegation state
   let storachaDelegation = null; // Storacha UCAN delegation from Alice to Bob
   let aliceUCANAccessController = null; // Reference to Alice's UCAN access controller
@@ -130,7 +134,7 @@
   let restoreResult = null;
   let showDetails = false;
   let replicationEnabled = true; // Enable P2P replication
-  
+
   // Connection state
   let peersConnected = false;
   let replicationEvents = [];
@@ -170,7 +174,7 @@
 
   // Keep track of database addresses
   let storachaTestDatabaseAddresses = new Set();
-  
+
   // Initialize WebAuthn support using the service
   async function initializeWebAuthnSupport() {
     try {
@@ -181,14 +185,14 @@
         supported: false,
         platformAvailable: false,
         message: "Unable to check WebAuthn support",
-        checking: false
+        checking: false,
       };
     }
   }
-  
+
   // Initialize on component mount
   initializeWebAuthnSupport();
-  
+
   // Set up OrbitDB service event callbacks
   orbitDBService.setEventCallbacks({
     addReplicationEvent,
@@ -204,10 +208,8 @@
       bobAddressReady = connectionState.bobAddressReady;
       peersConnected = connectionState.peersConnected;
     },
-    addResult
+    addResult,
   });
-  
-
 
   // Create and setup bridge with progress tracking
   function createStorachaBridge(credentials) {
@@ -373,7 +375,7 @@
       }
     }
   }
-  
+
   function addReplicationEvent(event) {
     const replicationEvent = {
       timestamp: new Date().toISOString(),
@@ -384,8 +386,6 @@
     replicationEvents = [...replicationEvents, replicationEvent].slice(-20); // Keep last 20 events
     console.log("🔄 Replication Event:", replicationEvent);
   }
-  
-  
 
   // OrbitDB instance creation now handled by OrbitDBService
   async function createOrbitDBInstance(
@@ -393,11 +393,11 @@
     instanceId,
     databaseName,
     databaseConfig,
-    openDatabase = true
+    openDatabase = true,
   ) {
     // Use OrbitDB service to create instance
     return await orbitDBService.createOrbitDBInstance(
-          persona,
+      persona,
       instanceId,
       databaseName,
       databaseConfig,
@@ -406,8 +406,8 @@
         replicationEnabled,
         sharedIdentity,
         bobIdentity,
-        sharedDatabaseAddress
-      }
+        sharedDatabaseAddress,
+      },
     );
   }
 
@@ -501,7 +501,10 @@
         );
 
         let identityResult;
-        identityResult = await identityService.createIdentity(identityMethod, "shared");
+        identityResult = await identityService.createIdentity(
+          identityMethod,
+          "shared",
+        );
         if (identityMethod === "webauthn") {
           sharedWebAuthnCredential = identityResult.webauthnCredential;
         }
@@ -525,59 +528,69 @@
       );
 
       // 🔐 UCAN ACCESS CONTROLLER CONFIGURATION
-      console.log('\n🔐 Configuring UCAN Access Controller for Alice:');
-      console.log('   🆔 Alice Identity ID:', sharedIdentity.id);
-      console.log('   🏷️ Identity Type:', sharedIdentity.type);
-      console.log('   🔑 Identity Key (for access):', sharedIdentity.key?.slice(0, 32) + '...' || 'NO KEY');
-      
+      console.log("\n🔐 Configuring UCAN Access Controller for Alice:");
+      console.log("   🆔 Alice Identity ID:", sharedIdentity.id);
+      console.log("   🏷️ Identity Type:", sharedIdentity.type);
+      console.log(
+        "   🔑 Identity Key (for access):",
+        sharedIdentity.key?.slice(0, 32) + "..." || "NO KEY",
+      );
+
       const writePermissions = [sharedIdentity.id];
-      console.log('   ✍️ Initial Write Permissions:', writePermissions);
-      console.log('   🔒 Access Control Type: UCAN');
-      
+      console.log("   ✍️ Initial Write Permissions:", writePermissions);
+      console.log("   🔒 Access Control Type: UCAN");
+
       // Register the UCAN access controller for full delegation support
-      console.log('   📋 Registering UCAN access controller with OrbitDB...');
+      console.log("   📋 Registering UCAN access controller with OrbitDB...");
       useAccessController(UCANOrbitDBAccessController);
-      console.log('   ✅ UCAN access controller registered');
-      
+      console.log("   ✅ UCAN access controller registered");
+
       const databaseConfig = {
         type: "keyvalue",
         create: true,
         sync: true,
         // Use UCAN OrbitDB Access Controller for delegation support
         // Specify the access controller by type and pass options via AccessController
-        AccessController: UCANOrbitDBAccessController({ 
+        AccessController: UCANOrbitDBAccessController({
           write: writePermissions,
-          storachaClient: storachaClient
+          storachaClient: storachaClient,
         }),
       };
-      
-      console.log('   ⚙️ Final Database Config:', {
+
+      console.log("   ⚙️ Final Database Config:", {
         type: databaseConfig.type,
-        accessControllerType: 'UCAN',
+        accessControllerType: "UCAN",
         writePermissions: writePermissions,
         hasAccessController: !!databaseConfig.AccessController,
-        accessControllerType: typeof databaseConfig.AccessController
+        accessControllerType: typeof databaseConfig.AccessController,
       });
 
       // DEBUG: Test the access controller function directly before using it
-      console.log('   🧪 Testing UCAN access controller function directly...');
+      console.log("   🧪 Testing UCAN access controller function directly...");
       try {
-        const testAccessController = UCANOrbitDBAccessController({ 
+        const testAccessController = UCANOrbitDBAccessController({
           write: writePermissions,
-          storachaClient: storachaClient
+          storachaClient: storachaClient,
         });
-        console.log('   ✅ UCAN access controller function created successfully:', {
-          type: typeof testAccessController,
-          hasCanAppend: typeof testAccessController.canAppend,
-          hasGrant: typeof testAccessController.grant,
-          hasType: !!testAccessController.type
-        });
+        console.log(
+          "   ✅ UCAN access controller function created successfully:",
+          {
+            type: typeof testAccessController,
+            hasCanAppend: typeof testAccessController.canAppend,
+            hasGrant: typeof testAccessController.grant,
+            hasType: !!testAccessController.type,
+          },
+        );
       } catch (acError) {
-        console.error('   ❌ UCAN access controller function failed:', acError);
-        throw new Error(`UCAN access controller creation failed: ${acError.message}`);
+        console.error("   ❌ UCAN access controller function failed:", acError);
+        throw new Error(
+          `UCAN access controller creation failed: ${acError.message}`,
+        );
       }
-      
-      console.log('   🚀 Creating OrbitDB instance with UCAN access controller...');
+
+      console.log(
+        "   🚀 Creating OrbitDB instance with UCAN access controller...",
+      );
       let instance;
       try {
         instance = await createOrbitDBInstance(
@@ -587,29 +600,38 @@
           databaseConfig,
           true, // Open database immediately
         );
-        console.log('   ✅ OrbitDB instance created successfully');
+        console.log("   ✅ OrbitDB instance created successfully");
       } catch (dbError) {
-        console.error('   ❌ OrbitDB instance creation failed:', dbError);
+        console.error("   ❌ OrbitDB instance creation failed:", dbError);
         throw dbError;
       }
       // Get instances from OrbitDB service
-      const alicePeer = orbitDBService.getPeer('alice');
+      const alicePeer = orbitDBService.getPeer("alice");
       aliceOrbitDB = alicePeer.orbitdb;
       aliceDatabase = alicePeer.database;
       aliceHelia = alicePeer.helia;
       aliceLibp2p = alicePeer.libp2p;
-      
+
       // Store reference to Alice's UCAN access controller for granting access to Bob
       aliceUCANAccessController = aliceDatabase.access;
-      
+
       // Debug: Check what's actually in the access controller
-      console.log('\n🔍 Debug: Checking database access controller:');
-      console.log('   📊 Type:', typeof aliceUCANAccessController);
-      console.log('   🏷️ Access type:', aliceUCANAccessController?.type);
-      console.log('   📋 Available properties:', Object.keys(aliceUCANAccessController || {}));
-      console.log('   🔧 Has grant?', typeof aliceUCANAccessController?.grant);
-      console.log('   🔧 Has revoke?', typeof aliceUCANAccessController?.revoke);
-      console.log('   🔧 Has canAppend?', typeof aliceUCANAccessController?.canAppend);
+      console.log("\n🔍 Debug: Checking database access controller:");
+      console.log("   📊 Type:", typeof aliceUCANAccessController);
+      console.log("   🏷️ Access type:", aliceUCANAccessController?.type);
+      console.log(
+        "   📋 Available properties:",
+        Object.keys(aliceUCANAccessController || {}),
+      );
+      console.log("   🔧 Has grant?", typeof aliceUCANAccessController?.grant);
+      console.log(
+        "   🔧 Has revoke?",
+        typeof aliceUCANAccessController?.revoke,
+      );
+      console.log(
+        "   🔧 Has canAppend?",
+        typeof aliceUCANAccessController?.canAppend,
+      );
 
       updateLastResult("alice", "success", `Alice's OrbitDB instance ready`, {
         orbitDBId: aliceOrbitDB.id,
@@ -642,12 +664,15 @@
         "running",
         "Adding test todos to database...",
       );
-      
+
       // First, create Bob's identity so we can assign todos to his actual DID
       if (!bobIdentity) {
-        console.log('\n🆔 Creating Bob\'s identity for todo assignment...');
+        console.log("\n🆔 Creating Bob's identity for todo assignment...");
         let bobIdentityResult;
-        bobIdentityResult = await identityService.createIdentity(identityMethod, "bob");
+        bobIdentityResult = await identityService.createIdentity(
+          identityMethod,
+          "bob",
+        );
         bobIdentity = bobIdentityResult.identity;
         bobIdentities = bobIdentityResult.identities;
         console.log(`   ✅ Bob\'s identity created: ${bobIdentity.id}`);
@@ -655,83 +680,157 @@
 
       for (let i = 0; i < originalTodos.length; i++) {
         const todo = { ...originalTodos[i] }; // Create a copy to modify
-        
+
         // Update assignee field with Bob's actual DID if it was assigned to "bob"
         if (todo.assignee === "bob") {
           todo.assignee = bobIdentity.id;
-          console.log(`   🎯 Updated todo "${todo.text}" assignee to Bob's DID: ${bobIdentity.id}`);
+          console.log(
+            `   🎯 Updated todo "${todo.text}" assignee to Bob's DID: ${bobIdentity.id}`,
+          );
         }
-        
+
         console.log(`📝 Adding todo ${i + 1}: ${todo.text}`);
-        
+
         const hash = await aliceDatabase.put(todo.id, todo);
-        
-        console.log(`✅ Todo ${i + 1} added with hash: ${hash.slice(0, 16)}...`);
-        
+
+        console.log(
+          `✅ Todo ${i + 1} added with hash: ${hash.slice(0, 16)}...`,
+        );
+
         // 🔍 DETAILED WEBAUTHN SIGNATURE VERIFICATION
         const entry = await aliceDatabase.log.get(hash);
         if (entry) {
-          console.log(`\n🔐 =============== TODO ${i + 1} SIGNATURE ANALYSIS ===============`);
-          console.log('📄 Entry Hash:', hash);
-          console.log('🆔 Entry Identity:', entry.identity);
-          console.log('🔑 Expected Identity (WebAuthn):', aliceOrbitDB.identity.id);
-          console.log('🔑 Expected Identity Hash:', aliceOrbitDB.identity.hash);
-          
+          console.log(
+            `\n🔐 =============== TODO ${i + 1} SIGNATURE ANALYSIS ===============`,
+          );
+          console.log("📄 Entry Hash:", hash);
+          console.log("🆔 Entry Identity:", entry.identity);
+          console.log(
+            "🔑 Expected Identity (WebAuthn):",
+            aliceOrbitDB.identity.id,
+          );
+          console.log("🔑 Expected Identity Hash:", aliceOrbitDB.identity.hash);
+
           // Check both DID and hash matches (OrbitDB may convert DID to hash for oplog)
           const didMatch = entry.identity === aliceOrbitDB.identity.id;
           const hashMatch = entry.identity === aliceOrbitDB.identity.hash;
           const isMatch = didMatch || hashMatch;
-          
-          console.log('✅ Identity Match:', isMatch ? '✅ YES' : '❌ NO');
-          console.log('   📊 DID Match:', didMatch ? '✅ YES' : '❌ NO');
-          console.log('   📊 Hash Match:', hashMatch ? '✅ YES' : '❌ NO');
-          
+
+          console.log("✅ Identity Match:", isMatch ? "✅ YES" : "❌ NO");
+          console.log("   📊 DID Match:", didMatch ? "✅ YES" : "❌ NO");
+          console.log("   📊 Hash Match:", hashMatch ? "✅ YES" : "❌ NO");
+
           // Signature Analysis
           if (entry.sig) {
-            console.log('🔐 Signature Present: ✅ YES');
-            console.log('   📏 Signature Length:', entry.sig.length, 'characters');
-            console.log('   🔤 Signature Preview:', entry.sig.slice(0, 64) + '...');
-            console.log('   🔍 Signature Type: WebAuthn (base64url encoded)');
-            
+            console.log("🔐 Signature Present: ✅ YES");
+            console.log(
+              "   📏 Signature Length:",
+              entry.sig.length,
+              "characters",
+            );
+            console.log(
+              "   🔤 Signature Preview:",
+              entry.sig.slice(0, 64) + "...",
+            );
+            console.log("   🔍 Signature Type: WebAuthn (base64url encoded)");
+
             // Try to decode and analyze the WebAuthn proof
             try {
-              const proofBytes = new Uint8Array(Array.from(atob(entry.sig.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)));
+              const proofBytes = new Uint8Array(
+                Array.from(
+                  atob(entry.sig.replace(/-/g, "+").replace(/_/g, "/")),
+                  (c) => c.charCodeAt(0),
+                ),
+              );
               const proofText = new TextDecoder().decode(proofBytes);
               const webauthnProof = JSON.parse(proofText);
-              
-              console.log('   🧪 WebAuthn Proof Structure:');
-              console.log('      🆔 Credential ID:', webauthnProof.credentialId?.slice(0, 16) + '...' || 'MISSING');
-              console.log('      📊 Data Hash:', webauthnProof.dataHash?.slice(0, 16) + '...' || 'MISSING');
-              console.log('      🔐 Auth Data:', webauthnProof.authenticatorData ? 'PRESENT' : 'MISSING');
-              console.log('      📱 Client Data:', webauthnProof.clientDataJSON ? 'PRESENT' : 'MISSING');
-              console.log('      ⏰ Timestamp:', webauthnProof.timestamp ? new Date(webauthnProof.timestamp).toISOString() : 'MISSING');
-              
+
+              console.log("   🧪 WebAuthn Proof Structure:");
+              console.log(
+                "      🆔 Credential ID:",
+                webauthnProof.credentialId?.slice(0, 16) + "..." || "MISSING",
+              );
+              console.log(
+                "      📊 Data Hash:",
+                webauthnProof.dataHash?.slice(0, 16) + "..." || "MISSING",
+              );
+              console.log(
+                "      🔐 Auth Data:",
+                webauthnProof.authenticatorData ? "PRESENT" : "MISSING",
+              );
+              console.log(
+                "      📱 Client Data:",
+                webauthnProof.clientDataJSON ? "PRESENT" : "MISSING",
+              );
+              console.log(
+                "      ⏰ Timestamp:",
+                webauthnProof.timestamp
+                  ? new Date(webauthnProof.timestamp).toISOString()
+                  : "MISSING",
+              );
+
               // Verify the credential ID matches our WebAuthn credential
-              if (sharedWebAuthnCredential && sharedWebAuthnCredential.credentialId) {
-                const credentialMatch = webauthnProof.credentialId === sharedWebAuthnCredential.credentialId;
-                console.log('      🔗 Credential Match:', credentialMatch ? '✅ YES' : '❌ NO');
+              if (
+                sharedWebAuthnCredential &&
+                sharedWebAuthnCredential.credentialId
+              ) {
+                const credentialMatch =
+                  webauthnProof.credentialId ===
+                  sharedWebAuthnCredential.credentialId;
+                console.log(
+                  "      🔗 Credential Match:",
+                  credentialMatch ? "✅ YES" : "❌ NO",
+                );
                 if (!credentialMatch) {
-                  console.log('         Expected:', sharedWebAuthnCredential.credentialId?.slice(0, 16) + '...');
-                  console.log('         Got:', webauthnProof.credentialId?.slice(0, 16) + '...');
+                  console.log(
+                    "         Expected:",
+                    sharedWebAuthnCredential.credentialId?.slice(0, 16) + "...",
+                  );
+                  console.log(
+                    "         Got:",
+                    webauthnProof.credentialId?.slice(0, 16) + "...",
+                  );
                 }
               }
-              
-              console.log('   ✅ WebAuthn Proof Successfully Decoded and Analyzed!');
+
+              console.log(
+                "   ✅ WebAuthn Proof Successfully Decoded and Analyzed!",
+              );
             } catch (decodeError) {
-              console.log('   ⚠️ Could not decode WebAuthn proof:', decodeError.message);
-              console.log('   📄 Raw signature might not be WebAuthn format');
+              console.log(
+                "   ⚠️ Could not decode WebAuthn proof:",
+                decodeError.message,
+              );
+              console.log("   📄 Raw signature might not be WebAuthn format");
             }
           } else {
-            console.log('🔐 Signature Present: ❌ NO - This entry is NOT SIGNED!');
-            console.log('   ⚠️ WARNING: Missing signature indicates signing failure!');
+            console.log(
+              "🔐 Signature Present: ❌ NO - This entry is NOT SIGNED!",
+            );
+            console.log(
+              "   ⚠️ WARNING: Missing signature indicates signing failure!",
+            );
           }
-          
+
           // Clock and Payload Analysis
-          console.log('⏰ Clock Info:', entry.clock ? `{id: ${entry.clock.id?.slice(0, 16)}..., time: ${entry.clock.time}}` : 'NO CLOCK');
-          console.log('📦 Payload Operation:', entry.payload?.op || 'NO OPERATION');
-          console.log('🔑 Payload Key:', entry.payload?.key || entry.key || 'NO KEY');
-          
-          console.log(`🔐 =============== END TODO ${i + 1} ANALYSIS ===============\n`);
+          console.log(
+            "⏰ Clock Info:",
+            entry.clock
+              ? `{id: ${entry.clock.id?.slice(0, 16)}..., time: ${entry.clock.time}}`
+              : "NO CLOCK",
+          );
+          console.log(
+            "📦 Payload Operation:",
+            entry.payload?.op || "NO OPERATION",
+          );
+          console.log(
+            "🔑 Payload Key:",
+            entry.payload?.key || entry.key || "NO KEY",
+          );
+
+          console.log(
+            `🔐 =============== END TODO ${i + 1} ANALYSIS ===============\n`,
+          );
         } else {
           console.log(`❌ Could not retrieve oplog entry for hash: ${hash}`);
         }
@@ -739,172 +838,261 @@
 
       // Get all todos to verify and display
       aliceTodos = await aliceDatabase.all();
-      
+
       // Grant Bob write access to Alice's database and create Storacha delegation
-      console.log('\n🎁 Granting Bob access to Alice\'s database...');
+      console.log("\n🎁 Granting Bob access to Alice's database...");
       if (aliceUCANAccessController && bobIdentity) {
         try {
           // Grant Bob write access to Alice's database
-          const delegationToken = await aliceUCANAccessController.grant('write', bobIdentity.id);
+          const delegationToken = await aliceUCANAccessController.grant(
+            "write",
+            bobIdentity.id,
+          );
           console.log(`   ✅ Granted write access to Bob: ${bobIdentity.id}`);
-          
+
           // Create Storacha UCAN delegation for Bob
-          console.log('\n🚀 Creating Storacha delegation for Bob...');
+          console.log("\n🚀 Creating Storacha delegation for Bob...");
           if (useBridgeDelegation) {
-            console.log('   🌉 Using bridge delegation: EdDSA → P-256 → P-256');
-            storachaDelegation = await ucanService.createDelegation('bridge', bobIdentity.id, storachaClient, sharedIdentity);
+            console.log("   🌉 Using bridge delegation: EdDSA → P-256 → P-256");
+            storachaDelegation = await ucanService.createDelegation(
+              "bridge",
+              bobIdentity.id,
+              storachaClient,
+              sharedIdentity,
+            );
           } else {
-            console.log('   📤 Using direct EdDSA delegation');
-            storachaDelegation = await ucanService.createDelegation('direct', bobIdentity.id, storachaClient);
+            console.log("   📤 Using direct EdDSA delegation");
+            storachaDelegation = await ucanService.createDelegation(
+              "direct",
+              bobIdentity.id,
+              storachaClient,
+            );
           }
-          console.log(`   ✅ Storacha delegation created (${storachaDelegation.delegationType || 'direct'})`);
-          console.log(`   📝 Delegation token length: ${storachaDelegation.delegationToken?.length || 'N/A'}`);
-          
+          console.log(
+            `   ✅ Storacha delegation created (${storachaDelegation.delegationType || "direct"})`,
+          );
+          console.log(
+            `   📝 Delegation token length: ${storachaDelegation.delegationToken?.length || "N/A"}`,
+          );
         } catch (grantError) {
-          console.error(`   ❌ Failed to grant access or create delegation: ${grantError.message}`);
+          console.error(
+            `   ❌ Failed to grant access or create delegation: ${grantError.message}`,
+          );
         }
       } else {
-        console.warn('   ⚠️ Could not grant access - missing access controller or Bob identity');
+        console.warn(
+          "   ⚠️ Could not grant access - missing access controller or Bob identity",
+        );
       }
 
       // 🔍 ITERATE OVER THE ENTIRE OPLOG HISTORY
-      console.log('\n🗂️ =============== COMPLETE OPLOG HISTORY ===============');
-      console.log('📊 Database:', aliceDatabase.name);
-      console.log('📍 Address:', aliceDatabase.address);
-      console.log('🆔 Database Identity:', aliceDatabase.identity?.id);
-      console.log('📝 Total Todos Added:', aliceTodos.length);
-      
+      console.log(
+        "\n🗂️ =============== COMPLETE OPLOG HISTORY ===============",
+      );
+      console.log("📊 Database:", aliceDatabase.name);
+      console.log("📍 Address:", aliceDatabase.address);
+      console.log("🆔 Database Identity:", aliceDatabase.identity?.id);
+      console.log("📝 Total Todos Added:", aliceTodos.length);
+
       try {
-        console.log('\n🔄 Iterating through oplog entries...');
-        
+        console.log("\n🔄 Iterating through oplog entries...");
+
         // Get the oplog from the database
         const oplog = aliceDatabase.log;
-        console.log('📋 Oplog basic info:', {
-          hasIterator: typeof oplog.iterator === 'function',
-          length: oplog.length || 'unknown'
+        console.log("📋 Oplog basic info:", {
+          hasIterator: typeof oplog.iterator === "function",
+          length: oplog.length || "unknown",
         });
-        
-        // Method 1: Use the correct OrbitDB API - log.iterator() 
+
+        // Method 1: Use the correct OrbitDB API - log.iterator()
         let entryCount = 0;
-        if (typeof oplog.iterator === 'function') {
-          console.log('\n📖 Using log.iterator() to traverse ALL entries:');
-          
+        if (typeof oplog.iterator === "function") {
+          console.log("\n📖 Using log.iterator() to traverse ALL entries:");
+
           try {
             for await (const entry of oplog.iterator()) {
               entryCount++;
               console.log(`\n📄 Entry #${entryCount}:`);
-              console.log('   🔗 Hash:', entry.hash?.toString() || entry.hash);
-              console.log('   🆔 Identity:', entry.identity);
-              console.log('   🔑 Key:', entry.key || entry.payload?.key);
-              console.log('   📋 Operation:', entry.payload?.op);
-              console.log('   💾 Value Preview:', JSON.stringify(entry.payload?.value || entry.value)?.slice(0, 100) + '...');
-              console.log('   🔐 Signature:', entry.sig ? `${entry.sig.slice(0, 32)}... (${entry.sig.length} chars)` : 'NO SIGNATURE');
-              console.log('   ⏰ Clock:', entry.clock ? `{id: ${entry.clock.id?.slice(0, 16)}..., time: ${entry.clock.time}}` : 'NO CLOCK');
-              
+              console.log("   🔗 Hash:", entry.hash?.toString() || entry.hash);
+              console.log("   🆔 Identity:", entry.identity);
+              console.log("   🔑 Key:", entry.key || entry.payload?.key);
+              console.log("   📋 Operation:", entry.payload?.op);
+              console.log(
+                "   💾 Value Preview:",
+                JSON.stringify(entry.payload?.value || entry.value)?.slice(
+                  0,
+                  100,
+                ) + "...",
+              );
+              console.log(
+                "   🔐 Signature:",
+                entry.sig
+                  ? `${entry.sig.slice(0, 32)}... (${entry.sig.length} chars)`
+                  : "NO SIGNATURE",
+              );
+              console.log(
+                "   ⏰ Clock:",
+                entry.clock
+                  ? `{id: ${entry.clock.id?.slice(0, 16)}..., time: ${entry.clock.time}}`
+                  : "NO CLOCK",
+              );
+
               // Handle next and refs arrays safely
-              const nextRefs = Array.isArray(entry.next) ? entry.next.map(n => n.toString().slice(0, 16) + '...') : (entry.next ? [entry.next.toString().slice(0, 16) + '...'] : []);
-              const refs = Array.isArray(entry.refs) ? entry.refs.map(r => r.toString().slice(0, 16) + '...') : (entry.refs ? [entry.refs.toString().slice(0, 16) + '...'] : []);
-              
-              console.log('   🔗 Next:', nextRefs.length > 0 ? nextRefs : 'NO NEXT');
-              console.log('   📎 Refs:', refs.length > 0 ? refs : 'NO REFS');
-              
+              const nextRefs = Array.isArray(entry.next)
+                ? entry.next.map((n) => n.toString().slice(0, 16) + "...")
+                : entry.next
+                  ? [entry.next.toString().slice(0, 16) + "..."]
+                  : [];
+              const refs = Array.isArray(entry.refs)
+                ? entry.refs.map((r) => r.toString().slice(0, 16) + "...")
+                : entry.refs
+                  ? [entry.refs.toString().slice(0, 16) + "..."]
+                  : [];
+
+              console.log(
+                "   🔗 Next:",
+                nextRefs.length > 0 ? nextRefs : "NO NEXT",
+              );
+              console.log("   📎 Refs:", refs.length > 0 ? refs : "NO REFS");
+
               // Show full entry structure (collapsed)
-              console.log('   🏗️ Full Entry Structure:', {
+              console.log("   🏗️ Full Entry Structure:", {
                 version: entry.v,
                 id: entry.id,
                 key: entry.key,
-                identity: entry.identity?.slice ? entry.identity.slice(0, 32) + '...' : entry.identity,
-                signature: entry.sig ? entry.sig.slice(0, 32) + '...' : null,
+                identity: entry.identity?.slice
+                  ? entry.identity.slice(0, 32) + "..."
+                  : entry.identity,
+                signature: entry.sig ? entry.sig.slice(0, 32) + "..." : null,
                 payloadKeys: Object.keys(entry.payload || {}),
                 hasNext: !!entry.next,
                 hasRefs: !!entry.refs,
-                hasClock: !!entry.clock
+                hasClock: !!entry.clock,
               });
-              
+
               // Limit output to prevent console overflow
               if (entryCount >= 10) {
-                console.log('   ⚠️ Limiting output to first 10 entries to prevent console overflow...');
+                console.log(
+                  "   ⚠️ Limiting output to first 10 entries to prevent console overflow...",
+                );
                 break;
               }
             }
           } catch (iteratorError) {
-            console.error('❌ Error using log.iterator():', iteratorError.message);
+            console.error(
+              "❌ Error using log.iterator():",
+              iteratorError.message,
+            );
             entryCount = 0; // Reset to try alternative methods
           }
         } else {
-          console.log('⚠️ log.iterator() not available, trying alternative methods...');
+          console.log(
+            "⚠️ log.iterator() not available, trying alternative methods...",
+          );
         }
-        
+
         // Method 2: Try using database.iterator() as fallback (for database entries)
         if (entryCount === 0) {
-          console.log('\n📖 Trying database.iterator() as fallback:');
+          console.log("\n📖 Trying database.iterator() as fallback:");
           try {
             for await (const record of aliceDatabase.iterator()) {
               entryCount++;
               console.log(`\n📄 Database Record #${entryCount}:`);
-              console.log('   🔑 Key:', record.key);
-              console.log('   💾 Value:', JSON.stringify(record.value)?.slice(0, 100) + '...');
-              console.log('   🔗 Hash:', record.hash?.toString() || 'NO HASH');
-              
+              console.log("   🔑 Key:", record.key);
+              console.log(
+                "   💾 Value:",
+                JSON.stringify(record.value)?.slice(0, 100) + "...",
+              );
+              console.log("   🔗 Hash:", record.hash?.toString() || "NO HASH");
+
               // Try to get the actual oplog entry for this record
               if (record.hash) {
                 try {
                   const oplogEntry = await aliceDatabase.log.get(record.hash);
                   if (oplogEntry) {
-                    console.log('   🔐 Signature:', oplogEntry.sig ? `${oplogEntry.sig.slice(0, 32)}... (${oplogEntry.sig.length} chars)` : 'NO SIGNATURE');
-                    console.log('   🆔 Entry Identity:', oplogEntry.identity);
+                    console.log(
+                      "   🔐 Signature:",
+                      oplogEntry.sig
+                        ? `${oplogEntry.sig.slice(0, 32)}... (${oplogEntry.sig.length} chars)`
+                        : "NO SIGNATURE",
+                    );
+                    console.log("   🆔 Entry Identity:", oplogEntry.identity);
                   }
                 } catch (getError) {
-                  console.log('   ⚠️ Could not get oplog entry for record:', getError.message);
+                  console.log(
+                    "   ⚠️ Could not get oplog entry for record:",
+                    getError.message,
+                  );
                 }
               }
-              
+
               // Limit output
               if (entryCount >= 10) {
-                console.log('   ⚠️ Limiting output to first 10 records...');
+                console.log("   ⚠️ Limiting output to first 10 records...");
                 break;
               }
             }
           } catch (dbIteratorError) {
-            console.error('❌ Error using database.iterator():', dbIteratorError.message);
+            console.error(
+              "❌ Error using database.iterator():",
+              dbIteratorError.message,
+            );
           }
         }
-        
+
         // Summary
         console.log(`\n📊 OPLOG SUMMARY:`);
         console.log(`   📝 Total Entries Found: ${entryCount}`);
         console.log(`   🗄️ Database Todos: ${aliceTodos.length}`);
-        console.log(`   🔍 Match: ${entryCount >= aliceTodos.length ? '✅ YES' : '❌ NO - Missing entries'}`);
-        
+        console.log(
+          `   🔍 Match: ${entryCount >= aliceTodos.length ? "✅ YES" : "❌ NO - Missing entries"}`,
+        );
+
         // 🔐 WEBAUTHN SIGNATURE VERIFICATION SUMMARY
-        console.log(`\n🔐 =============== WEBAUTHN SIGNATURE SUMMARY ===============`);
-        
+        console.log(
+          `\n🔐 =============== WEBAUTHN SIGNATURE SUMMARY ===============`,
+        );
+
         // Analyze all entries for WebAuthn signatures
         let signedEntries = 0;
         let webauthnProofs = 0;
         let identityMatches = 0;
         let credentialMatches = 0;
-        
+
         try {
           for await (const entry of oplog.iterator()) {
             if (entry.sig) {
               signedEntries++;
-              
+
               // Check identity match
-              const identityMatch = entry.identity === aliceOrbitDB.identity.id || entry.identity === aliceOrbitDB.identity.hash;
+              const identityMatch =
+                entry.identity === aliceOrbitDB.identity.id ||
+                entry.identity === aliceOrbitDB.identity.hash;
               if (identityMatch) identityMatches++;
-              
+
               // Try to decode WebAuthn proof
               try {
-                const proofBytes = new Uint8Array(Array.from(atob(entry.sig.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)));
+                const proofBytes = new Uint8Array(
+                  Array.from(
+                    atob(entry.sig.replace(/-/g, "+").replace(/_/g, "/")),
+                    (c) => c.charCodeAt(0),
+                  ),
+                );
                 const proofText = new TextDecoder().decode(proofBytes);
                 const webauthnProof = JSON.parse(proofText);
-                
-                if (webauthnProof.credentialId && webauthnProof.authenticatorData) {
+
+                if (
+                  webauthnProof.credentialId &&
+                  webauthnProof.authenticatorData
+                ) {
                   webauthnProofs++;
-                  
+
                   // Check credential match
-                  if (sharedWebAuthnCredential && webauthnProof.credentialId === sharedWebAuthnCredential.credentialId) {
+                  if (
+                    sharedWebAuthnCredential &&
+                    webauthnProof.credentialId ===
+                      sharedWebAuthnCredential.credentialId
+                  ) {
                     credentialMatches++;
                   }
                 }
@@ -914,167 +1102,260 @@
             }
           }
         } catch (iterError) {
-          console.log('   ⚠️ Could not iterate for signature analysis:', iterError.message);
+          console.log(
+            "   ⚠️ Could not iterate for signature analysis:",
+            iterError.message,
+          );
         }
-        
-        console.log('📊 Signature Analysis Results:');
+
+        console.log("📊 Signature Analysis Results:");
         console.log(`   📝 Total Entries: ${entryCount}`);
-        console.log(`   ✍️ Signed Entries: ${signedEntries}/${entryCount} (${entryCount > 0 ? Math.round(signedEntries/entryCount*100) : 0}%)`);
-        console.log(`   🔐 WebAuthn Proofs: ${webauthnProofs}/${signedEntries} (${signedEntries > 0 ? Math.round(webauthnProofs/signedEntries*100) : 0}%)`);
-        console.log(`   🆔 Identity Matches: ${identityMatches}/${entryCount} (${entryCount > 0 ? Math.round(identityMatches/entryCount*100) : 0}%)`);
-        console.log(`   🔗 Credential Matches: ${credentialMatches}/${webauthnProofs} (${webauthnProofs > 0 ? Math.round(credentialMatches/webauthnProofs*100) : 0}%)`);
-        
+        console.log(
+          `   ✍️ Signed Entries: ${signedEntries}/${entryCount} (${entryCount > 0 ? Math.round((signedEntries / entryCount) * 100) : 0}%)`,
+        );
+        console.log(
+          `   🔐 WebAuthn Proofs: ${webauthnProofs}/${signedEntries} (${signedEntries > 0 ? Math.round((webauthnProofs / signedEntries) * 100) : 0}%)`,
+        );
+        console.log(
+          `   🆔 Identity Matches: ${identityMatches}/${entryCount} (${entryCount > 0 ? Math.round((identityMatches / entryCount) * 100) : 0}%)`,
+        );
+        console.log(
+          `   🔗 Credential Matches: ${credentialMatches}/${webauthnProofs} (${webauthnProofs > 0 ? Math.round((credentialMatches / webauthnProofs) * 100) : 0}%)`,
+        );
+
         // Overall assessment
         const allSigned = signedEntries === entryCount && entryCount > 0;
-        const allWebAuthn = webauthnProofs === signedEntries && signedEntries > 0;
-        const allMatchingIdentity = identityMatches === entryCount && entryCount > 0;
-        const allMatchingCredential = credentialMatches === webauthnProofs && webauthnProofs > 0;
-        
-        console.log('\n🏆 Overall Assessment:');
-        console.log(`   📝 All entries signed: ${allSigned ? '✅ YES' : '❌ NO'}`);
-        console.log(`   🔐 All signatures are WebAuthn: ${allWebAuthn ? '✅ YES' : '❌ NO'}`);
-        console.log(`   🆔 All identities match: ${allMatchingIdentity ? '✅ YES' : '❌ NO'}`);
-        console.log(`   🔗 All credentials match: ${allMatchingCredential ? '✅ YES' : '❌ NO'}`);
-        
-        const perfect = allSigned && allWebAuthn && allMatchingIdentity && allMatchingCredential;
-        console.log(`   🎯 WebAuthn Integration: ${perfect ? '🎉 PERFECT!' : '⚠️ NEEDS ATTENTION'}`);
-        
+        const allWebAuthn =
+          webauthnProofs === signedEntries && signedEntries > 0;
+        const allMatchingIdentity =
+          identityMatches === entryCount && entryCount > 0;
+        const allMatchingCredential =
+          credentialMatches === webauthnProofs && webauthnProofs > 0;
+
+        console.log("\n🏆 Overall Assessment:");
+        console.log(
+          `   📝 All entries signed: ${allSigned ? "✅ YES" : "❌ NO"}`,
+        );
+        console.log(
+          `   🔐 All signatures are WebAuthn: ${allWebAuthn ? "✅ YES" : "❌ NO"}`,
+        );
+        console.log(
+          `   🆔 All identities match: ${allMatchingIdentity ? "✅ YES" : "❌ NO"}`,
+        );
+        console.log(
+          `   🔗 All credentials match: ${allMatchingCredential ? "✅ YES" : "❌ NO"}`,
+        );
+
+        const perfect =
+          allSigned &&
+          allWebAuthn &&
+          allMatchingIdentity &&
+          allMatchingCredential;
+        console.log(
+          `   🎯 WebAuthn Integration: ${perfect ? "🎉 PERFECT!" : "⚠️ NEEDS ATTENTION"}`,
+        );
+
         console.log(`🔐 =============== END WEBAUTHN SUMMARY ===============`);
-        
+
         // Additional oplog info
         console.log(`\n🔧 Oplog Technical Details:`);
-        console.log(`   📊 Oplog Length:`, oplog.length || 'unknown');
+        console.log(`   📊 Oplog Length:`, oplog.length || "unknown");
         console.log(`   🆔 Oplog Type:`, typeof oplog);
-        console.log(`   📋 Available Methods:`, Object.getOwnPropertyNames(oplog).filter(prop => typeof oplog[prop] === 'function'));
-        
+        console.log(
+          `   📋 Available Methods:`,
+          Object.getOwnPropertyNames(oplog).filter(
+            (prop) => typeof oplog[prop] === "function",
+          ),
+        );
       } catch (error) {
-        console.error('❌ Error iterating oplog:', error);
-        console.error('   Error details:', error.message);
-        console.error('   Error stack:', error.stack?.slice(0, 500) + '...');
+        console.error("❌ Error iterating oplog:", error);
+        console.error("   Error details:", error.message);
+        console.error("   Error stack:", error.stack?.slice(0, 500) + "...");
       }
-      
-      console.log('🗂️ =============== END OPLOG HISTORY ===============\n');
+
+      console.log("🗂️ =============== END OPLOG HISTORY ===============\n");
 
       // 🔒 ACCESS CONTROLLER INSPECTION
-      console.log('\n🔒 =============== ACCESS CONTROLLER ANALYSIS ===============');
+      console.log(
+        "\n🔒 =============== ACCESS CONTROLLER ANALYSIS ===============",
+      );
       try {
         const database = aliceDatabase;
-        console.log('🎯 Database Access Controller Details:');
-        console.log('   📊 Database Name:', database.name);
-        console.log('   🆔 Database Identity:', database.identity?.id);
-        console.log('   📍 Database Address:', database.address);
-        
+        console.log("🎯 Database Access Controller Details:");
+        console.log("   📊 Database Name:", database.name);
+        console.log("   🆔 Database Identity:", database.identity?.id);
+        console.log("   📍 Database Address:", database.address);
+
         // Check if access controller exists
         if (database.access) {
-          console.log('\n🔐 Access Controller Found:');
-          console.log('   🏷️ Type:', database.access.type || typeof database.access);
-          console.log('   📋 Available Methods:', Object.getOwnPropertyNames(database.access).filter(prop => typeof database.access[prop] === 'function'));
-          
+          console.log("\n🔐 Access Controller Found:");
+          console.log(
+            "   🏷️ Type:",
+            database.access.type || typeof database.access,
+          );
+          console.log(
+            "   📋 Available Methods:",
+            Object.getOwnPropertyNames(database.access).filter(
+              (prop) => typeof database.access[prop] === "function",
+            ),
+          );
+
           // Check for write permissions
           if (database.access.write) {
-            console.log('\n✍️ Write Permissions:');
+            console.log("\n✍️ Write Permissions:");
             if (Array.isArray(database.access.write)) {
-              console.log('   📝 Write Array:', database.access.write);
-              console.log('   📊 Total Writers:', database.access.write.length);
-              
+              console.log("   📝 Write Array:", database.access.write);
+              console.log("   📊 Total Writers:", database.access.write.length);
+
               // Check if wildcard is present
-              if (database.access.write.includes('*')) {
-                console.log('   🌟 WILDCARD ACCESS: * found - ALL identities can write');
-                console.log('   ⚠️ WARNING: Using wildcard access - this was the old configuration!');
+              if (database.access.write.includes("*")) {
+                console.log(
+                  "   🌟 WILDCARD ACCESS: * found - ALL identities can write",
+                );
+                console.log(
+                  "   ⚠️ WARNING: Using wildcard access - this was the old configuration!",
+                );
               } else {
-                console.log('   🔒 RESTRICTED ACCESS: Only specific identities can write');
-                console.log('   ✅ GOOD: Using identity-based access control as intended');
+                console.log(
+                  "   🔒 RESTRICTED ACCESS: Only specific identities can write",
+                );
+                console.log(
+                  "   ✅ GOOD: Using identity-based access control as intended",
+                );
               }
-              
+
               // Additional security analysis
-              const hasWildcard = database.access.write.includes('*');
-              const hasSpecificIdentities = database.access.write.some(id => id !== '*');
-              
+              const hasWildcard = database.access.write.includes("*");
+              const hasSpecificIdentities = database.access.write.some(
+                (id) => id !== "*",
+              );
+
               if (hasWildcard && hasSpecificIdentities) {
-                console.log('   ⚠️ MIXED ACCESS: Both wildcard (*) AND specific identities present');
-                console.log('   📝 This means the wildcard makes specific identities redundant');
+                console.log(
+                  "   ⚠️ MIXED ACCESS: Both wildcard (*) AND specific identities present",
+                );
+                console.log(
+                  "   📝 This means the wildcard makes specific identities redundant",
+                );
               } else if (hasWildcard) {
-                console.log('   🌍 OPEN ACCESS: Only wildcard present - any identity can write');
+                console.log(
+                  "   🌍 OPEN ACCESS: Only wildcard present - any identity can write",
+                );
               } else {
-                console.log('   🔐 SECURE ACCESS: Only specific identities can write (recommended)');
+                console.log(
+                  "   🔐 SECURE ACCESS: Only specific identities can write (recommended)",
+                );
               }
-              
+
               // Check if our WebAuthn identity is in the list
               const ourIdentityId = database.identity?.id;
-              if (ourIdentityId && database.access.write.includes(ourIdentityId)) {
-                console.log('   ✅ OUR IDENTITY ALLOWED:', ourIdentityId.slice(0, 32) + '...');
+              if (
+                ourIdentityId &&
+                database.access.write.includes(ourIdentityId)
+              ) {
+                console.log(
+                  "   ✅ OUR IDENTITY ALLOWED:",
+                  ourIdentityId.slice(0, 32) + "...",
+                );
               } else if (ourIdentityId) {
-                console.log('   ❌ OUR IDENTITY NOT IN LIST:', ourIdentityId.slice(0, 32) + '...');
-                console.log('   ⚠️ This might cause write failures!');
+                console.log(
+                  "   ❌ OUR IDENTITY NOT IN LIST:",
+                  ourIdentityId.slice(0, 32) + "...",
+                );
+                console.log("   ⚠️ This might cause write failures!");
               }
-              
+
               // Show each allowed identity
               database.access.write.forEach((identity, index) => {
-                if (identity === '*') {
-                  console.log(`   ${index + 1}. 🌟 WILDCARD: * (allows all identities)`);
+                if (identity === "*") {
+                  console.log(
+                    `   ${index + 1}. 🌟 WILDCARD: * (allows all identities)`,
+                  );
                 } else {
                   const isOurs = identity === ourIdentityId;
-                  console.log(`   ${index + 1}. ${isOurs ? '👤 OUR IDENTITY' : '👥 OTHER IDENTITY'}: ${identity.slice(0, 32)}...`);
+                  console.log(
+                    `   ${index + 1}. ${isOurs ? "👤 OUR IDENTITY" : "👥 OTHER IDENTITY"}: ${identity.slice(0, 32)}...`,
+                  );
                 }
               });
             } else {
-              console.log('   📝 Write Property (not array):', database.access.write);
+              console.log(
+                "   📝 Write Property (not array):",
+                database.access.write,
+              );
             }
           } else {
-            console.log('   ⚠️ No write property found on access controller');
+            console.log("   ⚠️ No write property found on access controller");
           }
-          
+
           // Test access controller methods
-          if (typeof database.access.canAppend === 'function') {
-            console.log('\n🧪 Testing Access Controller canAppend method:');
-            
+          if (typeof database.access.canAppend === "function") {
+            console.log("\n🧪 Testing Access Controller canAppend method:");
+
             // Create a mock entry to test access
             const mockEntry = {
               identity: database.identity?.id,
-              payload: { op: 'PUT', key: 'test', value: 'test' },
+              payload: { op: "PUT", key: "test", value: "test" },
               v: 2,
-              clock: { id: database.identity?.id, time: 1 }
+              clock: { id: database.identity?.id, time: 1 },
             };
-            
+
             try {
               const canAppend = await database.access.canAppend(mockEntry);
-              console.log('   🧪 Mock Entry Test Result:', canAppend ? '✅ ALLOWED' : '❌ DENIED');
-              
+              console.log(
+                "   🧪 Mock Entry Test Result:",
+                canAppend ? "✅ ALLOWED" : "❌ DENIED",
+              );
+
               if (!canAppend) {
-                console.log('   ⚠️ WARNING: Mock entry would be denied - this explains write failures!');
+                console.log(
+                  "   ⚠️ WARNING: Mock entry would be denied - this explains write failures!",
+                );
               }
             } catch (canAppendError) {
-              console.log('   ❌ Error testing canAppend:', canAppendError.message);
+              console.log(
+                "   ❌ Error testing canAppend:",
+                canAppendError.message,
+              );
             }
           } else {
-            console.log('   ⚠️ No canAppend method found on access controller');
+            console.log("   ⚠️ No canAppend method found on access controller");
           }
-          
         } else {
-          console.log('\n❌ No access controller found on database');
-          console.log('   ⚠️ This might indicate a configuration issue');
+          console.log("\n❌ No access controller found on database");
+          console.log("   ⚠️ This might indicate a configuration issue");
         }
-        
+
         // Check the original database configuration
-        console.log('\n📋 Database Configuration Analysis:');
-        console.log('   🏗️ Database Type:', database.type || 'unknown');
-        console.log('   📊 Database Options Keys:', Object.keys(database.options || {}));
-        
+        console.log("\n📋 Database Configuration Analysis:");
+        console.log("   🏗️ Database Type:", database.type || "unknown");
+        console.log(
+          "   📊 Database Options Keys:",
+          Object.keys(database.options || {}),
+        );
+
         if (database.options?.AccessController) {
-          console.log('   🔐 AccessController in options:', typeof database.options.AccessController);
+          console.log(
+            "   🔐 AccessController in options:",
+            typeof database.options.AccessController,
+          );
         }
-        
+
         // Show the actual access controller constructor/function
         if (database.access && database.access.constructor) {
-          console.log('   🏗️ Access Controller Constructor:', database.access.constructor.name);
+          console.log(
+            "   🏗️ Access Controller Constructor:",
+            database.access.constructor.name,
+          );
         }
-        
       } catch (accessError) {
-        console.error('❌ Error inspecting access controller:', accessError);
-        console.error('   Error details:', accessError.message);
+        console.error("❌ Error inspecting access controller:", accessError);
+        console.error("   Error details:", accessError.message);
       }
-      
-      console.log('🔒 =============== END ACCESS CONTROLLER ANALYSIS ===============\n');
+
+      console.log(
+        "🔒 =============== END ACCESS CONTROLLER ANALYSIS ===============\n",
+      );
 
       updateLastResult(
         "alice",
@@ -1124,9 +1405,9 @@
         type: "keyvalue",
         create: true,
         sync: true,
-        accessController: UCANOrbitDBAccessController({ 
+        accessController: UCANOrbitDBAccessController({
           write: [sharedIdentity.id], // Use the actual WebAuthn identity ID
-          storachaClient: storachaClient
+          storachaClient: storachaClient,
         }),
       };
 
@@ -1238,26 +1519,25 @@
         false, // Don't open database yet - wait for connection first
       );
       // Get instances from OrbitDB service
-      const bobPeerInstance = orbitDBService.getPeer('bob');
+      const bobPeerInstance = orbitDBService.getPeer("bob");
       bobOrbitDB = bobPeerInstance.orbitdb;
       bobHelia = bobPeerInstance.helia;
       bobLibp2p = bobPeerInstance.libp2p;
       // Note: bobDatabase is still null at this point
-      
+
       // Wait for Bob to have dialable addresses before attempting connection
       console.log("⏳ Waiting for Bob to have dialable multiaddresses...");
       bobStep = "Waiting for Bob's P2P addresses to be ready...";
-      
+
       addResult(
         "bob",
         "Address Check",
         "running",
         "Waiting for Bob to have dialable multiaddresses before connecting to Alice...",
       );
-      
 
       bobStep = "Connecting to Alice via P2P...";
-      
+
       addResult(
         "bob",
         "Connection",
@@ -1267,138 +1547,176 @@
 
       // Now that Bob has addresses, try to connect to Alice
       console.log("📞 Bob attempting to connect directly to Alice...");
-      
+
       const connected = await orbitDBService.forceDirectConnection();
       console.log(`📋 forceDirectConnection() returned: ${connected}`);
-      
+
       if (!connected) {
-        console.warn("⚠️  Direct connection failed - proceeding anyway (may rely on discovery)");
+        console.warn(
+          "⚠️  Direct connection failed - proceeding anyway (may rely on discovery)",
+        );
       } else {
         console.log("✅ Direct connection to Alice established!");
       }
-      
+
       // Wait and verify that Bob is actually connected to Alice before opening database
       console.log("⏳ Waiting to verify connection with Alice...");
       bobStep = "Verifying connection with Alice...";
-      
+
       addResult(
         "bob",
         "Connection Verification",
         "running",
         "Verifying Bob is connected to Alice before opening database...",
       );
-      
+
       // Skip direct P2P connection verification for UCAN delegation demo
       // The UCAN access control works through IPFS/DHT without requiring direct peer connections
-      console.log("🚀 Skipping P2P connection verification for UCAN delegation demo");
-      console.log("   💡 UCAN access control works through IPFS/DHT, not direct peer connections");
-      console.log("   🔗 Alice and Bob will communicate via OrbitDB replication over IPFS");
-      
+      console.log(
+        "🚀 Skipping P2P connection verification for UCAN delegation demo",
+      );
+      console.log(
+        "   💡 UCAN access control works through IPFS/DHT, not direct peer connections",
+      );
+      console.log(
+        "   🔗 Alice and Bob will communicate via OrbitDB replication over IPFS",
+      );
+
       const connectionVerified = false; // Skip connection verification
-      
-      console.log("✅ Proceeding with database opening using UCAN delegation and IPFS/DHT");
-      
+
+      console.log(
+        "✅ Proceeding with database opening using UCAN delegation and IPFS/DHT",
+      );
+
       // Now that connection is verified (or timed out), open Alice's shared database
       console.log("📛 Bob now opening Alice's shared database...");
       bobStep = "Opening Alice's shared database...";
-      
+
       addResult(
         "bob",
         "Database Open",
         "running",
         "Bob opening Alice's shared database after verifying connection...",
       );
-      
+
       // Register the UCAN access controller for Bob's OrbitDB instance too
       useAccessController(UCANOrbitDBAccessController);
-      
+
       // DEBUG: Test identity resolution across Alice and Bob's systems
-      console.log('\n🔍 [IDENTITY DEBUG] Testing cross-identity resolution...');
+      console.log("\n🔍 [IDENTITY DEBUG] Testing cross-identity resolution...");
       console.log(`   Alice's identities instance: ${!!sharedIdentities}`);
       console.log(`   Bob's identities instance: ${!!bobIdentities}`);
       console.log(`   Alice identity: ${sharedIdentity?.id}`);
       console.log(`   Bob identity: ${bobIdentity?.id}`);
       console.log(`   Alice identity hash: ${sharedIdentity?.hash}`);
       console.log(`   Bob identity hash: ${bobIdentity?.hash}`);
-      
+
       // Test if Alice's identities can resolve Bob's identity
       try {
         if (sharedIdentities && bobIdentity) {
-          console.log('🔍 Testing: Can Alice\'s identities resolve Bob\'s identity?');
-          const resolvedByAlice = await sharedIdentities.getIdentity(bobIdentity.hash);
+          console.log(
+            "🔍 Testing: Can Alice's identities resolve Bob's identity?",
+          );
+          const resolvedByAlice = await sharedIdentities.getIdentity(
+            bobIdentity.hash,
+          );
           if (resolvedByAlice) {
-            console.log('✅ SUCCESS: Alice can resolve Bob\'s identity via IPFS');
+            console.log(
+              "✅ SUCCESS: Alice can resolve Bob's identity via IPFS",
+            );
             console.log(`   Resolved ID: ${resolvedByAlice.id}`);
           } else {
-            console.log('❌ FAILED: Alice cannot resolve Bob\'s identity from IPFS');
-            console.log('   ⚠️ This will cause replication access control issues');
+            console.log(
+              "❌ FAILED: Alice cannot resolve Bob's identity from IPFS",
+            );
+            console.log(
+              "   ⚠️ This will cause replication access control issues",
+            );
           }
         }
       } catch (resolveError) {
-        console.log(`❌ ERROR resolving Bob\'s identity: ${resolveError.message}`);
+        console.log(
+          `❌ ERROR resolving Bob\'s identity: ${resolveError.message}`,
+        );
       }
-      
+
       // Test if Bob's identities can resolve Alice's identity
       try {
         if (bobIdentities && sharedIdentity) {
-          console.log('🔍 Testing: Can Bob\'s identities resolve Alice\'s identity?');
-          const resolvedByBob = await bobIdentities.getIdentity(sharedIdentity.hash);
+          console.log(
+            "🔍 Testing: Can Bob's identities resolve Alice's identity?",
+          );
+          const resolvedByBob = await bobIdentities.getIdentity(
+            sharedIdentity.hash,
+          );
           if (resolvedByBob) {
-            console.log('✅ SUCCESS: Bob can resolve Alice\'s identity via IPFS');
+            console.log(
+              "✅ SUCCESS: Bob can resolve Alice's identity via IPFS",
+            );
             console.log(`   Resolved ID: ${resolvedByBob.id}`);
           } else {
-            console.log('❌ FAILED: Bob cannot resolve Alice\'s identity from IPFS');
+            console.log(
+              "❌ FAILED: Bob cannot resolve Alice's identity from IPFS",
+            );
           }
         }
       } catch (resolveError) {
-        console.log(`❌ ERROR resolving Alice\'s identity: ${resolveError.message}`);
+        console.log(
+          `❌ ERROR resolving Alice\'s identity: ${resolveError.message}`,
+        );
       }
-      
-      console.log('🔍 [IDENTITY DEBUG] End of identity resolution tests\n');
-      
+
+      console.log("🔍 [IDENTITY DEBUG] End of identity resolution tests\n");
+
       // CRITICAL: Connect Alice and Bob's IPFS instances to enable identity sharing
-      console.log('🔗 [IPFS CONNECT] Connecting Alice and Bob\'s IPFS instances...');
+      console.log(
+        "🔗 [IPFS CONNECT] Connecting Alice and Bob's IPFS instances...",
+      );
       try {
         if (aliceLibp2p && bobLibp2p && aliceHelia && bobHelia) {
           // Method 1: Try direct peer connection (browser-compatible)
-          console.log('   Attempting direct libp2p peer connection...');
+          console.log("   Attempting direct libp2p peer connection...");
           const alicePeerId = aliceLibp2p.peerId;
           const aliceMultiaddrs = aliceLibp2p.getMultiaddrs();
-          
+
           console.log(`   Alice Peer ID: ${alicePeerId.toString()}`);
           console.log(`   Alice Multiaddrs: ${aliceMultiaddrs.length}`);
-          
+
           // Save Alice's peer info to Bob's peer store
-          await bobLibp2p.peerStore.save(alicePeerId, { 
-            multiaddrs: aliceMultiaddrs.filter(addr => 
-              addr.toString().includes('/webrtc') || 
-              addr.toString().includes('/p2p-circuit')
-            ) 
+          await bobLibp2p.peerStore.save(alicePeerId, {
+            multiaddrs: aliceMultiaddrs.filter(
+              (addr) =>
+                addr.toString().includes("/webrtc") ||
+                addr.toString().includes("/p2p-circuit"),
+            ),
           });
-          
+
           // Bob dials Alice directly for IPFS connectivity
-          console.log('   Bob dialing Alice for IPFS data sharing...');
+          console.log("   Bob dialing Alice for IPFS data sharing...");
           const ipfsConnection = await bobLibp2p.dial(alicePeerId);
-          console.log('✅ IPFS connection established!');
-          console.log(`   Connection: ${ipfsConnection.remotePeer.toString().slice(-8)}`);
-          
-          
-          console.log('⚠️ Missing IPFS instances - cannot connect');
+          console.log("✅ IPFS connection established!");
+          console.log(
+            `   Connection: ${ipfsConnection.remotePeer.toString().slice(-8)}`,
+          );
+
+          console.log("⚠️ Missing IPFS instances - cannot connect");
         }
       } catch (connectError) {
         console.log(`⚠️ IPFS connection failed: ${connectError.message}`);
-        console.log('   Proceeding anyway - identities may not resolve properly');
+        console.log(
+          "   Proceeding anyway - identities may not resolve properly",
+        );
       }
-      
+
       // Open Alice's shared database by address
       bobDatabase = await bobOrbitDB.open(sharedDatabaseAddress);
-      
+
       // Update the OrbitDB service with the opened database
-      const bobPeerForUpdate = orbitDBService.getPeer('bob');
+      const bobPeerForUpdate = orbitDBService.getPeer("bob");
       if (bobPeerForUpdate) {
         bobPeerForUpdate.database = bobDatabase;
       }
-      
+
       // Wait a bit for initial replication after database opening
       await new Promise((resolve) => setTimeout(resolve, 3000));
       bobTodos = await bobDatabase.all();
@@ -1419,11 +1737,13 @@
           connectionEstablished: connected,
           connectionVerified: connectionVerified,
           identityType: bobIdentity?.type || identityMethod,
-          flowOrder: "1.Created OrbitDB -> 2.Got Addresses -> 3.Connected Alice -> 4.Verified Connection -> 5.Opened Database"
+          flowOrder:
+            "1.Created OrbitDB -> 2.Got Addresses -> 3.Connected Alice -> 4.Verified Connection -> 5.Opened Database",
         },
       );
 
-      bobStep = "Bob ready - connected to Alice and opened shared database for replication";
+      bobStep =
+        "Bob ready - connected to Alice and opened shared database for replication";
     } catch (error) {
       console.error("❌ Bob initialization failed:", error);
       bobError = error.message;
@@ -1455,16 +1775,16 @@
         const aliceDataBefore = await aliceDatabase.all();
         console.log("📋 Before adding - Alice todos:", aliceDataBefore.length);
       }
-      
+
       // Test write operation
-      console.log('📝 Bob attempting to write todo to shared database...');
+      console.log("📝 Bob attempting to write todo to shared database...");
       await bobDatabase.put(bobTodo.id, bobTodo);
       console.log("✅ Bob added todo (should replicate to Alice):", bobTodo);
 
       // Wait a bit for replication
       console.log("⏳ Waiting for replication events...");
       await new Promise((resolve) => setTimeout(resolve, 3000));
-      
+
       bobTodos = await bobDatabase.all();
       if (aliceDatabase) {
         aliceTodos = await aliceDatabase.all();
@@ -1479,7 +1799,7 @@
           todoAdded: bobTodo,
           bobTodos: bobTodos.length,
           aliceTodos: aliceTodos.length,
-        }
+        },
       );
 
       bobStep = "Bob added todo - check Alice's list for replication";
@@ -1492,7 +1812,7 @@
       bobRunning = false;
     }
   }
-  
+
   async function completeTodos() {
     if (bobRunning || !bobDatabase) return;
 
@@ -1510,24 +1830,27 @@
       // Get all todos from the shared database
       const allTodos = await bobDatabase.all();
       console.log(`   📄 Found ${allTodos.length} todos in shared database`);
-      
+
       // Find todos assigned to Bob
-      const bobsTodos = allTodos.filter(todo => 
-        todo.value.assignee === bobIdentity.id && !todo.value.completed
+      const bobsTodos = allTodos.filter(
+        (todo) =>
+          todo.value.assignee === bobIdentity.id && !todo.value.completed,
       );
-      
-      console.log(`   🎯 Bob has ${bobsTodos.length} incomplete assigned todos`);
-      
+
+      console.log(
+        `   🎯 Bob has ${bobsTodos.length} incomplete assigned todos`,
+      );
+
       if (bobsTodos.length === 0) {
         updateLastResult(
           "bob",
           "success",
           "No incomplete todos assigned to Bob",
-          { todosFound: allTodos.length, bobsTodos: 0 }
+          { todosFound: allTodos.length, bobsTodos: 0 },
         );
         return;
       }
-      
+
       // Complete each of Bob's assigned todos
       let completedCount = 0;
       for (const todoRecord of bobsTodos) {
@@ -1535,30 +1858,30 @@
         todo.completed = true;
         todo.completedAt = new Date().toISOString();
         todo.completedBy = bobIdentity.id;
-        
+
         console.log(`   ✅ Bob completing todo: "${todo.text}"`);
-        
+
         // Update the todo in the shared database
         await bobDatabase.put(todo.id, todo);
         completedCount++;
-        
+
         console.log(`   💾 Updated todo ${todo.id} in shared database`);
       }
-      
+
       // Wait a moment for replication
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Verify the updates
       const updatedTodos = await bobDatabase.all();
       bobTodos = updatedTodos;
       if (aliceDatabase) {
         aliceTodos = await aliceDatabase.all();
       }
-      
-      const completedByBob = updatedTodos.filter(todo => 
-        todo.value.completedBy === bobIdentity.id
+
+      const completedByBob = updatedTodos.filter(
+        (todo) => todo.value.completedBy === bobIdentity.id,
       );
-      
+
       updateLastResult(
         "bob",
         "success",
@@ -1567,16 +1890,15 @@
           todosCompleted: completedCount,
           totalTodos: updatedTodos.length,
           completedByBob: completedByBob.length,
-          completedTodos: completedByBob.map(t => ({
+          completedTodos: completedByBob.map((t) => ({
             id: t.value.id,
             text: t.value.text,
-            completedAt: t.value.completedAt
-          }))
+            completedAt: t.value.completedAt,
+          })),
         },
       );
 
       bobStep = "Bob completed todos - changes should replicate to Alice";
-      
     } catch (error) {
       console.error(`❌ Bob failed to complete todos: ${error.message}`);
       bobError = error.message;
@@ -1602,57 +1924,64 @@
       );
 
       // Get Alice's database reference from Bob's results
-      const aliceDBResult = bobResults.find(r => r.aliceDatabase);
+      const aliceDBResult = bobResults.find((r) => r.aliceDatabase);
       if (!aliceDBResult) {
         throw new Error("Could not find Alice's database reference");
       }
-      
+
       const aliceDBForBob = aliceDBResult.aliceDatabase;
-      console.log(`📦 Bob backing up Alice's database: ${aliceDBForBob.address}`);
-      
+      console.log(
+        `📦 Bob backing up Alice's database: ${aliceDBForBob.address}`,
+      );
+
       // Create Storacha client with Bob's delegation
       let bobStorachaClient;
       if (storachaDelegation.isFallback && storachaDelegation.tempPrincipal) {
         // Fallback: use the temporary principal created for Bob
-        console.log('   🔄 Using fallback delegation with temp principal');
-        const { StoreMemory } = await import('@storacha/client/stores/memory');
-        const Client = await import('@storacha/client');
-        
+        console.log("   🔄 Using fallback delegation with temp principal");
+        const { StoreMemory } = await import("@storacha/client/stores/memory");
+        const Client = await import("@storacha/client");
+
         const store = new StoreMemory();
-        bobStorachaClient = await Client.create({ 
-          principal: storachaDelegation.tempPrincipal, 
-          store 
+        bobStorachaClient = await Client.create({
+          principal: storachaDelegation.tempPrincipal,
+          store,
         });
-        
+
         // Parse and add the delegation
-        const Delegation = await import('@ucanto/core/delegation');
-        const delegationBytes = Buffer.from(storachaDelegation.delegationToken, 'base64');
+        const Delegation = await import("@le-space/ucanto-client");
+        const delegationBytes = Buffer.from(
+          storachaDelegation.delegationToken,
+          "base64",
+        );
         const delegation = await Delegation.extract(delegationBytes);
-        
+
         if (delegation.ok) {
           const space = await bobStorachaClient.addSpace(delegation.ok);
           await bobStorachaClient.setCurrentSpace(space.did());
-          console.log('   ✅ Bob\'s delegation client ready with space access');
+          console.log("   ✅ Bob's delegation client ready with space access");
         } else {
-          throw new Error('Failed to parse delegation token');
+          throw new Error("Failed to parse delegation token");
         }
       } else {
         // Direct delegation to Bob's DID (preferred approach)
-        console.log('   🔑 Using direct delegation to Bob\'s DID');
+        console.log("   🔑 Using direct delegation to Bob's DID");
         // In this case, Bob would need to create a client with his existing identity
         // and add the delegation - this requires more complex key derivation
-        throw new Error('Direct DID delegation not yet implemented - using fallback');
+        throw new Error(
+          "Direct DID delegation not yet implemented - using fallback",
+        );
       }
-      
+
       // Create bridge with Bob's delegated Storacha access
       const bridgeCredentials = {
-        method: 'ucan',
+        method: "ucan",
         ucanClient: bobStorachaClient,
-        spaceDID: bobStorachaClient.currentSpace()?.did()
+        spaceDID: bobStorachaClient.currentSpace()?.did(),
       };
-      
+
       const bridge = createStorachaBridge(bridgeCredentials);
-      
+
       // Backup Alice's database using Bob's delegated access
       const backupResult = await bridge.backupLogEntriesOnly(
         bobOrbitDB, // Bob's OrbitDB instance
@@ -1662,19 +1991,19 @@
             type: "keyvalue",
             create: true,
             sync: true,
-            accessController: UCANOrbitDBAccessController({ 
+            accessController: UCANOrbitDBAccessController({
               write: [sharedIdentity.id, bobIdentity.id],
-              storachaClient: bobStorachaClient
+              storachaClient: bobStorachaClient,
             }),
           },
           timeout: 60000,
         },
       );
-      
+
       if (!backupResult.success) {
         throw new Error(`Backup failed: ${backupResult.error}`);
       }
-      
+
       updateLastResult(
         "bob",
         "success",
@@ -1684,13 +2013,12 @@
           databaseAddress: backupResult.databaseAddress,
           blocksTotal: backupResult.blocksTotal,
           blocksUploaded: backupResult.blocksUploaded,
-          delegationType: storachaDelegation.isFallback ? 'fallback' : 'direct',
+          delegationType: storachaDelegation.isFallback ? "fallback" : "direct",
           bobIdentity: bobIdentity.id,
         },
       );
 
       bobStep = "Bob backup complete - Alice can now restore";
-      
     } catch (error) {
       console.error(`❌ Bob's backup with delegation failed: ${error.message}`);
       bobError = error.message;
@@ -1730,14 +2058,14 @@
 
       // Bob always uses his own separate identity
       const identityForAccess = bobIdentity;
-      
+
       const databaseConfig = {
         type: "keyvalue",
         create: true,
         sync: true,
-        accessController: UCANOrbitDBAccessController({ 
+        accessController: UCANOrbitDBAccessController({
           write: [identityForAccess.id], // Use the appropriate identity ID
-          storachaClient: storachaClient
+          storachaClient: storachaClient,
         }),
       };
 
@@ -1819,16 +2147,18 @@
       );
 
       console.log(`🚫 Revoking access for Bob: ${bobIdentity.id}`);
-      
+
       // Revoke Bob's write access
-      await aliceUCANAccessController.revoke('write', bobIdentity.id);
+      await aliceUCANAccessController.revoke("write", bobIdentity.id);
       console.log(`   ✅ Revoked write access for Bob`);
-      
+
       // Revoke the Storacha delegation using UCAN service
       const revoked = ucanService.revokeDelegation(bobIdentity.id);
       storachaDelegation = null;
-      console.log(`   🗑️ ${revoked ? 'Revoked and cleared' : 'Cleared'} Storacha delegation reference`);
-      
+      console.log(
+        `   🗑️ ${revoked ? "Revoked and cleared" : "Cleared"} Storacha delegation reference`,
+      );
+
       updateLastResult(
         "alice",
         "success",
@@ -1836,12 +2166,11 @@
         {
           revokedIdentity: bobIdentity.id,
           revokedAt: new Date().toISOString(),
-          note: "Bob's UCAN token remains valid until expiration (1 hour)"
+          note: "Bob's UCAN token remains valid until expiration (1 hour)",
         },
       );
-      
+
       aliceStep = "Bob's access revoked - UCAN token expires in 1 hour";
-      
     } catch (error) {
       console.error(`❌ Failed to revoke access: ${error.message}`);
       aliceError = error.message;
@@ -1873,15 +2202,15 @@
       }
 
       console.log(`\n🗑️ Step 1: Dropping Alice's local database...`);
-      
+
       // Close and cleanup Alice's current database
       await aliceDatabase.close();
       await aliceOrbitDB.stop();
       await aliceHelia.stop();
       await aliceLibp2p.stop();
-      
+
       console.log(`   ✅ Alice's local database and OrbitDB instance stopped`);
-      
+
       // Clear Alice's state
       aliceOrbitDB = null;
       aliceDatabase = null;
@@ -1889,20 +2218,22 @@
       aliceLibp2p = null;
       aliceTodos = [];
       aliceUCANAccessController = null;
-      
-      console.log(`\n🆕 Step 2: Creating new clean OrbitDB instance for Alice...`);
-      
+
+      console.log(
+        `\n🆕 Step 2: Creating new clean OrbitDB instance for Alice...`,
+      );
+
       // Create fresh OrbitDB instance for Alice
       const newDatabaseConfig = {
         type: "keyvalue",
         create: true,
         sync: true,
-        accessController: UCANOrbitDBAccessController({ 
+        accessController: UCANOrbitDBAccessController({
           write: [sharedIdentity.id],
-          storachaClient: storachaClient
+          storachaClient: storachaClient,
         }),
       };
-      
+
       const newInstance = await createOrbitDBInstance(
         "alice",
         "restore",
@@ -1910,62 +2241,66 @@
         newDatabaseConfig,
         true, // Open database immediately
       );
-      
+
       // Get instances from OrbitDB service
-      const alicePeer = orbitDBService.getPeer('alice');
+      const alicePeer = orbitDBService.getPeer("alice");
       aliceOrbitDB = alicePeer.orbitdb;
       aliceDatabase = alicePeer.database;
       aliceHelia = alicePeer.helia;
       aliceLibp2p = alicePeer.libp2p;
       aliceUCANAccessController = aliceDatabase.access;
-      
+
       console.log(`   ✅ New clean Alice OrbitDB instance created`);
       console.log(`   📊 New database address: ${aliceDatabase.address}`);
-      
+
       console.log(`\n📥 Step 3: Restoring from Storacha space...`);
-      
+
       // Create bridge for restore
       const bridge = createStorachaBridge(storachaCredentials);
-      
+
       // Restore from Storacha space (this will find the backup Bob made)
       const restoreResult = await bridge.restoreLogEntriesOnly(aliceOrbitDB, {
         dbName: "alice-todos-restored",
         dbConfig: newDatabaseConfig,
         timeout: 120000,
       });
-      
+
       if (!restoreResult.success) {
         throw new Error(`Restore failed: ${restoreResult.error}`);
       }
-      
+
       console.log(`   ✅ Restore successful`);
-      
+
       // Get the restored database
       const restoredDatabase = restoreResult.database;
-      
+
       // Wait for indexing
       await new Promise((resolve) => setTimeout(resolve, 5000));
       const restoredTodos = await restoredDatabase.all();
-      
+
       console.log(`\n🔍 Step 4: Verifying restored todos...`);
       console.log(`   📊 Restored ${restoredTodos.length} todos`);
-      
+
       // Check for todos completed by Bob
-      const todosCompletedByBob = restoredTodos.filter(todo => 
-        todo.value.completedBy === bobIdentity?.id
+      const todosCompletedByBob = restoredTodos.filter(
+        (todo) => todo.value.completedBy === bobIdentity?.id,
       );
-      
-      console.log(`   🎯 Found ${todosCompletedByBob.length} todos completed by Bob`);
-      
+
+      console.log(
+        `   🎯 Found ${todosCompletedByBob.length} todos completed by Bob`,
+      );
+
       if (todosCompletedByBob.length > 0) {
-        todosCompletedByBob.forEach(todo => {
-          console.log(`     ✅ "${todo.value.text}" completed at ${todo.value.completedAt}`);
+        todosCompletedByBob.forEach((todo) => {
+          console.log(
+            `     ✅ "${todo.value.text}" completed at ${todo.value.completedAt}`,
+          );
         });
       }
-      
+
       // Update Alice's todos state
       aliceTodos = restoredTodos;
-      
+
       updateLastResult(
         "alice",
         "success",
@@ -1976,18 +2311,17 @@
           newDatabaseAddress: aliceDatabase.address,
           totalTodos: restoredTodos.length,
           todosCompletedByBob: todosCompletedByBob.length,
-          completedTodos: todosCompletedByBob.map(t => ({
+          completedTodos: todosCompletedByBob.map((t) => ({
             id: t.value.id,
             text: t.value.text,
             completedAt: t.value.completedAt,
-            completedBy: t.value.completedBy
+            completedBy: t.value.completedBy,
           })),
-          restoredAt: new Date().toISOString()
+          restoredAt: new Date().toISOString(),
         },
       );
-      
+
       aliceStep = "Alice database restored with Bob's completed todos";
-      
     } catch (error) {
       console.error(`❌ Alice drop and restore failed: ${error.message}`);
       aliceError = error.message;
@@ -2033,7 +2367,7 @@
     backupResult = null;
     restoreResult = null;
     storachaTestDatabaseAddresses.clear();
-    
+
     // Clear all UCAN delegations
     ucanService.clearAllDelegations();
   }
@@ -2120,14 +2454,23 @@
 
         <!-- WebAuthn Support Status -->
         {#if webAuthnStatus.checking}
-          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
+          <div
+            style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;"
+          >
             <Loading withOverlay={false} small />
-            <span style="font-size:0.875rem;">Checking WebAuthn support...</span>
+            <span style="font-size:0.875rem;">Checking WebAuthn support...</span
+            >
           </div>
         {:else}
           <InlineNotification
-            kind={webAuthnStatus.supported ? (webAuthnStatus.platformAvailable ? "success" : "info") : "warning"}
-            title={webAuthnStatus.supported ? "WebAuthn Supported" : "WebAuthn Not Available"}
+            kind={webAuthnStatus.supported
+              ? webAuthnStatus.platformAvailable
+                ? "success"
+                : "info"
+              : "warning"}
+            title={webAuthnStatus.supported
+              ? "WebAuthn Supported"
+              : "WebAuthn Not Available"}
             subtitle={webAuthnStatus.message}
             style="margin-bottom:1rem;"
           />
@@ -2151,12 +2494,18 @@
         </RadioButtonGroup>
 
         {#if identityMethod === "webauthn" && webAuthnStatus.supported}
-          <div style="margin-top:1rem;padding:1rem;background:var(--cds-layer-accent);border-radius:0.25rem;">
-            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+          <div
+            style="margin-top:1rem;padding:1rem;background:var(--cds-layer-accent);border-radius:0.25rem;"
+          >
+            <div
+              style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;"
+            >
               <Fingerprint size={16} />
               <strong style="font-size:0.875rem;">WebAuthn Benefits:</strong>
             </div>
-            <ul style="font-size:0.875rem;color:var(--cds-text-secondary);margin:0;padding-left:1rem;">
+            <ul
+              style="font-size:0.875rem;color:var(--cds-text-secondary);margin:0;padding-left:1rem;"
+            >
               <li>Private keys never leave secure hardware</li>
               <li>Face ID, Touch ID, or Windows Hello authentication</li>
               <li>No seed phrases to manage or lose</li>
@@ -2164,12 +2513,20 @@
             </ul>
           </div>
         {:else if identityMethod === "mnemonic"}
-          <div style="margin-top:1rem;padding:1rem;background:var(--cds-layer-accent);border-radius:0.25rem;">
-            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+          <div
+            style="margin-top:1rem;padding:1rem;background:var(--cds-layer-accent);border-radius:0.25rem;"
+          >
+            <div
+              style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;"
+            >
               <Key size={16} />
-              <strong style="font-size:0.875rem;">Mnemonic Seed Benefits:</strong>
+              <strong style="font-size:0.875rem;"
+                >Mnemonic Seed Benefits:</strong
+              >
             </div>
-            <ul style="font-size:0.875rem;color:var(--cds-text-secondary);margin:0;padding-left:1rem;">
+            <ul
+              style="font-size:0.875rem;color:var(--cds-text-secondary);margin:0;padding-left:1rem;"
+            >
               <li>Widely supported across all platforms</li>
               <li>Compatible with existing crypto wallets</li>
               <li>Deterministic identity generation</li>
@@ -2204,13 +2561,14 @@
             {useBridgeDelegation ? "P-256 Bridge" : "Direct EdDSA"}
           </Toggle>
         </div>
-        <p
-          style="font-size:0.75rem;color:var(--cds-text-secondary);margin:0;"
-        >
+        <p style="font-size:0.75rem;color:var(--cds-text-secondary);margin:0;">
           {#if useBridgeDelegation}
-            🌉 <strong>Bridge Delegation:</strong> Alice's Storacha EdDSA agent delegates to Alice's P-256 OrbitDB identity, then Alice's P-256 identity delegates to Bob's P-256 identity. Final delegation is P-256 signed.
+            🌉 <strong>Bridge Delegation:</strong> Alice's Storacha EdDSA agent delegates
+            to Alice's P-256 OrbitDB identity, then Alice's P-256 identity delegates
+            to Bob's P-256 identity. Final delegation is P-256 signed.
           {:else}
-            📤 <strong>Direct EdDSA:</strong> Alice's Storacha EdDSA agent delegates directly to Bob's P-256 OrbitDB identity. Final delegation is EdDSA signed.
+            📤 <strong>Direct EdDSA:</strong> Alice's Storacha EdDSA agent delegates
+            directly to Bob's P-256 OrbitDB identity. Final delegation is EdDSA signed.
           {/if}
         </p>
       </Tile>
@@ -2224,14 +2582,22 @@
         <div
           style="display:flex;align-items:center;justify-content:center;gap:0.5rem;margin-bottom:1rem;"
         >
-          <img src="/orbitdb.png" alt="OrbitDB" style="width:32px;height:32px;object-fit:contain;" />
+          <img
+            src="/orbitdb.png"
+            alt="OrbitDB"
+            style="width:32px;height:32px;object-fit:contain;"
+          />
           <h3 style="font-size:1.25rem;font-weight:bold;margin:0;">
-            Alice & Bob Backup/Restore Demo with {identityMethod === "webauthn" ? "WebAuthn" : "Mnemonic"}
+            Alice & Bob Backup/Restore Demo with {identityMethod === "webauthn"
+              ? "WebAuthn"
+              : "Mnemonic"}
           </h3>
         </div>
         <p style="color:var(--cds-text-secondary);margin:0;">
-          Alice creates a shared OrbitDB with WebAuthn identity and adds todos. Bob connects via P2P, opens the shared database, and data replicates in real-time. 
-          Both can add/modify todos with instant P2P synchronization, plus backup to Storacha using UCAN delegation.
+          Alice creates a shared OrbitDB with WebAuthn identity and adds todos.
+          Bob connects via P2P, opens the shared database, and data replicates
+          in real-time. Both can add/modify todos with instant P2P
+          synchronization, plus backup to Storacha using UCAN delegation.
         </p>
       </div>
     </Column>
@@ -2266,70 +2632,97 @@
         <Tile>
           {#if uploadProgress}
             <div style="margin-bottom:1rem;">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+              <div
+                style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;"
+              >
                 <div style="display:flex;align-items:center;gap:0.5rem;">
                   <CloudUpload size={16} />
-                  <h5 style="font-size:0.875rem;font-weight:600;margin:0;">Upload Progress</h5>
+                  <h5 style="font-size:0.875rem;font-weight:600;margin:0;">
+                    Upload Progress
+                  </h5>
                 </div>
-                <span style="font-size:0.875rem;color:var(--cds-text-secondary);"> 
+                <span
+                  style="font-size:0.875rem;color:var(--cds-text-secondary);"
+                >
                   {uploadProgress.current}/{uploadProgress.total} ({uploadProgress.percentage}%)
                 </span>
               </div>
-              
-              <div style="width:100%;background-color:var(--cds-layer-accent);border-radius:0.25rem;overflow:hidden;height:0.5rem;">
-                <div 
+
+              <div
+                style="width:100%;background-color:var(--cds-layer-accent);border-radius:0.25rem;overflow:hidden;height:0.5rem;"
+              >
+                <div
                   style="width:{uploadProgress.percentage}%;background-color:var(--cds-support-info);height:100%;transition:width 0.3s ease;"
                 ></div>
               </div>
-              
+
               {#if uploadProgress.currentBlock}
-                <div style="margin-top:0.5rem;font-size:0.75rem;color:var(--cds-text-secondary);">
-                  Current block: <code>{uploadProgress.currentBlock.hash?.slice(0, 16)}...</code>
+                <div
+                  style="margin-top:0.5rem;font-size:0.75rem;color:var(--cds-text-secondary);"
+                >
+                  Current block: <code
+                    >{uploadProgress.currentBlock.hash?.slice(0, 16)}...</code
+                  >
                   ({uploadProgress.currentBlock.size} bytes)
                 </div>
               {/if}
-              
+
               {#if uploadProgress.error}
-                <InlineNotification 
-                  kind="error" 
-                  title="Upload Error" 
-                  subtitle={uploadProgress.error.message} 
+                <InlineNotification
+                  kind="error"
+                  title="Upload Error"
+                  subtitle={uploadProgress.error.message}
                   style="margin-top:0.5rem;"
                 />
               {/if}
             </div>
           {/if}
-          
+
           {#if downloadProgress}
             <div>
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+              <div
+                style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;"
+              >
                 <div style="display:flex;align-items:center;gap:0.5rem;">
                   <CloudDownload size={16} />
-                  <h5 style="font-size:0.875rem;font-weight:600;margin:0;">Download Progress</h5>
+                  <h5 style="font-size:0.875rem;font-weight:600;margin:0;">
+                    Download Progress
+                  </h5>
                 </div>
-                <span style="font-size:0.875rem;color:var(--cds-text-secondary);">
+                <span
+                  style="font-size:0.875rem;color:var(--cds-text-secondary);"
+                >
                   {downloadProgress.current}/{downloadProgress.total} ({downloadProgress.percentage}%)
                 </span>
               </div>
-              
-              <div style="width:100%;background-color:var(--cds-layer-accent);border-radius:0.25rem;overflow:hidden;height:0.5rem;">
-                <div 
+
+              <div
+                style="width:100%;background-color:var(--cds-layer-accent);border-radius:0.25rem;overflow:hidden;height:0.5rem;"
+              >
+                <div
                   style="width:{downloadProgress.percentage}%;background-color:var(--cds-support-success);height:100%;transition:width 0.3s ease;"
                 ></div>
               </div>
-              
+
               {#if downloadProgress.currentBlock}
-                <div style="margin-top:0.5rem;font-size:0.75rem;color:var(--cds-text-secondary);">
-                  Current file: <code>{downloadProgress.currentBlock.storachaCID?.slice(0, 16)}...</code>
+                <div
+                  style="margin-top:0.5rem;font-size:0.75rem;color:var(--cds-text-secondary);"
+                >
+                  Current file: <code
+                    >{downloadProgress.currentBlock.storachaCID?.slice(
+                      0,
+                      16,
+                    )}...</code
+                  >
                   ({downloadProgress.currentBlock.size} bytes)
                 </div>
               {/if}
-              
+
               {#if downloadProgress.error}
-                <InlineNotification 
-                  kind="error" 
-                  title="Download Error" 
-                  subtitle={downloadProgress.error.message} 
+                <InlineNotification
+                  kind="error"
+                  title="Download Error"
+                  subtitle={downloadProgress.error.message}
                   style="margin-top:0.5rem;"
                 />
               {/if}
@@ -2343,13 +2736,7 @@
   <!-- Alice & Bob Responsive Layout -->
   <Row>
     <!-- Alice's Section -->
-    <Column
-      sm={16}
-      md={16}
-      lg={8}
-      xl={8}
-      style="margin-bottom: 1rem;"
-    >
+    <Column sm={16} md={16} lg={8} xl={8} style="margin-bottom: 1rem;">
       <Tile style="height:100%;">
         <div
           style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;"
@@ -2364,7 +2751,9 @@
             {/if}
           </div>
           <h4 style="font-size:1.125rem;font-weight:600;margin:0;">
-            Alice (Data Creator) - {identityMethod === "webauthn" ? "Biometric" : "Mnemonic"}
+            Alice (Data Creator) - {identityMethod === "webauthn"
+              ? "Biometric"
+              : "Mnemonic"}
           </h4>
         </div>
 
@@ -2400,13 +2789,19 @@
         >
           <Button
             size="sm"
-            icon={aliceRunning ? undefined : (identityMethod === "webauthn" ? Fingerprint : DataBase)}
+            icon={aliceRunning
+              ? undefined
+              : identityMethod === "webauthn"
+                ? Fingerprint
+                : DataBase}
             on:click={initializeAlice}
             disabled={aliceRunning || aliceOrbitDB || !storachaAuthenticated}
             style="width:100%;"
           >
             {#if aliceRunning}<Loading withOverlay={false} small />{/if}
-            1. Initialize Alice ({identityMethod === "webauthn" ? "Biometric Auth" : "Mnemonic"})
+            1. Initialize Alice ({identityMethod === "webauthn"
+              ? "Biometric Auth"
+              : "Mnemonic"})
           </Button>
 
           <Button
@@ -2435,19 +2830,22 @@
             {#if aliceRunning}<Loading withOverlay={false} small />{/if}
             3. Backup to Storacha
           </Button>
-          
+
           <Button
             size="sm"
             kind="danger-tertiary"
             icon={aliceRunning ? undefined : Shield}
             on:click={revokeAccess}
-            disabled={aliceRunning || !aliceUCANAccessController || !bobIdentity || !storachaDelegation}
+            disabled={aliceRunning ||
+              !aliceUCANAccessController ||
+              !bobIdentity ||
+              !storachaDelegation}
             style="width:100%;"
           >
             {#if aliceRunning}<Loading withOverlay={false} small />{/if}
             4. Revoke Bob's Access
           </Button>
-          
+
           <Button
             size="sm"
             kind="danger-tertiary"
@@ -2540,12 +2938,7 @@
     </Column>
 
     <!-- Bob's Section -->
-    <Column
-      sm={16}
-      md={16}
-      lg={8}
-      xl={8}
-    >
+    <Column sm={16} md={16} lg={8} xl={8}>
       <Tile style="height:100%;">
         <div
           style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;"
@@ -2560,7 +2953,9 @@
             {/if}
           </div>
           <h4 style="font-size:1.125rem;font-weight:600;margin:0;">
-            Bob (P2P Replication) - {identityMethod === "webauthn" ? "Biometric" : "Mnemonic"}
+            Bob (P2P Replication) - {identityMethod === "webauthn"
+              ? "Biometric"
+              : "Mnemonic"}
           </h4>
         </div>
 
@@ -2568,7 +2963,9 @@
         <InlineNotification
           kind="info"
           title="Identity Configuration"
-          subtitle="Bob creates his own {identityMethod === 'webauthn' ? 'biometric' : 'mnemonic'} identity to demonstrate cross-identity data sharing with UCAN delegation."
+          subtitle="Bob creates his own {identityMethod === 'webauthn'
+            ? 'biometric'
+            : 'mnemonic'} identity to demonstrate cross-identity data sharing with UCAN delegation."
           style="margin-bottom:1rem;"
         />
 
@@ -2599,14 +2996,23 @@
         {/if}
 
         <!-- DEBUG: Bob Button State -->
-        <div style="font-size:0.75rem;color:var(--cds-text-secondary);margin-bottom:0.5rem;padding:0.5rem;background:rgba(0,0,0,0.05);border-radius:4px;">
-          <strong>🔍 Bob Button Debug:</strong><br/>
-          • bobRunning: {bobRunning ? '❌' : '✅'}<br/>
-          • bobOrbitDB exists: {bobOrbitDB ? '❌ already exists' : '✅ ready to create'}<br/>
-          • storachaAuthenticated: {storachaAuthenticated ? '✅' : '❌'}<br/>
-          • aliceDatabase: {aliceDatabase ? '✅' : '❌'}<br/>
-          • bobIdentity: {bobIdentity ? '✅' : '❌'}<br/>
-          • <strong>storachaDelegation: {storachaDelegation ? '✅ ready' : '❌ MISSING ← Alice needs to click "Add Todos"!'}</strong>
+        <div
+          style="font-size:0.75rem;color:var(--cds-text-secondary);margin-bottom:0.5rem;padding:0.5rem;background:rgba(0,0,0,0.05);border-radius:4px;"
+        >
+          <strong>🔍 Bob Button Debug:</strong><br />
+          • bobRunning: {bobRunning ? "❌" : "✅"}<br />
+          • bobOrbitDB exists: {bobOrbitDB
+            ? "❌ already exists"
+            : "✅ ready to create"}<br />
+          • storachaAuthenticated: {storachaAuthenticated ? "✅" : "❌"}<br />
+          • aliceDatabase: {aliceDatabase ? "✅" : "❌"}<br />
+          • bobIdentity: {bobIdentity ? "✅" : "❌"}<br />
+          •
+          <strong
+            >storachaDelegation: {storachaDelegation
+              ? "✅ ready"
+              : '❌ MISSING ← Alice needs to click "Add Todos"!'}</strong
+          >
         </div>
 
         <!-- Bob's Actions -->
@@ -2616,7 +3022,11 @@
           <Button
             size="sm"
             kind="secondary"
-            icon={bobRunning ? undefined : (identityMethod === "webauthn" ? Fingerprint : DataBase)}
+            icon={bobRunning
+              ? undefined
+              : identityMethod === "webauthn"
+                ? Fingerprint
+                : DataBase}
             on:click={initializeBob}
             disabled={bobRunning ||
               bobOrbitDB ||
@@ -2641,7 +3051,7 @@
             {#if bobRunning}<Loading withOverlay={false} small />{/if}
             2. Add Todo (Test Replication)
           </Button>
-          
+
           <Button
             size="sm"
             kind="tertiary"
@@ -2653,7 +3063,7 @@
             {#if bobRunning}<Loading withOverlay={false} small />{/if}
             3. Complete Assigned Todos
           </Button>
-          
+
           <Button
             size="sm"
             kind="tertiary"
@@ -2670,29 +3080,47 @@
         <!-- P2P Connection Status -->
         {#if replicationEnabled}
           <div style="margin-bottom:1rem;">
-            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+            <div
+              style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;"
+            >
               {#if peersConnected}
-                <div style="width:8px;height:8px;border-radius:50%;background-color:var(--cds-support-success);"></div>
-                <span style="font-size:0.75rem;color:var(--cds-support-success);">P2P Connected</span>
+                <div
+                  style="width:8px;height:8px;border-radius:50%;background-color:var(--cds-support-success);"
+                ></div>
+                <span
+                  style="font-size:0.75rem;color:var(--cds-support-success);"
+                  >P2P Connected</span
+                >
               {:else if aliceLibp2p && bobLibp2p}
-                <div style="width:8px;height:8px;border-radius:50%;background-color:var(--cds-support-warning);"></div>
-                <span style="font-size:0.75rem;color:var(--cds-support-warning);">Connecting...</span>
+                <div
+                  style="width:8px;height:8px;border-radius:50%;background-color:var(--cds-support-warning);"
+                ></div>
+                <span
+                  style="font-size:0.75rem;color:var(--cds-support-warning);"
+                  >Connecting...</span
+                >
               {:else}
-                <div style="width:8px;height:8px;border-radius:50%;background-color:var(--cds-support-error);"></div>
-                <span style="font-size:0.75rem;color:var(--cds-support-error);">Not Connected</span>
+                <div
+                  style="width:8px;height:8px;border-radius:50%;background-color:var(--cds-support-error);"
+                ></div>
+                <span style="font-size:0.75rem;color:var(--cds-support-error);"
+                  >Not Connected</span
+                >
               {/if}
-              <span style="font-size:0.75rem;color:var(--cds-text-secondary);">|
-                Alice: {aliceConnectedPeers.length} peers • Bob: {bobConnectedPeers.length} peers
+              <span style="font-size:0.75rem;color:var(--cds-text-secondary);"
+                >| Alice: {aliceConnectedPeers.length} peers • Bob: {bobConnectedPeers.length}
+                peers
               </span>
             </div>
             {#if replicationEvents.length > 0}
               <div style="font-size:0.625rem;color:var(--cds-text-helper);">
-                Last event: {replicationEvents[replicationEvents.length - 1].type} • {replicationEvents.length} total
+                Last event: {replicationEvents[replicationEvents.length - 1]
+                  .type} • {replicationEvents.length} total
               </div>
             {/if}
           </div>
         {/if}
-        
+
         <!-- Delegation Status Indicator -->
         {#if !storachaDelegation}
           <InlineNotification
@@ -2740,7 +3168,9 @@
                   >
                     {todo.value.text}
                   </span>
-                  <span style="margin-left:auto;font-size:0.625rem;color:var(--cds-text-secondary);">
+                  <span
+                    style="margin-left:auto;font-size:0.625rem;color:var(--cds-text-secondary);"
+                  >
                     ✨ restored
                   </span>
                 </div>
@@ -2798,9 +3228,14 @@
 
         <!-- Summary Stats -->
         {#if bobTodos.length > 0 || bobResults.length > 0}
-          <div style="margin-top:1rem;padding:0.5rem;background:var(--cds-layer-01);border-radius:0.25rem;">
-            <p style="font-size:0.75rem;color:var(--cds-text-secondary);margin:0;text-align:center;">
-              📊 {bobTodos.length} restored todos • {bobResults.length} progress items
+          <div
+            style="margin-top:1rem;padding:0.5rem;background:var(--cds-layer-01);border-radius:0.25rem;"
+          >
+            <p
+              style="font-size:0.75rem;color:var(--cds-text-secondary);margin:0;text-align:center;"
+            >
+              📊 {bobTodos.length} restored todos • {bobResults.length} progress
+              items
               {#if bobTodos.length > 0}
                 • Identity: 🆔 Own {identityMethod}
               {/if}
@@ -2824,9 +3259,11 @@
           {#if backupResult && restoreResult}
             <p style="font-size:0.75rem;margin-top:0.5rem;">
               Backup: {backupResult.blocksUploaded}/{backupResult.blocksTotal} blocks
-              • Restore: {restoreResult.entriesRecovered} entries recovered 
-              • Identity: Separate (${identityMethod}) - Cross-identity sharing
-              • Method: {identityMethod === "webauthn" ? "🔐 Hardware-Secured Biometric" : "🔑 Mnemonic Seed Phrase"}
+              • Restore: {restoreResult.entriesRecovered} entries recovered • Identity:
+              Separate (${identityMethod}) - Cross-identity sharing • Method: {identityMethod ===
+              "webauthn"
+                ? "🔐 Hardware-Secured Biometric"
+                : "🔑 Mnemonic Seed Phrase"}
             </p>
           {/if}
         </InlineNotification>

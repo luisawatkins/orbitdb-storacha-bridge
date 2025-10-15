@@ -16,7 +16,7 @@ import {
   registerWebAuthnProvider,
   checkWebAuthnSupport,
   storeWebAuthnCredential,
-  loadWebAuthnCredential
+  loadWebAuthnCredential,
 } from "@le-space/orbitdb-identity-provider-webauthn-did";
 
 export class IdentityService {
@@ -37,11 +37,13 @@ export class IdentityService {
       this.webAuthnPlatformAvailable = support.platformAuthenticator;
       this.webAuthnSupportMessage = support.message;
 
-      console.log('WebAuthn support detected, provider will be registered when creating identity');
+      console.log(
+        "WebAuthn support detected, provider will be registered when creating identity",
+      );
       return {
         supported: this.webAuthnSupported,
         platformAvailable: this.webAuthnPlatformAvailable,
-        message: this.webAuthnSupportMessage
+        message: this.webAuthnSupportMessage,
       };
     } catch (error) {
       console.error("WebAuthn support check failed:", error);
@@ -85,7 +87,10 @@ export class IdentityService {
 
     // Generate a test seed phrase for consistent identity
     const seedPhrase = generateMnemonic(english);
-    const masterSeed = this.generateMasterSeed(seedPhrase, `${persona}-password`);
+    const masterSeed = this.generateMasterSeed(
+      seedPhrase,
+      `${persona}-password`,
+    );
     const seed32 = this.convertTo32BitSeed(masterSeed);
 
     // Set up DID resolver and register the official DID provider
@@ -123,7 +128,7 @@ export class IdentityService {
     // Create or load WebAuthn credential (persona-specific storage key)
     const storageKey = `webauthn-credential-${persona}`;
     let webauthnCredential = loadWebAuthnCredential(storageKey);
-    
+
     if (!webauthnCredential) {
       // Create new WebAuthn credential for this specific persona
       console.log(`🔐 Creating NEW WebAuthn credential for ${persona}...`);
@@ -133,13 +138,19 @@ export class IdentityService {
       });
       // Store credential with persona-specific key
       storeWebAuthnCredential(webauthnCredential, storageKey);
-      console.log(`🔐 New WebAuthn credential created and stored for ${persona}`);
+      console.log(
+        `🔐 New WebAuthn credential created and stored for ${persona}`,
+      );
       console.log(`   🏷️ Storage key: ${storageKey}`);
-      console.log(`   🆔 Credential ID: ${webauthnCredential.credentialId?.slice(0, 16)}...`);
+      console.log(
+        `   🆔 Credential ID: ${webauthnCredential.credentialId?.slice(0, 16)}...`,
+      );
     } else {
       console.log(`🔐 Existing WebAuthn credential loaded for ${persona}`);
       console.log(`   🏷️ Storage key: ${storageKey}`);
-      console.log(`   🆔 Credential ID: ${webauthnCredential.credentialId?.slice(0, 16)}...`);
+      console.log(
+        `   🆔 Credential ID: ${webauthnCredential.credentialId?.slice(0, 16)}...`,
+      );
     }
 
     // Register the WebAuthn provider (like DID provider does)
@@ -149,33 +160,35 @@ export class IdentityService {
     const identities = await Identities();
 
     // Ensure the WebAuthn provider is registered with OrbitDB
-    console.log('🔧 Registering WebAuthn identity provider with OrbitDB...');
-    
+    console.log("🔧 Registering WebAuthn identity provider with OrbitDB...");
+
     const registrationSuccess = registerWebAuthnProvider();
-    console.log('📋 Registration result:', registrationSuccess);
-    
+    console.log("📋 Registration result:", registrationSuccess);
+
     if (!registrationSuccess) {
-      throw new Error('Failed to register WebAuthn provider with OrbitDB');
+      throw new Error("Failed to register WebAuthn provider with OrbitDB");
     }
-    
+
     // Create the identity using OrbitDB's standard identity creation
-    console.log('🆔 Creating WebAuthn identity via OrbitDB identities.createIdentity...');
+    console.log(
+      "🆔 Creating WebAuthn identity via OrbitDB identities.createIdentity...",
+    );
     const identity = await identities.createIdentity({
-      provider: OrbitDBWebAuthnIdentityProviderFunction({ webauthnCredential })
+      provider: OrbitDBWebAuthnIdentityProviderFunction({ webauthnCredential }),
     });
-    
-    console.log('✅ Created OrbitDB-compatible WebAuthn identity:', {
+
+    console.log("✅ Created OrbitDB-compatible WebAuthn identity:", {
       id: identity.id,
       type: identity.type,
       publicKey: identity.publicKey,
-      hasSign: typeof identity.sign === 'function',
-      hasVerify: typeof identity.verify === 'function',
-      hasHash: !!identity.hash
+      hasSign: typeof identity.sign === "function",
+      hasVerify: typeof identity.verify === "function",
+      hasHash: !!identity.hash,
     });
-    
+
     // Test the signing function directly
     await this.testIdentitySigning(identity);
-    
+
     // Test identity resolution
     await this.testIdentityResolution(identity, identities);
 
@@ -187,31 +200,54 @@ export class IdentityService {
    * Test identity signing functionality
    */
   async testIdentitySigning(identity) {
-    console.log('🔍 Testing WebAuthn identity signing function directly...');
+    console.log("🔍 Testing WebAuthn identity signing function directly...");
     try {
-      const testData = 'test-signing-data';
-      console.log('🧪 Calling identity.sign() with test data - this should trigger WebAuthn!');
-      
+      const testData = "test-signing-data";
+      console.log(
+        "🧪 Calling identity.sign() with test data - this should trigger WebAuthn!",
+      );
+
       const testSignature = await identity.sign(identity, testData);
-      console.log('✅ Direct signing test successful!');
-      console.log('   📏 Signature length:', testSignature?.length);
-      console.log('   🔤 Signature preview:', testSignature?.slice(0, 64) + '...');
-      
+      console.log("✅ Direct signing test successful!");
+      console.log("   📏 Signature length:", testSignature?.length);
+      console.log(
+        "   🔤 Signature preview:",
+        testSignature?.slice(0, 64) + "...",
+      );
+
       // Try to decode as WebAuthn proof
       try {
-        const proofBytes = new Uint8Array(Array.from(atob(testSignature.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)));
+        const proofBytes = new Uint8Array(
+          Array.from(
+            atob(testSignature.replace(/-/g, "+").replace(/_/g, "/")),
+            (c) => c.charCodeAt(0),
+          ),
+        );
         const proofText = new TextDecoder().decode(proofBytes);
         const webauthnProof = JSON.parse(proofText);
-        console.log('   🎉 SUCCESS: Direct signing produced WebAuthn proof format!');
-        console.log('   🆔 Credential ID in proof:', webauthnProof.credentialId?.slice(0, 16) + '...');
+        console.log(
+          "   🎉 SUCCESS: Direct signing produced WebAuthn proof format!",
+        );
+        console.log(
+          "   🆔 Credential ID in proof:",
+          webauthnProof.credentialId?.slice(0, 16) + "...",
+        );
       } catch (decodeError) {
-        console.log('   ⚠️ WARNING: Direct signing did NOT produce WebAuthn proof format');
-        console.log('   📝 Signature appears to be:', testSignature?.startsWith('30') ? 'DER-encoded ECDSA' : 'Unknown format');
+        console.log(
+          "   ⚠️ WARNING: Direct signing did NOT produce WebAuthn proof format",
+        );
+        console.log(
+          "   📝 Signature appears to be:",
+          testSignature?.startsWith("30")
+            ? "DER-encoded ECDSA"
+            : "Unknown format",
+        );
       }
-      
     } catch (signError) {
-      console.log('❌ Direct signing test failed:', signError.message);
-      console.log('   ⚠️ This explains why OrbitDB falls back to default signing!');
+      console.log("❌ Direct signing test failed:", signError.message);
+      console.log(
+        "   ⚠️ This explains why OrbitDB falls back to default signing!",
+      );
       throw signError;
     }
   }
@@ -220,22 +256,26 @@ export class IdentityService {
    * Test identity resolution
    */
   async testIdentityResolution(identity, identities) {
-    console.log('🔍 Testing identity resolution...');
+    console.log("🔍 Testing identity resolution...");
     console.log(`   🆔 Identity ID: ${identity.id}`);
     console.log(`   📦 Identity hash: ${identity.hash}`);
-    
+
     // Try resolving by both ID and hash
     const resolvedByID = await identities.getIdentity(identity.id);
     const resolvedByHash = await identities.getIdentity(identity.hash);
-    
-    console.log(`   🔍 Resolved by ID: ${resolvedByID ? '✅' : '❌'}`);
-    console.log(`   🔍 Resolved by hash: ${resolvedByHash ? '✅' : '❌'}`);
-    
+
+    console.log(`   🔍 Resolved by ID: ${resolvedByID ? "✅" : "❌"}`);
+    console.log(`   🔍 Resolved by hash: ${resolvedByHash ? "✅" : "❌"}`);
+
     if (resolvedByID || resolvedByHash) {
-      console.log('✅ Identity resolution test passed - access controller should work');
+      console.log(
+        "✅ Identity resolution test passed - access controller should work",
+      );
       return true;
     } else {
-      console.warn('⚠️ Identity resolution test failed - this may cause access control issues');
+      console.warn(
+        "⚠️ Identity resolution test failed - this may cause access control issues",
+      );
       return false;
     }
   }
@@ -248,7 +288,7 @@ export class IdentityService {
       supported: this.webAuthnSupported,
       platformAvailable: this.webAuthnPlatformAvailable,
       message: this.webAuthnSupportMessage,
-      checking: this.webAuthnChecking
+      checking: this.webAuthnChecking,
     };
   }
 

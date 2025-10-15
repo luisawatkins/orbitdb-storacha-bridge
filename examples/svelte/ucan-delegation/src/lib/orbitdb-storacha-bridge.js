@@ -244,22 +244,22 @@ async function initializeStorachaClient(storachaKey, storachaProof) {
  * @returns {Promise<Object>} - Initialized Storacha client
  */
 async function initializeStorachaClientWithUCAN(options) {
-  console.log('🔐 Initializing Storacha client with UCAN authentication...');
-  
+  console.log("🔐 Initializing Storacha client with UCAN authentication...");
+
   if (!options.client) {
-    throw new Error('UCAN client is required');
+    throw new Error("UCAN client is required");
   }
-  
+
   // If spaceDID is provided, set it as current space
   if (options.spaceDID) {
     console.log(`   🚀 Setting current space: ${options.spaceDID}`);
     await options.client.setCurrentSpace(options.spaceDID);
   }
-  
-  console.log('✅ UCAN Storacha client initialized');
+
+  console.log("✅ UCAN Storacha client initialized");
   console.log(`   🤖 Agent: ${options.client.agent.did()}`);
   console.log(`   🚀 Current space: ${options.client.currentSpace()?.did()}`);
-  
+
   return options.client;
 }
 
@@ -465,18 +465,20 @@ export async function listStorachaSpaceFiles(options = {}) {
   try {
     // Initialize client - support both credential and UCAN authentication
     let client;
-    
+
     // Check for UCAN authentication first
     if (options.ucanClient) {
       client = await initializeStorachaClientWithUCAN({
         client: options.ucanClient,
-        spaceDID: options.spaceDID
+        spaceDID: options.spaceDID,
       });
     } else {
       // Fall back to credential authentication
       const storachaKey =
         options.storachaKey ||
-        (typeof process !== "undefined" ? process.env?.STORACHA_KEY : undefined);
+        (typeof process !== "undefined"
+          ? process.env?.STORACHA_KEY
+          : undefined);
       const storachaProof =
         options.storachaProof ||
         (typeof process !== "undefined"
@@ -544,18 +546,20 @@ export async function listLayerFiles(layer, options = {}) {
   try {
     // Initialize client - support both credential and UCAN authentication
     let client;
-    
+
     // Check for UCAN authentication first
     if (options.ucanClient) {
       client = await initializeStorachaClientWithUCAN({
         client: options.ucanClient,
-        spaceDID: options.spaceDID
+        spaceDID: options.spaceDID,
       });
     } else {
       // Fall back to credential authentication
       const storachaKey =
         options.storachaKey ||
-        (typeof process !== "undefined" ? process.env?.STORACHA_KEY : undefined);
+        (typeof process !== "undefined"
+          ? process.env?.STORACHA_KEY
+          : undefined);
       const storachaProof =
         options.storachaProof ||
         (typeof process !== "undefined"
@@ -641,18 +645,20 @@ export async function removeLayerFiles(layer, cids, options = {}) {
   try {
     // Initialize client - support both credential and UCAN authentication
     let client;
-    
+
     // Check for UCAN authentication first
     if (options.ucanClient) {
       client = await initializeStorachaClientWithUCAN({
         client: options.ucanClient,
-        spaceDID: options.spaceDID
+        spaceDID: options.spaceDID,
       });
     } else {
       // Fall back to credential authentication
       const storachaKey =
         options.storachaKey ||
-        (typeof process !== "undefined" ? process.env?.STORACHA_KEY : undefined);
+        (typeof process !== "undefined"
+          ? process.env?.STORACHA_KEY
+          : undefined);
       const storachaProof =
         options.storachaProof ||
         (typeof process !== "undefined"
@@ -1064,19 +1070,21 @@ export async function backupDatabase(orbitdb, databaseAddress, options = {}) {
   try {
     // Initialize Storacha client - support both credential and UCAN authentication
     let client;
-    
+
     // Check for UCAN authentication first
     if (config.ucanClient) {
-      console.log('🔐 Using UCAN authentication...');
+      console.log("🔐 Using UCAN authentication...");
       client = await initializeStorachaClientWithUCAN({
         client: config.ucanClient,
-        spaceDID: config.spaceDID
+        spaceDID: config.spaceDID,
       });
     } else {
       // Fall back to credential authentication
       const storachaKey =
         config.storachaKey ||
-        (typeof process !== "undefined" ? process.env?.STORACHA_KEY : undefined);
+        (typeof process !== "undefined"
+          ? process.env?.STORACHA_KEY
+          : undefined);
       const storachaProof =
         config.storachaProof ||
         (typeof process !== "undefined"
@@ -1088,8 +1096,8 @@ export async function backupDatabase(orbitdb, databaseAddress, options = {}) {
           "Storacha authentication required: pass storachaKey + storachaProof OR ucanClient in options",
         );
       }
-      
-      console.log('🔑 Using credential authentication...');
+
+      console.log("🔑 Using credential authentication...");
       client = await initializeStorachaClient(storachaKey, storachaProof);
     }
 
@@ -1320,7 +1328,7 @@ export async function restoreDatabaseFromSpace(orbitdb, options = {}) {
     console.log(
       `   🎯 Selected manifest: ${correctManifest.cid} (matched from log entries)`,
     );
-    
+
     // Extract database type from manifest if available, otherwise infer from log entries
     let databaseType = inferDatabaseType(analysis.logEntryBlocks); // fallback
     if (correctManifest.content && correctManifest.content.type) {
@@ -1329,7 +1337,7 @@ export async function restoreDatabaseFromSpace(orbitdb, options = {}) {
     } else {
       console.log(`   🔍 Inferred database type: ${databaseType}`);
     }
-    
+
     const reconstructedDB = await orbitdb.open(
       databaseAddress,
       config.dbConfig ? config.dbConfig : { type: databaseType },
@@ -1420,18 +1428,20 @@ export async function restoreDatabase(
   try {
     // Initialize Storacha client - support both credential and UCAN authentication
     let client;
-    
+
     // Check for UCAN authentication first
     if (config.ucanClient) {
       client = await initializeStorachaClientWithUCAN({
         client: config.ucanClient,
-        spaceDID: config.spaceDID
+        spaceDID: config.spaceDID,
       });
     } else {
       // Fall back to credential authentication
       const storachaKey =
         config.storachaKey ||
-        (typeof process !== "undefined" ? process.env?.STORACHA_KEY : undefined);
+        (typeof process !== "undefined"
+          ? process.env?.STORACHA_KEY
+          : undefined);
       const storachaProof =
         config.storachaProof ||
         (typeof process !== "undefined"
@@ -2068,7 +2078,10 @@ function inferDatabaseType(logEntries) {
     if (payload && typeof payload === "object") {
       // Check for document/keyvalue operation patterns
       if ((payload.op === "PUT" || payload.op === "DEL") && payload.key) {
-        if (payload.key.startsWith("_id") || (payload.op === "PUT" && payload.value && payload.value._id)) {
+        if (
+          payload.key.startsWith("_id") ||
+          (payload.op === "PUT" && payload.value && payload.value._id)
+        ) {
           payloadPatterns.hasDocumentOps++;
         } else {
           payloadPatterns.hasKeyValueOps++;

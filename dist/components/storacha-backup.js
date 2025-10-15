@@ -12,8 +12,8 @@ import * as Client from "@storacha/client";
 import { StoreMemory } from "@storacha/client/stores/memory";
 import { Signer } from "@storacha/client/principal/ed25519";
 import * as Proof from "@storacha/client/proof";
-import * as Delegation from "@le-space/ucanto-client";
-import * as ed25519 from "@le-space/ucanto-principal/ed25519";
+import * as Delegation from "@ucanto/core/delegation";
+import * as ed25519 from "@ucanto/principal/ed25519";
 import { generateMnemonic, mnemonicToSeedSync } from "@scure/bip39";
 import { wordlist as english } from "@scure/bip39/wordlists/english";
 import { createHash } from "crypto";
@@ -71,7 +71,7 @@ export async function initializeStorachaClientWithUCAN(
 
     // Parse delegation token
     const delegationBytes = Buffer.from(ucanToken, "base64");
-const delegation = Delegation.parseOne(delegationBytes);
+    const delegation = await Delegation.extract(delegationBytes);
 
     if (!delegation.ok) {
       throw new Error("Failed to extract delegation from token");
@@ -171,7 +171,7 @@ export async function initializeStorachaClientWithSeed(
     if (delegationToken) {
       // Use provided delegation
       const delegationBytes = Buffer.from(delegationToken, "base64");
-const delegation = Delegation.parseOne(delegationBytes);
+      const delegation = await Delegation.extract(delegationBytes);
 
       if (!delegation.ok) {
         throw new Error("Failed to extract delegation from token");

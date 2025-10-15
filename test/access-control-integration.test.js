@@ -10,8 +10,7 @@
  */
 
 import 'dotenv/config'
-import { IPFSAccessController } from '@orbitdb/core'
-import { 
+import {
   backupDatabase, 
   restoreDatabaseFromSpace,
   clearStorachaSpace
@@ -75,6 +74,8 @@ async function createHeliaOrbitDBWithIdentity(suffix = '', identityId = null) {
   
   return { helia, orbitdb, libp2p, blockstore, datastore, identity: orbitdb.identity }
 }
+
+/* eslint-env jest */
 
 describe('OrbitDB Storacha Bridge - Access Control Integration', () => {
   let aliceNode, bobNode
@@ -297,8 +298,6 @@ describe('OrbitDB Storacha Bridge - Access Control Integration', () => {
       // Add entries so we have identity information in the log
       await sourceDB.add('Entry with identity info')
       await sourceDB.add('Second entry with identity')
-      
-      const originalIdentity = aliceNode.orbitdb.identity.id
       
       // Backup database
       const backupResult = await backupDatabase(aliceNode.orbitdb, sourceDB.address, {

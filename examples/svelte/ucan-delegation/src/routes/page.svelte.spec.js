@@ -1,13 +1,9 @@
-import { page } from "@vitest/browser/context";
-import { describe, expect, it } from "vitest";
-import { render } from "vitest-browser-svelte";
-import Page from "./+page.svelte";
+import { expect, test } from '@playwright/test';
 
-describe("/+page.svelte", () => {
-  it("should render h1", async () => {
-    render(Page);
-
+test.describe("/+page.svelte", () => {
+  test("should render h1", async ({ page }) => {
+    await page.goto("/");
     const heading = page.getByRole("heading", { level: 1 });
-    await expect.element(heading).toBeInTheDocument();
+    await expect(heading).toBeVisible();
   });
 });

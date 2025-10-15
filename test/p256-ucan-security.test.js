@@ -62,7 +62,7 @@ const getSecureRecipientFromOrbitDBIdentity = async (identityId) => {
  * Mock Storacha client createDelegation function for testing
  */
 const mockStorachaClient = {
-  createDelegation: async (recipient, capabilities, options) => {
+  createDelegation: async (_recipient, _capabilities, _options) => {
     // Simulate successful delegation creation
     return {
       cid: { toString: () => 'bafybeiabc123delegationcid456' },
