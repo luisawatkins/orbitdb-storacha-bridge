@@ -204,8 +204,37 @@ async function testSharedIdentities() {
     console.log(`   📊 Entries recovered: ${restoreResult.entriesRecovered}`)
     console.log(`   🔄 Blocks restored: ${restoreResult.blocksRestored}`)
     
-    // Step 9: Check if Bob can see the entries
-    console.log('\n📄 Step 9: Bob viewing restored entries...')
+    // Step 9: Verify identity block restoration
+    console.log('\n🔐 Step 9: Verifying identity block restoration...')
+    
+    if (restoreResult.analysis && restoreResult.analysis.identityBlocks) {
+      console.log(`   ✅ Identity blocks restored: ${restoreResult.analysis.identityBlocks.length}`)
+      
+      if (restoreResult.analysis.identityBlocks.length > 0) {
+        console.log('   📋 Identity preservation verified!')
+        restoreResult.analysis.identityBlocks.forEach((block, i) => {
+          console.log(`      ${i + 1}. ${block.cid} (Identity block)`)
+        })
+        console.log('   🎯 This ensures Alice\'s identity is preserved across nodes')
+      } else {
+        console.log('   ⚠️  No identity blocks found - this could affect cross-node access')
+        console.log('   📚 Without identity blocks, Bob may not be able to verify Alice\'s identity')
+      }
+    } else {
+      console.log('   ❌ No analysis data available for identity verification')
+      console.log('   📊 This suggests the restore process may not have captured identity metadata')
+    }
+    
+    // Also check access controller blocks
+    if (restoreResult.analysis && restoreResult.analysis.accessControllerBlocks) {
+      console.log(`   🔒 Access controller blocks: ${restoreResult.analysis.accessControllerBlocks.length}`)
+      if (restoreResult.analysis.accessControllerBlocks.length > 0) {
+        console.log('   ✅ Access control configuration preserved!')
+      }
+    }
+    
+    // Step 10: Check if Bob can see the entries
+    console.log('\n📄 Step 10: Bob viewing restored entries...')
     
     if (restoreResult.entries.length === 0) {
       console.log('   ⚠️ Bob sees 0 entries')
@@ -229,8 +258,8 @@ async function testSharedIdentities() {
       }
     }
     
-    // Step 10: Test if Bob can write
-    console.log('\n✍️  Step 10: Testing if Bob can write...')
+    // Step 11: Test if Bob can write
+    console.log('\n✍️  Step 11: Testing if Bob can write...')
     
     try {
       const bobEntry = await restoreResult.database.add('Message from Bob')

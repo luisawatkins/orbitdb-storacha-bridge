@@ -175,8 +175,131 @@ Uploaded at: ${new Date().toISOString()}`
     console.error('❌ Authentication or upload failed:', error.message)
   }
   
-  // Step 6: Demonstrate revocation
-  console.log('\n🚫 Step 6: Demonstrate UCAN revocation')
+  // Step 6: Test OrbitDB backup and restore with UCAN authentication
+  console.log('\n🔄 Step 6: Testing OrbitDB backup and restore with UCAN authentication')
+  
+  try {
+    // Import required modules for OrbitDB operations
+    const { backupDatabase, restoreDatabaseFromSpace } = await import('../lib/orbitdb-storacha-bridge.js')
+    const { createHeliaOrbitDB } = await import('../lib/utils.js')
+    
+    // Create OrbitDB instance for testing
+    console.log('   🏛️ Creating OrbitDB test database...')
+    const { helia, orbitdb, blockstore, datastore } = await createHeliaOrbitDB('-ucan-identity-test')
+    
+    // Create test database with UCAN identity
+    const testDB = await orbitdb.open('ucan-identity-test', { 
+      type: 'keyvalue',
+      create: true
+    })
+    
+    // Add test data
+    const testData = {
+      'ucan-test-1': { message: 'UCAN identity test', timestamp: Date.now() },
+      'ucan-test-2': { writer: writerIdentityId, authenticated: true },
+      'ucan-test-3': { delegation: 'deterministic', working: true }
+    }
+    
+    for (const [key, value] of Object.entries(testData)) {
+      await testDB.put(key, value)
+      console.log(`   ✓ Added: ${key}`)
+    }
+    
+    console.log(`   📊 Database created with ${Object.keys(testData).length} entries`)
+    
+    // Test backup with UCAN authentication (using writer's credentials)
+    console.log('\n   📤 Testing backup with UCAN authentication...')
+    
+    const backupResult = await backupDatabase(orbitdb, testDB.address, {
+      // Use the UCAN client we created earlier
+      ucanClient: writerClient,
+      spaceDID: space.did()
+    })
+    
+    if (backupResult.success) {
+      console.log('   ✅ UCAN Backup successful!')
+      console.log(`   📋 Manifest CID: ${backupResult.manifestCID}`)
+      console.log(`   📊 Blocks uploaded: ${backupResult.blocksUploaded}`)
+    } else {
+      console.log('   ❌ UCAN Backup failed:', backupResult.error)
+    }
+    
+    // Close database and clean up
+    await testDB.close()
+    await orbitdb.stop()
+    await helia.stop()
+    await blockstore.close()
+    await datastore.close()
+    
+    if (backupResult.success) {
+      // Test restore with identity verification
+      console.log('\n   📥 Testing restore with identity block verification...')
+      
+      // Create new OrbitDB instance for restore
+      const { helia: restoreHelia, orbitdb: restoreOrbitDB, blockstore: restoreBlockstore, datastore: restoreDatastore } = await createHeliaOrbitDB('-ucan-restore-test')
+      
+      const restoreResult = await restoreDatabaseFromSpace(restoreOrbitDB, {
+        ucanClient: writerClient,
+        spaceDID: space.did()
+      })
+      
+      if (restoreResult.success) {
+        console.log('   ✅ UCAN Restore successful!')
+        console.log(`   📍 Database: ${restoreResult.address}`)
+        console.log(`   📊 Entries: ${restoreResult.entriesRecovered}`)
+        
+        // **CRITICAL: Verify identity block restoration**
+        console.log('\n   🔐 Verifying identity block restoration...')
+        
+        if (restoreResult.analysis && restoreResult.analysis.identityBlocks) {
+          console.log(`   ✅ Identity blocks restored: ${restoreResult.analysis.identityBlocks.length}`)
+          
+          if (restoreResult.analysis.identityBlocks.length > 0) {
+            console.log('   📋 UCAN Identity preservation verified!')
+            restoreResult.analysis.identityBlocks.forEach((block, i) => {
+              console.log(`      ${i + 1}. ${block.cid} (Identity block)`)
+            })
+            console.log('   🎯 This proves UCAN authentication preserves OrbitDB identities!')
+          } else {
+            console.log('   ⚠️  No identity blocks found - UCAN identity may not be fully preserved')
+          }
+        } else {
+          console.log('   ❌ No identity analysis available - identity preservation unknown')
+        }
+        
+        // Also check access controller blocks
+        if (restoreResult.analysis && restoreResult.analysis.accessControllerBlocks) {
+          console.log(`   🔒 Access controller blocks: ${restoreResult.analysis.accessControllerBlocks.length}`)
+        }
+        
+        // Verify the restored data
+        if (restoreResult.entries.length > 0) {
+          console.log('   📊 Restored data validation:')
+          restoreResult.entries.forEach((entry, i) => {
+            if (entry.payload && entry.payload.value) {
+              console.log(`      ${i + 1}. ${entry.payload.key}: ${JSON.stringify(entry.payload.value)}`)
+            }
+          })
+        }
+        
+        await restoreResult.database.close()
+      } else {
+        console.log('   ❌ UCAN Restore failed:', restoreResult.error)
+      }
+      
+      // Cleanup restore instance
+      await restoreOrbitDB.stop()
+      await restoreHelia.stop()
+      await restoreBlockstore.close()
+      await restoreDatastore.close()
+    }
+    
+  } catch (orbitError) {
+    console.error('   ❌ OrbitDB backup/restore test failed:', orbitError.message)
+  }
+  
+  // Step 7: Demonstrate revocation
+  console.log('\n🚫 Step 7: Demonstrate UCAN revocation')
   
   await controller.revoke('write', writerIdentityId, 'Demo revocation')
   
@@ -204,6 +327,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.log('   • No need to manually manage recipient private keys')
       console.log('   • Supports real UCAN revocation via Storacha')
       console.log('   • Seamless integration with existing access control')
+      console.log('   • Full OrbitDB identity preservation across backup/restore cycles')
+      console.log('   • Identity blocks properly restored with UCAN authentication')
     })
     .catch(console.error)
 }

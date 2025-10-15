@@ -178,8 +178,38 @@ async function testDifferentIdentities() {
     console.log(`   📍 Address: ${restoreResult.address}`)
     console.log(`   📊 Entries recovered: ${restoreResult.entriesRecovered}`)
     
-    // Step 8: Display restored entries
-    console.log('\n📄 Step 8: Bob viewing restored entries...')
+    // Step 8: Verify identity block restoration
+    console.log('\n🔐 Step 8: Verifying identity block restoration...')
+    
+    if (restoreResult.analysis && restoreResult.analysis.identityBlocks) {
+      console.log(`   ✅ Identity blocks restored: ${restoreResult.analysis.identityBlocks.length}`)
+      
+      if (restoreResult.analysis.identityBlocks.length > 0) {
+        console.log('   📋 Identity preservation verified!')
+        restoreResult.analysis.identityBlocks.forEach((block, i) => {
+          console.log(`      ${i + 1}. ${block.cid} (Identity block)`)
+        })
+        console.log('   🎯 This proves Alice\'s identity is preserved in the backup')
+        console.log('   🔒 Bob cannot access the data due to access control, not missing identity')
+      } else {
+        console.log('   ⚠️  No identity blocks found - this could explain access issues')
+        console.log('   📚 Without identity blocks, Bob cannot verify Alice\'s entries')
+      }
+    } else {
+      console.log('   ❌ No analysis data available for identity verification')
+      console.log('   📊 This suggests identity metadata was not captured during backup')
+    }
+    
+    // Also check access controller blocks
+    if (restoreResult.analysis && restoreResult.analysis.accessControllerBlocks) {
+      console.log(`   🔒 Access controller blocks: ${restoreResult.analysis.accessControllerBlocks.length}`)
+      if (restoreResult.analysis.accessControllerBlocks.length > 0) {
+        console.log('   ✅ Access control rules preserved - explaining why Bob cannot see Alice\'s data!')
+      }
+    }
+    
+    // Step 9: Display restored entries
+    console.log('\n📄 Step 9: Bob viewing restored entries...')
     
     if (restoreResult.entries.length === 0) {
       console.log('   ⚠️ Bob sees 0 entries - this is expected!')
@@ -193,16 +223,16 @@ async function testDifferentIdentities() {
       }
     }
     
-    // Step 9: Verify Alice's identity in restored data from raw log
-    console.log('\n🔐 Step 9: Verifying data in raw log (bypassing access control)...')
+    // Step 10: Verify Alice's identity in restored data from raw log
+    console.log('\n🔐 Step 10: Verifying data in raw log (bypassing access control)...')
     const logEntries = await restoreResult.database.log.values()
     
     if (logEntries.length === 0) {
       console.log('   📄 No log entries available - data exists in blocks but not accessible to Bob')
       console.log('   🔒 Access control is working as designed!')
       
-      // Skip to Step 10
-      console.log('\n🔒 Step 10: Testing access control...')
+      // Skip to Step 11
+      console.log('\n🔒 Step 11: Testing access control...')
       console.log('   👨 Bob attempts to write to Alice\'s database...')
       
       try {
@@ -257,8 +287,8 @@ async function testDifferentIdentities() {
     console.log(`   👨 Current user (Bob): ${bobNode.orbitdb.identity.id}`)
     console.log(`   📊 Identity verification: ${firstLogEntry.identity === aliceIdentityId ? '✅ Matches Alice' : '❌ Does not match'}`)
     
-    // Step 10: Test access control - Bob tries to write
-    console.log('\n🔒 Step 10: Testing access control...')
+    // Step 11: Test access control - Bob tries to write
+    console.log('\n🔒 Step 11: Testing access control...')
     console.log('   👨 Bob attempts to write to Alice\'s database...')
     
     try {

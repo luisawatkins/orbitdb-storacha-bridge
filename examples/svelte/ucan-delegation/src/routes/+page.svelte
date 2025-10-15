@@ -1,5 +1,6 @@
 <script>
-  import StorachaTestWithReplication from "$lib/StorachaTestWithReplication.svelte";
+  import StorachaTest from "$lib/StorachaTest.svelte";
+  import StorachaTestWithWebAuthn from "$lib/StorachaTestWithWebAuthn.svelte"
   import { theme } from "$lib/theme.js";
   import {
     Content,
@@ -34,7 +35,7 @@
 </script>
 
 <svelte:head>
-  <title>OrbitDB Storacha Backup Restore with Replication Test</title>
+  <title>OrbitDB Storacha Backup Restore Test</title>
   <meta
     name="description"
     content="Test the OrbitDB Storacha Backup Restore functionality"
@@ -146,7 +147,7 @@
       <p
         style="text-align:center;margin:0 0 1rem 0;color:var(--cds-text-secondary);"
       >
-        Test backup and restore with P2P replication via <span
+        Test backup and restore functionality with <span
           class="gradient-text-cyan"
           style="font-weight:600;">Storacha/Filecoin</span
         >
@@ -196,15 +197,15 @@
     class="orbital-card"
     style="border-radius:1rem;padding:1rem;margin:0 auto;"
   >
-    <StorachaTestWithReplication />
+    <StorachaTestWithWebAuthn />
   </div>
 
   <div style="text-align:center;margin:2rem 0;color:var(--cds-text-secondary);">
-    <small>OrbitDB Storacha Bridge with P2P Replication Demo</small>
+    <small>OrbitDB Storacha Bridge Demo</small>
     <div
       style="margin-top:0.5rem;color:var(--cds-text-helper);font-size:0.75rem;"
     >
-      Real-time peer-to-peer database replication with decentralized backup/restore
+      Bridging distributed databases with decentralized storage
     </div>
   </div>
 </Content>
