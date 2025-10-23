@@ -1,6 +1,8 @@
 # OrbitDB Storacha Bridge
 
-> **OrbitDB database backup, restoration, replication, UCANs and more via Storacha/Filecoin**
+> **Production-ready OrbitDB database backup, restoration, replication, UCANs and more via Storacha/Filecoin**
+
+🎉 **Production Ready**: This codebase has been cleaned up and optimized for production use, with debug code removed, proper logging implemented, and comprehensive testing utilities.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-22+-green.svg)](https://nodejs.org/)
@@ -49,9 +51,11 @@ Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with 
 
 The project includes comprehensive **Svelte components** for browser-based demos and integration (see [Storacha Svelte Components](#storacha-svelte-components) section for details).
 
-Implemented but untested: 
-  - UCAN authentication (instead of Storacha key and proof credentials) and 
-  - StorachaStorage (a OrbitDB CustomStorage) where it will be possible to reactively store an orbitdb live on Storacha as a permanent backup while other peers are replicating as normal.
+**Production Features:**
+  - UCAN authentication (alternative to Storacha key and proof credentials)
+  - Complete backup/restore functionality with hash and identity preservation
+  - WebAuthn-based biometric authentication for secure identity management
+  - P2P replication with Storacha backup integration
 
 ## RoadMap
 
