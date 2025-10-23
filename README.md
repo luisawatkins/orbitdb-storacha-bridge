@@ -49,18 +49,17 @@ Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with 
 
 **WebAuthn DID Provider**: Hardware-secured biometric authentication (Face ID, Touch ID, Windows Hello) for OrbitDB identities. Eliminates seed phrase management while providing cryptographically secure identity management with private keys that never leave secure hardware.
 
-The project includes comprehensive **Svelte components** for browser-based demos and integration (see [Storacha Svelte Components](#storacha-svelte-components) section for details).
+The project includes **Svelte components** for browser-based demos and integration (see [Storacha Svelte Components](#storacha-svelte-components) section for details).
 
-**Production Features:**
+**Features:**
+
   - UCAN authentication (alternative to Storacha key and proof credentials)
-  - Complete backup/restore functionality with hash and identity preservation
-  - WebAuthn-based biometric authentication for secure identity management
-  - P2P replication with Storacha backup integration
+  - Backup/restore functionality with hash and identity preservation
 
 ## RoadMap
 
 - [x] backup/restore between OrbitDB and Storacha in NodeJS via Storacha key and proof credential (hash and identity preserving)
-- [ ] backup/restore between OrbitDB and Storacha in browser (StorachaIntegration.svelte) (hash and identity preserving) - [Issue #4](../../issues/4)
+- [x] backup/restore between OrbitDB and Storacha in browser (StorachaIntegration.svelte) (hash and identity preserving) - [Issue #4](../../issues/4)
 - [x] backup/restore between OrbitDB and Storacha in browser ([`StorachaTest.svelte`](src/components/StorachaTest.svelte)) (entries only - without manifest and identity preservation into new OrbitDB)
   - [x] using Storacha Credentials by [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte)
   - [x] using UCAN + privatekey
