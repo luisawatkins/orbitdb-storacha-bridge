@@ -10,9 +10,6 @@
       "types": "./lib/orbitdb-storacha-bridge.d.ts",
       "default": "./lib/orbitdb-storacha-bridge.js"
     },
-    "./enhanced-ucan-access-controller": {
-      "default": "./lib/enhanced-ucan-access-controller.js"
-    },
     "./StorachaIntegration.svelte": "./dist/components/StorachaIntegration.svelte",
     "./StorachaTest.svelte": "./dist/components/StorachaTest.svelte",
     "./StorachaAuth.svelte": "./dist/components/StorachaAuth.svelte",

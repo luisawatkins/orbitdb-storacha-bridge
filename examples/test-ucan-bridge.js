@@ -9,10 +9,10 @@
 import { promises as fs } from 'fs'
 
 // Import utilities for proper setup
-import { createHeliaOrbitDB } from './lib/utils.js'
+import { createHeliaOrbitDB } from '../lib/utils.js'
 
 // Import our UCAN bridge
-import { OrbitDBStorachaBridgeUCAN, backupDatabaseWithUCAN, restoreDatabaseFromSpaceWithUCAN } from './lib/ucan-bridge.js'
+import { OrbitDBStorachaBridgeUCAN, backupDatabaseWithUCAN, restoreDatabaseFromSpaceWithUCAN } from '../lib/ucan-bridge.js'
 
 async function testUCANBridge() {
   console.log('🧪 Testing UCAN Bridge Integration')
