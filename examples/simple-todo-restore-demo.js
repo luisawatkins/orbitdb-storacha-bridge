@@ -144,10 +144,6 @@ async function runSimpleTodoRestoreDemo() {
         storachaKey: process.env.STORACHA_KEY,
         storachaProof: process.env.STORACHA_PROOF,
         timeout: 120000, // 2 minutes timeout
-        verifyIntegrity: true,
-        restartAfterRestore: true,
-        // Prefer simple-todos database name
-        preferredDatabaseName: 'simple-todos'
       }
     )
     
