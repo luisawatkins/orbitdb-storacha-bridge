@@ -1,0 +1,10 @@
+# Build directories
+examples/svelte/*/build/**/*
+examples/svelte/*/dist/**/*
+examples/svelte/*/dev-dist/**/*
+examples/svelte/*/e2e/**/*
+
+# Svelte and browser files
+examples/svelte/**/*.svelte
+examples/svelte/**/theme.js
+examples/svelte/**/src/lib/theme.js

@@ -112,30 +112,34 @@ let uploadProgress = null;
 let downloadProgress = null;
 let showProgress = false;
 
-  // Test data
-  let originalTodos = [
-    {
-      id: "test_todo_1",
-      text: "Buy groceries for the week",
-      completed: false,
-      createdAt: new Date().toISOString(),
-      createdBy: "alice",
-    },
-    {
-      id: "test_todo_2",
-      text: "Walk the dog in the park",
-      completed: true,
-      createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-      createdBy: "alice",
-    },
-    {
-      id: "test_todo_3",
-      text: "Finish the OrbitDB project",
-      completed: false,
-      createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      createdBy: "alice",
-    },
-  ];
+  // Generate test data dynamically
+  function generateTestTodos(createdBy = "alice") {
+    return [
+      {
+        id: `test_todo_1_${Date.now()}`,
+        text: "Buy groceries for the week",
+        completed: false,
+        createdAt: new Date().toISOString(),
+        createdBy,
+      },
+      {
+        id: `test_todo_2_${Date.now()}`,
+        text: "Walk the dog in the park",
+        completed: true,
+        createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+        createdBy,
+      },
+      {
+        id: `test_todo_3_${Date.now()}`,
+        text: "Finish the OrbitDB project",
+        completed: false,
+        createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+        createdBy,
+      },
+    ];
+  }
+
+  let originalTodos = generateTestTodos();
 
   // Keep track of database addresses
   let storachaTestDatabaseAddresses = new Set();
@@ -1203,10 +1207,19 @@ let showProgress = false;
               {#if uploadProgress.error}
                 <InlineNotification 
                   kind="error" 
-                  title="Upload Error" 
+                  title={uploadProgress.error.type === 'ucan' ? 'UCAN Authorization Error' : 'Upload Error'} 
                   subtitle={uploadProgress.error.message} 
                   style="margin-top:0.5rem;"
-                />
+                >
+                  {#if uploadProgress.error.type === 'ucan' && uploadProgress.error.details}
+                    <div style="margin-top:0.5rem;font-size:0.75rem;color:var(--cds-text-secondary);">
+                      <details>
+                        <summary>Technical Details</summary>
+                        <pre style="white-space:pre-wrap;margin-top:0.5rem;">{uploadProgress.error.details}</pre>
+                      </details>
+                    </div>
+                  {/if}
+                </InlineNotification>
               {/if}
             </div>
           {/if}
