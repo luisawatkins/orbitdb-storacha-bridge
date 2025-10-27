@@ -5,11 +5,10 @@
  */
 
 import 'dotenv/config'
-import { jest } from '@jest/globals'
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals'
 import { backupDatabaseCAR, restoreFromSpaceCAR, readBlocksFromCAR, createCARFromBlocks } from '../lib/backup-car.js'
 import { backupDatabase as backupDatabaseLegacy } from '../lib/orbitdb-storacha-bridge.js'
 import { createHeliaOrbitDB } from '../lib/utils.js'
-import { CID } from 'multiformats/cid'
 
 describe('CAR-based Timestamped Backup', () => {
   let orbitdb

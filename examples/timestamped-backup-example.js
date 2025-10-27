@@ -1,7 +1,9 @@
 /**
  * Example implementation showing how to use timestamped backup files
+ * NOTE: This is a placeholder example - not a complete working implementation
  */
 
+/* eslint-disable no-undef */
 import { Readable } from 'stream'
 import { CarReader } from '@ipld/car'
 import { Signer } from '@storacha/client/principal/ed25519'

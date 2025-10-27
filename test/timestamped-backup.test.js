@@ -6,10 +6,7 @@ import { createHeliaOrbitDB, cleanupOrbitDBDirectories } from '../lib/utils.js'
 import { 
   backupDatabase,
   restoreDatabaseFromSpace,
-  listStorachaSpaceFiles,
-  generateBackupPrefix,
-  getBackupFilenames,
-  findLatestBackup
+  listStorachaSpaceFiles
 } from '../lib/orbitdb-storacha-bridge.js'
 
 describe('Timestamped backups', () => {
@@ -45,7 +42,7 @@ describe('Timestamped backups', () => {
     await sourceDB.add('Test entry 2')
 
     // Create first backup
-    const backup1 = await backupDatabase(sourceNode.orbitdb, sourceDB.address, {
+    await backupDatabase(sourceNode.orbitdb, sourceDB.address, {
       storachaKey: process.env.STORACHA_KEY,
       storachaProof: process.env.STORACHA_PROOF,
       spaceName: 'test-space'
@@ -56,7 +53,7 @@ describe('Timestamped backups', () => {
 
     // Add more data and create second backup
     await sourceDB.add('Test entry 3')
-    const backup2 = await backupDatabase(sourceNode.orbitdb, sourceDB.address, {
+    await backupDatabase(sourceNode.orbitdb, sourceDB.address, {
       storachaKey: process.env.STORACHA_KEY,
       storachaProof: process.env.STORACHA_PROOF,
       spaceName: 'test-space'
