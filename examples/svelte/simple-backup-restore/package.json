@@ -76,6 +76,8 @@
     "cbor-web": "^10.0.11",
     "datastore-level": "^11.0.4",
     "helia": "^5.5.1",
+    "key-did-provider-ed25519": "^4.0.0",
+    "key-did-resolver": "^4.0.0",
     "libp2p": "^2.10.0",
     "lucide-svelte": "^0.539.0",
     "multiformats": "^13.4.0",
