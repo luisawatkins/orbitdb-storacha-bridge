@@ -112,30 +112,34 @@ let uploadProgress = null;
 let downloadProgress = null;
 let showProgress = false;
 
-  // Test data
-  let originalTodos = [
-    {
-      id: "test_todo_1",
-      text: "Buy groceries for the week",
-      completed: false,
-      createdAt: new Date().toISOString(),
-      createdBy: "alice",
-    },
-    {
-      id: "test_todo_2",
-      text: "Walk the dog in the park",
-      completed: true,
-      createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-      createdBy: "alice",
-    },
-    {
-      id: "test_todo_3",
-      text: "Finish the OrbitDB project",
-      completed: false,
-      createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      createdBy: "alice",
-    },
-  ];
+  // Generate test data dynamically
+  function generateTestTodos(createdBy = "alice") {
+    return [
+      {
+        id: `test_todo_1_${Date.now()}`,
+        text: "Buy groceries for the week",
+        completed: false,
+        createdAt: new Date().toISOString(),
+        createdBy,
+      },
+      {
+        id: `test_todo_2_${Date.now()}`,
+        text: "Walk the dog in the park",
+        completed: true,
+        createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+        createdBy,
+      },
+      {
+        id: `test_todo_3_${Date.now()}`,
+        text: "Finish the OrbitDB project",
+        completed: false,
+        createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+        createdBy,
+      },
+    ];
+  }
+
+  let originalTodos = generateTestTodos();
 
   // Keep track of database addresses
   let storachaTestDatabaseAddresses = new Set();
