@@ -10,7 +10,6 @@
  * @requires ../lib/car-storage.js - CAR storage implementation
  */
 
-/* global beforeAll, afterAll */
 import { promises as fs } from "fs";
 import { join } from "path";
 import CARStorage from "../lib/car-storage.js";

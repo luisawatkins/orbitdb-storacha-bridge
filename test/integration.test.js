@@ -9,7 +9,6 @@
  * @author @NiKrause
  */
 
-/* global afterAll */
 import "dotenv/config";
 import { IPFSAccessController } from "@orbitdb/core";
 import * as Client from "@storacha/client";

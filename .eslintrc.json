@@ -12,9 +12,6 @@
     "ecmaVersion": "latest",
     "sourceType": "module"
   },
-  "plugins": [
-    "svelte"
-  ],
   "rules": {
     "no-console": "off",
     "no-unused-vars": [
@@ -29,13 +26,6 @@
     "no-var": "error"
   },
   "overrides": [
-    {
-      "files": ["*.svelte"],
-      "parser": "svelte-eslint-parser",
-      "extends": [
-        "plugin:svelte/recommended"
-      ]
-    },
     {
       "files": ["examples/**/*.js"],
       "rules": {
