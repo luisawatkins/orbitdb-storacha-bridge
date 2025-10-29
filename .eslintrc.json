@@ -1,7 +1,7 @@
 {
   "env": {
     "browser": true,
-    "es2021": true,
+    "es2022": true,
     "node": true,
     "jest": true
   },
@@ -15,6 +15,19 @@
   "plugins": [
     "svelte"
   ],
+  "rules": {
+    "no-console": "off",
+    "no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ],
+    "prefer-const": "warn",
+    "no-var": "error"
+  },
   "overrides": [
     {
       "files": ["*.svelte"],
@@ -22,18 +35,37 @@
       "extends": [
         "plugin:svelte/recommended"
       ]
+    },
+    {
+      "files": ["examples/**/*.js"],
+      "rules": {
+        "no-unused-vars": "off",
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["lib/**/*.js"],
+      "rules": {
+        "prefer-const": "error",
+        "no-unused-vars": [
+          "error",
+          {
+            "argsIgnorePattern": "^_",
+            "varsIgnorePattern": "^_"
+          }
+        ]
+      }
     }
   ],
-  "rules": {
-    "no-unused-vars": [
-      "error",
-      {
-        "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_",
-        "caughtErrorsIgnorePattern": "^_"
-      }
-    ]
-  },
+  "ignorePatterns": [
+    "node_modules/",
+    "coverage/",
+    "*.min.js",
+    "dist/",
+    "orbitdb/",
+    "examples/svelte/*/build/**",
+    "examples/svelte/*/dist/**"
+  ],
   "globals": {
     "localStorage": true,
     "window": true,
