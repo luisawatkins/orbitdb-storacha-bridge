@@ -12,16 +12,22 @@
 
 ## Table of Contents
 
-- [What we want to accomplish](#what-we-want-to-accomplish)
-- [What This Does](#what-this-does)
-- [RoadMap](#roadmap)
-- [Installation](#installation)
-- [Environment Setup](#environment-setup)
-- [Demo](#demo)
-- [How It Works](#how-it-works)
-- [Testing](#testing)
-- [Contributing](#contributing)
-- [License](#license)
+- [OrbitDB Storacha Bridge](#orbitdb-storacha-bridge)
+  - [Table of Contents](#table-of-contents)
+  - [What we want to accomplish](#what-we-want-to-accomplish)
+  - [What This Does](#what-this-does)
+  - [RoadMap](#roadmap)
+  - [Installation](#installation)
+  - [Environment Setup](#environment-setup)
+  - [Demo](#demo)
+    - [NodeJS Demo Scripts (full backup with Manifest, Identity and AccessController and entries blocks)](#nodejs-demo-scripts-full-backup-with-manifest-identity-and-accesscontroller-and-entries-blocks)
+    - [Svelte Components](#svelte-components)
+  - [How It Works](#how-it-works)
+  - [Logging](#logging)
+  - [Testing](#testing)
+    - [CAR Storage Tests](#car-storage-tests)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 
 ## What we want to accomplish
@@ -29,7 +35,7 @@
 Alice and Bob are working with the same OrbitDB in a local-first, peer-to-peer web or mobile application.
 In a perfect world, Alice and Bob wouldn't need any additional decentralized storage, since their data is already distributed among a number of peers, depending on the use case and general peer-to-peer network architecture. If Alice loses her data, Bob would still have a copy, and Alice could resync from Bob or others at any time. This reflects the current state of technology in OrbitDB.
 
-Additionally, relay nodes or networks optionally can run Helia and OrbitDB instances for pinning the db data of Alice and Bob in a decentralized way. Here it still needs a decentralized pinning network for OrbitDBs and possible referenced media pointing to IPFS CIDs.
+Additionally, relay nodes or networks optionally can run Helia and OrbitDB instances for pinning the db data of Alice and Bob in a decentralized way. There is still a need for a decentralized pinning network for OrbitDBs and possibly referenced media pointing to IPFS CIDs.
 
 OrbitDB-Storacha-Bridge is intended for archiving large OrbitDBs on additional decentralized Storacha/Filecoin storage, which would otherwise take a long time to replicate. Since data modeling in OrbitDB is different from traditional relational databases, it must be thought about differently. Not all users of a local-first peer-to-peer app would ever share the same identical database—we all agree that this isn't feasible. However, for example, an OrbitDB with blog posts would tend to grow large over time, and at some point, the whole blog history must be archived and sharded into separate databases in order to keep replication time short and ensure a good user experience when loading the blog.
 
@@ -37,8 +43,7 @@ Initially, each user hosts their own data on their own device and decides with w
 
 OrbitDB-Storacha-Bridge is also useful for emergency cases, for example, when both Alice and Bob lose their data or devices. In that case, Alice, Bob, or even a new user like Peter can restore the work from Storacha with the same identity or with a new identity. We support UCAN authentication and plan to enable UCAN delegation between OrbitDBs with OrbitDBAccessControllers. Alice could delegate access to the same Storacha backup space to whomever she wants for a defined period.
 
-It has happened in the past that countries, mobile networks, internet providers, corporate networks, or hotels block IP addresses, ports, and protocols — for example, WebRTC or WebSocket/WebTransport gateways. Although libp2p support many different transport options as backup or alternative and such cases are becoming rarer because in the last years, it would still be desirable to have an additional option - just to be safe. This would allow users to restore an OrbitDB directly from IPFS and to push or upload database states back to it via Storacha/Filecoin after every db change.
-This backup option becomes particularly valuable when peer-to-peer connectivity cannot be established due to network restrictions or when internet standards are broken.
+It has happened in the past that countries, mobile networks, internet providers, corporate networks, or hotels block IP addresses, ports, and protocols — for example, WebRTC or WebSocket/WebTransport gateways. Although libp2p supports many different transport options as backup or alternatives, and such cases are becoming rarer in recent years, it would still be desirable to have an additional option—just to be safe. This would allow users to restore an OrbitDB directly from IPFS and to push or upload database states back to it via Storacha/Filecoin after every db change. This backup option becomes particularly valuable when peer-to-peer connectivity cannot be established due to network restrictions or when internet standards are broken.
 
 Please note: Storacha backup and restore works via Storacha's centralized gateway to Filecoin's decentralized backup storage at the time of writing.
 
@@ -46,7 +51,7 @@ Please note: Storacha backup and restore works via Storacha's centralized gatewa
 
 Backup and restore between **OrbitDB databases** and **Storacha/Filecoin** with full hash and identity preservation. Works in both Node.js and browser environments. [See Storacha Integration Widget in Simple Todo Example](https://simple-todo.le-space.de/)
 
-The project includes **Svelte components** for browser-based demos and integration (see [Storacha Svelte Components](#storacha-svelte-components) section for details).
+The project includes **Svelte components** for browser-based demos and integration (see [SVELTE-COMPONENTS.md](SVELTE-COMPONENTS.md) for detailed documentation).
 
 **Features:**
 
@@ -92,68 +97,9 @@ Get Storacha credentials from [storacha.network quickstart](https://docs.storach
 - `node` [`examples/clear-space.js`](examples/clear-space.js) - Clear all files from Storacha space (utility script)
 - `node` [`examples/timestamped-backup-example.js`](examples/timestamped-backup-example.js) - Timestamped backup implementation helper
 
-### Storacha Svelte Components
+### Svelte Components
 
-Svelte components for OrbitDB-Storacha integration in browser environments:
-
-#### [`StorachaAuth.svelte`](src/components/StorachaAuth.svelte)
-
-Authentication component supporting multiple Storacha authentication methods:
-
-- Storacha credentials (Storacha-Key and Storacha Proof)
-- UCAN authentication (delegated UCAN + corresponding private key) 
-
-#### [`StorachaTest.svelte`](src/components/StorachaTest.svelte)
-
-Basic backup/restore demo with Alice & Bob using independent OrbitDB instances:
-
-- Creates separate OrbitDB databases with different addresses
-- No P2P replication - data exchange via Storacha backup/restore only
-- Demonstrates entry-only backup approach (recreates database from entries + config)
-- Uses mnemonic seed generation and DID-based identity management
-
-#### [`StorachaTestWithReplication.svelte`](src/components/StorachaTestWithReplication.svelte)
-
-Advanced replication demo with Alice & Bob using shared database and P2P connectivity:
-
-- Creates shared OrbitDB database with same address for both peers
-- Full P2P replication via libp2p with circuit relay support  
-- Backup/restore preserves replication capabilities
-- Uses Carbon Design System components for enhanced UI
-
-#### [`StorachaTestWithWebAuthn.svelte`](src/components/StorachaTestWithWebAuthn.svelte)
-
-WebAuthn biometric authentication demo with hardware-secured DID identities:
-
-- WebAuthn biometric authentication (Face ID, Touch ID, Windows Hello, PIN)
-- Hardware-secured DID creation using WebAuthn credentials
-- CBOR public key parsing from WebAuthn attestation objects
-- Backup/restore with biometric-secured identities
-
-#### [`WebAuthnDIDProvider.js`](src/components/WebAuthnDIDProvider.js)
-
-WebAuthn DID Provider for OrbitDB - Complete identity provider implementation:
-
-- WebAuthn integration with OrbitDB's identity system
-- Public key extraction from WebAuthn credentials via CBOR parsing
-- DID specification compliance (`did:webauthn:...` format)
-- Hardware-secured private keys that never leave the secure element
-- Biometric authentication for every signing operation
-
-#### [`StorachaIntegration.svelte`](src/components/StorachaIntegration.svelte)
-
-Full integration component for existing OrbitDB Svelte applications:
-- Hash and identity preserving backup/restore (full database reconstruction)
-- Progress tracking with real-time upload/download indicators
-- LocalStorage credential management with auto-login
-- Space management (create, list, select Storacha spaces)
-- Note: Currently has browser limitations for full hash preservation ([Issue #4](../../issues/4))
-
-### Svelte App Demonstrations
-
-- `node` [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) - Creates SvelteKit demo app with StorachaAuth and StorachaTest components
-- `node` [`scripts/svelte-backup-restore-02.js`](scripts/svelte-backup-restore-02.js) - Enhanced demo with StorachaTestWithReplication component
-- WebAuthn Demo: Use [`orbitdb-storacha-svelte-backup-restore-demo`](orbitdb-storacha-svelte-backup-restore-demo/) with StorachaTestWithWebAuthn for biometric authentication testing
+For browser-based integration, this project includes Svelte components for authentication, backup/restore, P2P replication, and WebAuthn biometric authentication. See [**SVELTE-COMPONENTS.md**](SVELTE-COMPONENTS.md) for complete documentation of all available components and demonstrations.
 
 ## How It Works
 
@@ -173,20 +119,6 @@ export LOG_LEVEL=debug
 
 # Enable pretty printing for development
 export LOG_PRETTY=true
-```
-
-**Quick example:**
-
-```javascript
-import { logger } from 'orbitdb-storacha-bridge/lib/logger.js';
-
-// Structured logging with context
-logger.info({ blockCount: 150, dbName: 'todos' }, 'Backup completed');
-
-// Control logging programmatically
-import { setLogLevel, disableLogging } from 'orbitdb-storacha-bridge/lib/logger.js';
-setLogLevel('debug');
-disableLogging(); // Silence all logs
 ```
 
 ## Testing
