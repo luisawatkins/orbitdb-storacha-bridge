@@ -28,7 +28,8 @@ The OrbitDB-Storacha-Bridge project includes **Svelte components** for browser-b
 Authentication component supporting multiple Storacha authentication methods:
 
 - Storacha credentials (Storacha-Key and Storacha Proof)
-- UCAN authentication (delegated UCAN + corresponding private key)
+- UCAN authentication (delegated UCAN + corresponding temporary private key)
+- WebAuthN/Passkey (P-256) UCANs and delegation (planed)
 
 ## StorachaTest.svelte
 

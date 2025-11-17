@@ -15,6 +15,10 @@
 - [OrbitDB Storacha Bridge](#orbitdb-storacha-bridge)
   - [Table of Contents](#table-of-contents)
   - [What we want to accomplish](#what-we-want-to-accomplish)
+    - [The Challenge of Distributed Data Persistence](#the-challenge-of-distributed-data-persistence)
+    - [Architectural Considerations for Local-First Applications](#architectural-considerations-for-local-first-applications)
+    - [Use Cases for OrbitDB-Storacha-Bridge](#use-cases-for-orbitdb-storacha-bridge)
+    - [Architecture Notes](#architecture-notes)
   - [What This Does](#what-this-does)
   - [RoadMap](#roadmap)
   - [Installation](#installation)
@@ -32,20 +36,37 @@
 
 ## What we want to accomplish
 
-Alice and Bob are working with the same OrbitDB in a local-first, peer-to-peer web or mobile application.
-In a perfect world, Alice and Bob wouldn't need any additional decentralized storage, since their data is already distributed among a number of peers, depending on the use case and general peer-to-peer network architecture. If Alice loses her data, Bob would still have a copy, and Alice could resync from Bob or others at any time. This reflects the current state of technology in OrbitDB.
+### The Challenge of Distributed Data Persistence
 
-Additionally, relay nodes or networks optionally can run Helia and OrbitDB instances for pinning the db data of Alice and Bob in a decentralized way. There is still a need for a decentralized pinning network for OrbitDBs and possibly referenced media pointing to IPFS CIDs.
+In local-first, peer-to-peer applications built on OrbitDB, data naturally replicates across participating peers through libp2p network connections. Under ideal conditions, this distributed architecture provides inherent redundancy—if one peer loses data, they can resynchronize from other active peers in the network. This peer-to-peer replication model represents the current state of OrbitDB technology.
 
-OrbitDB-Storacha-Bridge is intended for archiving large OrbitDBs on additional decentralized Storacha/Filecoin storage, which would otherwise take a long time to replicate. Since data modeling in OrbitDB is different from traditional relational databases, it must be thought about differently. Not all users of a local-first peer-to-peer app would ever share the same identical database—we all agree that this isn't feasible. However, for example, an OrbitDB with blog posts would tend to grow large over time, and at some point, the whole blog history must be archived and sharded into separate databases in order to keep replication time short and ensure a good user experience when loading the blog.
+While relay nodes and pinning services (running Helia and OrbitDB instances) can provide additional decentralized persistence for database entries and IPFS-referenced content, the ecosystem still lacks comprehensive infrastructure for long-term archival of large-scale OrbitDB deployments.
 
-Initially, each user hosts their own data on their own device and decides with whom they need or want to replicate the data. This depends strongly on the use case. Each app user typically doesn't want or need to replicate with everyone.
+### Architectural Considerations for Local-First Applications
 
-OrbitDB-Storacha-Bridge is also useful for emergency cases, for example, when both Alice and Bob lose their data or devices. In that case, Alice, Bob, or even a new user like Peter can restore the work from Storacha with the same identity or with a new identity. We support UCAN authentication and plan to enable UCAN delegation between OrbitDBs with OrbitDBAccessControllers. Alice could delegate access to the same Storacha backup space to whomever she wants for a defined period.
+OrbitDB's data model differs fundamentally from traditional centralized databases. In local-first architectures, users typically host their own data locally and selectively replicate with specific peers based on collaboration requirements—not with the entire network. This selective replication is essential for scalability and user experience.
 
-It has happened in the past that countries, mobile networks, internet providers, corporate networks, or hotels block IP addresses, ports, and protocols — for example, WebRTC or WebSocket/WebTransport gateways. Although libp2p supports many different transport options as backup or alternatives, and such cases are becoming rarer in recent years, it would still be desirable to have an additional option—just to be safe. This would allow users to restore an OrbitDB directly from IPFS and to push or upload database states back to it via Storacha/Filecoin after every db change. This backup option becomes particularly valuable when peer-to-peer connectivity cannot be established due to network restrictions or when internet standards are broken.
+However, as OrbitDB instances grow (consider a blog database accumulating years of posts), replication times increase proportionally. At scale, databases require archival strategies and potential sharding to maintain performant synchronization and optimal user experience.
 
-Please note: Storacha backup and restore works via Storacha's centralized gateway to Filecoin's decentralized backup storage at the time of writing.
+### Use Cases for OrbitDB-Storacha-Bridge
+
+This bridge addresses several critical scenarios:
+
+**1. Long-term Archival**
+Archive large OrbitDB instances to Storacha/Filecoin storage, enabling efficient cold storage for historical data while maintaining fast replication of active datasets.
+
+**2. Disaster Recovery**
+Provides recovery options when all active peers lose data simultaneously. Users can restore databases from Storacha using either their original identity or a new identity, ensuring business continuity beyond the peer-to-peer network's availability.
+
+**3. Network Resilience**
+Historically, various network environments (corporate networks, ISPs, regional restrictions) have blocked critical protocols including WebRTC and WebSocket/WebTransport. While libp2p's multi-transport architecture provides numerous fallback options, having an additional restoration pathway through IPFS/Storacha offers defense-in-depth for network-hostile environments. Users can restore databases directly from IPFS and maintain incremental backups after each database mutation.
+
+**4. Access Control & Delegation**
+The bridge supports UCAN (User Controlled Authorization Networks) authentication with planned delegation capabilities between OrbitDB instances. This enables fine-grained, time-bound access control for Storacha backup spaces, allowing users to securely share access with collaborators or recovery agents.
+
+### Architecture Notes
+
+Currently, Storacha backup and restore operations utilize Storacha's gateway infrastructure to interface with Filecoin's decentralized storage network. This hybrid approach balances accessibility with decentralization during the current phase of the Filecoin ecosystem's evolution.
 
 ## What This Does
 
