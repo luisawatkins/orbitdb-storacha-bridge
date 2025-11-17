@@ -13,7 +13,7 @@ This document provides detailed documentation for the Svelte components included
   - [StorachaTestWithWebAuthn.svelte](#storachatestwithwebauthnsvelte)
   - [WebAuthnDIDProvider.js](#webauthndidproviderjs)
   - [StorachaIntegration.svelte](#storachaintegrationsvelte)
-  - [Svelte App Demonstrations](#svelte-app-demonstrations)
+  - [Svelte App Demos](#svelte-app-demos)
   - [Live Demo](#live-demo)
   - [Return to Main Documentation](#return-to-main-documentation)
 
@@ -88,13 +88,13 @@ Full integration component for existing OrbitDB Svelte applications:
 - Space management (create, list, select Storacha spaces)
 - Note: Currently has browser limitations for full hash preservation ([Issue #4](../../issues/4))
 
-## Svelte App Demonstrations
+## Svelte App Demos
 
-The following scripts create complete SvelteKit demo applications:
+In the examples/svelte diretory you find three simple to advanced OrbitDB-Storacha examples.
 
-- `node` [`scripts/svelte-backup-restore.js`](scripts/svelte-backup-restore.js) - Creates SvelteKit demo app with StorachaAuth and StorachaTest components
-- `node` [`scripts/svelte-backup-restore-02.js`](scripts/svelte-backup-restore-02.js) - Enhanced demo with StorachaTestWithReplication component
-- WebAuthn Demo: Use [`orbitdb-storacha-svelte-backup-restore-demo`](orbitdb-storacha-svelte-backup-restore-demo/) with StorachaTestWithWebAuthn for biometric authentication testing
+- simple-backup-restore (Alice creates a db and a Storacha backup - Bob restores it into his own - no replication)
+- orbitdb-replication (Alice creates a db with todos and creates a backup - Bob replicates it (but cannot add Todo's because of missing access permissions)  )
+- ucan-delegation (P-256 UCAN's currently not supported by Storacha upload-service)
 
 ## Live Demo
 
