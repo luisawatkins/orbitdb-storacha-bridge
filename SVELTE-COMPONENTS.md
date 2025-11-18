@@ -98,7 +98,23 @@ In the examples/svelte diretory you find three simple to advanced OrbitDB-Storac
 
 ## Live Demo
 
-[See Storacha Integration Widget in Simple Todo Example](https://simple-todo.le-space.de/)
+- [See Storacha Integration Widget in Simple Todo Example](https://simple-todo.le-space.de/)
+
+---
+
+### Simple Backup & Restore Live Demo
+
+[![Simple Backup & Restore Demo](https://img.youtube.com/vi/Bzeg5gHlQvE/maxresdefault.jpg)](https://www.youtube.com/watch?v=Bzeg5gHlQvE)
+
+**Watch on YouTube:** [Simple Backup & Restore Demo →](https://www.youtube.com/watch?v=Bzeg5gHlQvE)
+
+---
+
+### OrbitDB Replication Live Demo
+
+[![OrbitDB Replication Demo](https://img.youtube.com/vi/ZOYeMIiVwr8/maxresdefault.jpg)](https://www.youtube.com/watch?v=ZOYeMIiVwr8)
+
+**Watch on YouTube:** [OrbitDB Replication Demo →](https://www.youtube.com/watch?v=ZOYeMIiVwr8)
 
 ## Return to Main Documentation
 
